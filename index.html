@@ -1149,31 +1149,30 @@ async function getBookedDates() {
 }
 
 // Update your window.onload to this:
-window.onload = async function() {
+window.onload = function() {
   loadGalleryByCategory('EVENT SETUP');
   updateCartCount();
 
-  // Fetch booked dates before initializing Flatpickr
-  const bookedDates = await getBookedDates();
-
-  flatpickr("#rentalDateRange", {
-    mode: "range",
-    dateFormat: "Y-m-d",
-    minDate: "today",
-    disable: bookedDates, // this disables the already booked dates
-    onClose: function(selectedDates, dateStr, instance) {
-      const input = document.getElementById("rentalDateRange");
-
-      if (selectedDates.length === 1) {
-        // User clicked just one date — treat it as 1-day range
-        const onlyDate = selectedDates[0];
-        const formatted = instance.formatDate(onlyDate, "Y-m-d");
-        input.value = `${formatted} to ${formatted}`; // force a 1-day range
-        updateRentalDuration();
-      } else if (selectedDates.length === 2) {
-        updateRentalDuration(); // normal behavior
+  // Fetch and disable booked dates in the calendar
+  getBookedDates().then(function(bookedDates) {
+    flatpickr("#rentalDateRange", {
+      mode: "range",
+      dateFormat: "Y-m-d",
+      minDate: "today",
+      disable: bookedDates, // disables already booked dates (array of "YYYY-MM-DD")
+      onClose: function(selectedDates, dateStr, instance) {
+        const input = document.getElementById("rentalDateRange");
+        if (selectedDates.length === 1) {
+          // User clicked just one date — treat it as 1-day range
+          const onlyDate = selectedDates[0];
+          const formatted = instance.formatDate(onlyDate, "Y-m-d");
+          input.value = `${formatted} to ${formatted}`;
+          updateRentalDuration && updateRentalDuration();
+        } else if (selectedDates.length === 2) {
+          updateRentalDuration && updateRentalDuration();
+        }
       }
-    }
+    });
   });
 };
 
