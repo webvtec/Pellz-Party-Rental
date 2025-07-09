@@ -899,8 +899,8 @@ function handlePayment(paymentType) {
   window._stripePaymentType = paymentType;
 }
 
-async function completeBooking() {
-  // 1. Get booking details (with fallback)
+  async function completeBooking() {
+  // 1. Get booking details
   const name = document.getElementById("customerName")?.value.trim() || "";
   const phone = document.getElementById("customerPhone")?.value.trim() || "";
   const location = document.getElementById("customerLocation")?.value.trim() || "";
@@ -919,38 +919,52 @@ async function completeBooking() {
     return;
   }
 
-  // 3. Prevent overlapping bookings (for each rental day)
+  // 3. Get start and end dates as Date objects
+  let [startDateStr, endDateStr] = rentalDates.split(" to ");
+  if (!endDateStr) endDateStr = startDateStr; // single day booking support
+
+  const newStartDate = new Date(startDateStr);
+  const newEndDate = new Date(endDateStr);
+
+  // 4. Prevent overlapping bookings
   try {
-    const [startDateStr, endDateStr] = rentalDates.split(" to ");
-    const dayCount = (startDateStr && endDateStr)
-      ? Math.ceil((new Date(endDateStr) - new Date(startDateStr)) / (1000 * 60 * 60 * 24)) + 1
-      : 1;
+    // Get all reservations that have any overlap with chosen date range
+    const snapshot = await db.collection("reservations")
+      .where("startDate", "<=", endDateStr)
+      .where("endDate", ">=", startDateStr)
+      .get();
+
     let conflictFound = false;
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      // Date overlap is already filtered by query, now check time overlap per day
+      // If the reservation is for the exact same day(s), check time interval
+      // If multiple days: as long as any day overlaps, time must be checked
+      let existingStartDate = new Date(data.startDate);
+      let existingEndDate = new Date(data.endDate);
 
-    for (let i = 0; i < dayCount; i++) {
-      const checkDate = new Date(startDateStr);
-      checkDate.setDate(checkDate.getDate() + i);
-      const formattedDate = checkDate.toISOString().slice(0, 10); // YYYY-MM-DD
-
-      const reservationsSnap = await db.collection("reservations")
-        .where("rentalDates", "array-contains-any", [formattedDate, rentalDates])
-        .get();
-
-      reservationsSnap.forEach(doc => {
-        const data = doc.data();
-        // If booking for same date, check time overlap
+      // For each overlapping day, compare times
+      let overlap = (
+        (newStartDate <= existingEndDate) && (newEndDate >= existingStartDate)
+      );
+      if (overlap) {
+        // If dates overlap, check for time conflict for each day (simplified: just check times if dates match)
+        // If it's exactly the same day, check time
         if (
-          (data.rentalDates === formattedDate || data.rentalDates === rentalDates) &&
-          (
-            // Overlap: [startTime, endTime] vs [data.startTime, data.endTime]
-            (startTime < data.endTime && endTime > data.startTime)
-          )
+          (startDateStr === data.startDate && endDateStr === data.endDate) ||
+          (startDateStr === data.startDate) ||
+          (endDateStr === data.endDate)
         ) {
+          // Time overlap check: (startA < endB) && (endA > startB)
+          if (startTime < data.endTime && endTime > data.startTime) {
+            conflictFound = true;
+          }
+        } else {
+          // Multi-day bookings: any overlap is a conflict
           conflictFound = true;
         }
-      });
-      if (conflictFound) break;
-    }
+      }
+    });
 
     if (conflictFound) {
       alert("This time slot is already booked. Please select a different time or date.");
@@ -962,26 +976,27 @@ async function completeBooking() {
     return;
   }
 
-  // 4. Send Telegram notification (optional, after conflict check)
+  // 5. Send Telegram notification (optional, after conflict check)
   try {
     sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType);
-  } catch (e) {
-    // ignore Telegram errors, not critical
-  }
+  } catch (e) { /* ignore Telegram errors */ }
 
-  // 5. Save reservation to Firestore
+  // 6. Save reservation to Firestore (store dates as separate fields)
   try {
     await db.collection("reservations").add({
       name,
       phone,
       location,
       rentalDates,
+      startDate: startDateStr,
+      endDate: endDateStr,
       startTime,
       endTime,
       paymentType,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    // 6. Clear cart and update UI
+
+    // 7. Clear cart and update UI
     localStorage.removeItem('cart');
     if (typeof updateCartCount === "function") updateCartCount();
 
@@ -1010,7 +1025,8 @@ async function completeBooking() {
     console.error("Error adding reservation: ", error);
     alert("There was an error saving your reservation. Please try again.");
   }
-}
+  }
+
   // Telegram notification function
   function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType) {
     const telegramBotToken = '7638261664:AAGm0MNVQxN0hlW1bhXBRf-kSRuMgRkCLC8'; // Replace!
