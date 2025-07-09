@@ -717,6 +717,41 @@ textarea {
       }
     });
 
+  async function fetchBookedDateRanges() {
+  const snapshot = await db.collection('reservations').get();
+  let bookedRanges = [];
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (data.rentalDates) {
+      // rentalDates might be "2024-07-10 to 2024-07-13"
+      const [start, end] = data.rentalDates.split(' to ');
+      if (start && end) {
+        bookedRanges.push({ 
+          from: start.trim(), 
+          to: end.trim() 
+        });
+      }
+    }
+  });
+  return bookedRanges;
+  }
+
+  async function canBookSelectedRange(selectedRange) {
+  const bookedRanges = await fetchBookedDateRanges();
+  if (!selectedRange || selectedRange.length !== 2) return false;
+  const newStart = new Date(selectedRange[0]);
+  const newEnd = new Date(selectedRange[1]);
+  
+  for (const range of bookedRanges) {
+    const bookedStart = new Date(range.from);
+    const bookedEnd = new Date(range.to);
+    if (newStart <= bookedEnd && newEnd >= bookedStart) {
+      return false; // Overlap detected
+    }
+  }
+  return true;
+  }
+
 let stripe, elements, cardNumber, cardExpiry, cardCvc;
 
 // Helper functions for modal handling
@@ -860,6 +895,20 @@ document.getElementById('payDeposit').addEventListener('click', () => {
     });
     const days = getRentalDayCount();
     return Math.round(total * days * 100); // Stripe expects cents
+  }
+
+  async function handleBooking() {
+  const rentalDateRange = document.getElementById('rentalDateRange').value;
+  const selectedRange = rentalDateRange.split(' to ');
+  if (!(await canBookSelectedRange(selectedRange))) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Sorry!',
+      text: 'Those dates are already booked. Please choose different dates.'
+    });
+    return;
+  }
+  // ...proceed with payment/booking
   }
 
 // Main payment handler
@@ -1091,6 +1140,7 @@ window.onload = function() {
     mode: "range",
     dateFormat: "Y-m-d",
     minDate: "today",
+    disable: bookedRanges, // <-- Add comma here
     onClose: function(selectedDates, dateStr, instance) {
       const input = document.getElementById("rentalDateRange");
 
