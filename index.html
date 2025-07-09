@@ -899,8 +899,8 @@ function handlePayment(paymentType) {
   window._stripePaymentType = paymentType;
 }
 
-function completeBooking() {
-  // Get details from your form or page
+async function completeBooking() {
+  // Get booking details
   const name = document.getElementById("customerName")?.value || "N/A";
   const phone = document.getElementById("customerPhone")?.value || "N/A";
   const location = document.getElementById("customerLocation")?.value || "N/A";
@@ -909,42 +909,42 @@ function completeBooking() {
   const endTime = document.getElementById("endTime")?.value || "N/A";
   const paymentType = window._stripePaymentType === "full" ? "Full Price" : "Deposit";
 
-  // ✅ CALL the Telegram function
+  // ✅ Send Telegram message
   sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType);
 
-  const rentalDates = document.getElementById("rentalDateRange")?.value || "N/A";
-const startTime = document.getElementById("startTime")?.value || "N/A";
-const endTime = document.getElementById("endTime")?.value || "N/A";
+  // ✅ Prevent overlapping bookings
+  try {
+    const [startDate] = rentalDates.split(" to ");
+    const newStart = new Date(`${startDate}T${startTime}`);
+    const newEnd = new Date(`${startDate}T${endTime}`);
 
-const [startDate, endDate] = rentalDates.split(" to ");
-const newStart = new Date(`${startDate}T${startTime}`);
-const newEnd = new Date(`${startDate}T${endTime}`);
+    const conflictSnapshot = await db.collection("reservations")
+      .where("rentalDates", "==", rentalDates)
+      .get();
 
-// 🔁 Check Firestore for overlapping bookings
-const conflictSnapshot = await db.collection("reservations")
-  .where("rentalDates", "==", rentalDates)
-  .get();
+    let conflictFound = false;
 
-let conflictFound = false;
+    conflictSnapshot.forEach(doc => {
+      const data = doc.data();
+      const existingStart = new Date(`${startDate}T${data.startTime}`);
+      const existingEnd = new Date(`${startDate}T${data.endTime}`);
 
-conflictSnapshot.forEach(doc => {
-  const data = doc.data();
-  const existingStart = new Date(`${startDate}T${data.startTime}`);
-  const existingEnd = new Date(`${startDate}T${data.endTime}`);
+      if (newStart < existingEnd && newEnd > existingStart) {
+        conflictFound = true;
+      }
+    });
 
-  if (
-    (newStart < existingEnd && newEnd > existingStart) // time overlap
-  ) {
-    conflictFound = true;
+    if (conflictFound) {
+      alert("This time slot is already booked. Please select a different time.");
+      return;
+    }
+  } catch (error) {
+    console.error("Error checking for conflicts:", error);
+    alert("Could not verify availability. Please try again.");
+    return;
   }
-});
 
-if (conflictFound) {
-  alert("This time slot is already booked. Please select a different time.");
-  return;
-}
-
-  // Send to Firestore for Admin Dashboard
+  // ✅ Save reservation to Firestore
   db.collection("reservations").add({
     name,
     phone,
@@ -962,32 +962,33 @@ if (conflictFound) {
     console.error("Error adding reservation: ", error);
   });
 
-  // Finish existing logic
+  // ✅ Clear cart and update UI
   localStorage.removeItem('cart');
   updateCartCount && updateCartCount();
 
-  // ✅ Show SweetAlert confirmation popup (no end time)
+  // ✅ Show confirmation
   Swal.fire({
-  title: 'ORDER MADE',
-  html: `
-    <div style="font-size: 18px; font-weight: 500; color: #333; text-align: center;">
-      WE WILL DELIVER THE ITEMS TO<br>
-      <span style="color: #1a73e8; font-weight: 600;">${location}</span><br><br>
-      ON <span style="color: #1a73e8; font-weight: 600;">${rentalDates}</span><br>
-      AT <span style="color: #1a73e8; font-weight: 600;">${startTime}</span>
-    </div>
-  `,
-  icon: 'success',
-  iconColor: '#4caf50',
-  background: '#f8f9fa',
-  confirmButtonText: 'Awesome!',
-  confirmButtonColor: '#1a73e8',
-  customClass: {
-    popup: 'swal2-rounded',
-    title: 'swal2-title-custom',
-    confirmButton: 'swal2-confirm-custom'
-  }
-});
+    title: 'ORDER MADE',
+    html: `
+      <div style="font-size: 18px; font-weight: 500; color: #333; text-align: center;">
+        WE WILL DELIVER THE ITEMS TO<br>
+        <span style="color: #1a73e8; font-weight: 600;">${location}</span><br><br>
+        ON <span style="color: #1a73e8; font-weight: 600;">${rentalDates}</span><br>
+        AT <span style="color: #1a73e8; font-weight: 600;">${startTime}</span>
+      </div>
+    `,
+    icon: 'success',
+    iconColor: '#4caf50',
+    background: '#f8f9fa',
+    confirmButtonText: 'Awesome!',
+    confirmButtonColor: '#1a73e8',
+    customClass: {
+      popup: 'swal2-rounded',
+      title: 'swal2-title-custom',
+      confirmButton: 'swal2-confirm-custom'
+    }
+  });
+}
 
   // Telegram notification function
   function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType) {
