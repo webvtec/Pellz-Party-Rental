@@ -717,31 +717,6 @@ textarea {
       }
     });
 
-  // Returns an array of booked date strings (YYYY-MM-DD) for Flatpickr's disable option
-async function getBookedDates() {
-  const snapshot = await db.collection("reservations").get();
-  const bookedDates = new Set();
-
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    if (data.rentalDates && data.startTime && data.endTime) {
-      const [startDateStr, endDateStr] = data.rentalDates.split(' to ');
-      let current = new Date(startDateStr);
-      const end = new Date(endDateStr);
-
-      while (current <= end) {
-        const year = current.getFullYear();
-        const month = String(current.getMonth() + 1).padStart(2, '0');
-        const day = String(current.getDate()).padStart(2, '0');
-        bookedDates.add(`${year}-${month}-${day}`);
-        current.setDate(current.getDate() + 1);
-      }
-    }
-  });
-
-  return Array.from(bookedDates);
-  }
-  
 let stripe, elements, cardNumber, cardExpiry, cardCvc;
 
 // Helper functions for modal handling
@@ -888,7 +863,7 @@ document.getElementById('payDeposit').addEventListener('click', () => {
   }
 
 // Main payment handler
-async function handlePayment(paymentType) {
+function handlePayment(paymentType) {
   const fields = [
     document.getElementById("customerName"),
     document.getElementById("customerPhone"),
@@ -911,22 +886,6 @@ async function handlePayment(paymentType) {
     firstError.focus();
     return;
   }
-
-  // --- AVAILABILITY CHECK STARTS HERE ---
-  const rentalRange = document.getElementById('rentalDateRange').value;
-  const startTime = document.getElementById('startTime').value;
-  const endTime = document.getElementById('endTime').value;
-
-  const [startDateStr, endDateStr] = rentalRange.split(' to ');
-  const newStart = new Date(`${startDateStr}T${startTime}`);
-  const newEnd = new Date(`${endDateStr}T${endTime}`);
-
-  const bookings = await getExistingBookings();
-  if (!isBookingAvailable(newStart, newEnd, bookings)) {
-    alert("Sorry, this slot is already booked. Please select a different time.");
-    return;
-  }
-  // --- AVAILABILITY CHECK ENDS HERE ---
 
   document.getElementById('cartModal').style.display = 'none';
   showPaymentModal();
@@ -1124,55 +1083,27 @@ function loadGallery(containerId) {
   });
 }
 
-// Add this async function somewhere before window.onload
-async function getBookedDates() {
-  const snapshot = await db.collection("reservations").get();
-  const bookedDates = new Set();
-
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    if (data.rentalDates && data.startTime && data.endTime) {
-      const [startDateStr, endDateStr] = data.rentalDates.split(' to ');
-      let current = new Date(startDateStr);
-      const end = new Date(endDateStr);
-      while (current <= end) {
-        const year = current.getFullYear();
-        const month = String(current.getMonth() + 1).padStart(2, '0');
-        const day = String(current.getDate()).padStart(2, '0');
-        bookedDates.add(`${year}-${month}-${day}`);
-        current.setDate(current.getDate() + 1);
-      }
-    }
-  });
-
-  return Array.from(bookedDates);
-}
-
-// Update your window.onload to this:
 window.onload = function() {
   loadGalleryByCategory('EVENT SETUP');
   updateCartCount();
 
-  // Fetch and disable booked dates in the calendar
-  getBookedDates().then(function(bookedDates) {
-    flatpickr("#rentalDateRange", {
-      mode: "range",
-      dateFormat: "Y-m-d",
-      minDate: "today",
-      disable: bookedDates, // disables already booked dates (array of "YYYY-MM-DD")
-      onClose: function(selectedDates, dateStr, instance) {
-        const input = document.getElementById("rentalDateRange");
-        if (selectedDates.length === 1) {
-          // User clicked just one date — treat it as 1-day range
-          const onlyDate = selectedDates[0];
-          const formatted = instance.formatDate(onlyDate, "Y-m-d");
-          input.value = `${formatted} to ${formatted}`;
-          updateRentalDuration && updateRentalDuration();
-        } else if (selectedDates.length === 2) {
-          updateRentalDuration && updateRentalDuration();
-        }
+  flatpickr("#rentalDateRange", {
+    mode: "range",
+    dateFormat: "Y-m-d",
+    minDate: "today",
+    onClose: function(selectedDates, dateStr, instance) {
+      const input = document.getElementById("rentalDateRange");
+
+      if (selectedDates.length === 1) {
+        // 👇 User clicked just one date — treat it as 1-day range
+        const onlyDate = selectedDates[0];
+        const formatted = instance.formatDate(onlyDate, "Y-m-d");
+        input.value = `${formatted} to ${formatted}`; // force a 1-day range
+        updateRentalDuration();
+      } else if (selectedDates.length === 2) {
+        updateRentalDuration(); // normal behavior
       }
-    });
+    }
   });
 };
 
@@ -1806,4 +1737,4 @@ function removeItem(index) {
 
   </script>
   </body>
-  </html>
+</html>
