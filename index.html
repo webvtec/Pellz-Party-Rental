@@ -1002,44 +1002,6 @@ function completeBooking() {
   }
   return true; // No overlap
   }
-
-  async function tryBookingAndPayment(paymentType) {
-  // Gather booking info
-  const rentalDates = document.getElementById("rentalDateRange").value;
-  const startTime = document.getElementById("startTime").value;
-  const endTime = document.getElementById("endTime").value;
-
-  // Parse date and time to Date objects
-  const [dateStr] = rentalDates.split(" to ");
-  const newStart = new Date(`${dateStr}T${startTime}`);
-  const newEnd = new Date(`${dateStr}T${endTime}`);
-
-  // Fetch existing bookings for this date
-  const bookingsSnapshot = await db.collection("reservations")
-    .where("rentalDates", "==", rentalDates)
-    .get();
-
-  const bookings = [];
-  bookingsSnapshot.forEach(doc => {
-    const data = doc.data();
-    const bookedStart = new Date(`${dateStr}T${data.startTime}`);
-    const bookedEnd = new Date(`${dateStr}T${data.endTime}`);
-    bookings.push({ start: bookedStart, end: bookedEnd });
-  });
-
-  // Use your isBookingAvailable check
-  if (!isBookingAvailable(newStart, newEnd, bookings)) {
-    Swal.fire({
-      title: 'Time Slot Unavailable',
-      text: 'The selected time overlaps with an existing booking. Please choose a different time.',
-      icon: 'error'
-    });
-    return;
-  }
-
-  // If available, proceed to your existing handlePayment logic
-  handlePayment(paymentType);
-  }
     
     function login() {
   const email = prompt('Enter admin email:');
