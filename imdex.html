@@ -717,23 +717,31 @@ textarea {
       }
     });
 
-  // Fetch all reservations from Firestore and convert to JS Date objects
-async function getExistingBookings() {
+  // Returns an array of booked date strings (YYYY-MM-DD) for Flatpickr's disable option
+async function getBookedDates() {
   const snapshot = await db.collection("reservations").get();
-  const bookings = [];
+  const bookedDates = new Set();
+
   snapshot.forEach(doc => {
     const data = doc.data();
-    // Parse rentalDates and times
     if (data.rentalDates && data.startTime && data.endTime) {
       const [startDateStr, endDateStr] = data.rentalDates.split(' to ');
-      const start = new Date(`${startDateStr}T${data.startTime}`);
-      const end = new Date(`${endDateStr}T${data.endTime}`);
-      bookings.push({ start, end });
+      let current = new Date(startDateStr);
+      const end = new Date(endDateStr);
+
+      while (current <= end) {
+        const year = current.getFullYear();
+        const month = String(current.getMonth() + 1).padStart(2, '0');
+        const day = String(current.getDate()).padStart(2, '0');
+        bookedDates.add(`${year}-${month}-${day}`);
+        current.setDate(current.getDate() + 1);
+      }
     }
   });
-  return bookings;
-}
 
+  return Array.from(bookedDates);
+  }
+  
 let stripe, elements, cardNumber, cardExpiry, cardCvc;
 
 // Helper functions for modal handling
@@ -1116,19 +1124,48 @@ function loadGallery(containerId) {
   });
 }
 
-window.onload = function() {
+// Add this async function somewhere before window.onload
+async function getBookedDates() {
+  const snapshot = await db.collection("reservations").get();
+  const bookedDates = new Set();
+
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (data.rentalDates && data.startTime && data.endTime) {
+      const [startDateStr, endDateStr] = data.rentalDates.split(' to ');
+      let current = new Date(startDateStr);
+      const end = new Date(endDateStr);
+      while (current <= end) {
+        const year = current.getFullYear();
+        const month = String(current.getMonth() + 1).padStart(2, '0');
+        const day = String(current.getDate()).padStart(2, '0');
+        bookedDates.add(`${year}-${month}-${day}`);
+        current.setDate(current.getDate() + 1);
+      }
+    }
+  });
+
+  return Array.from(bookedDates);
+}
+
+// Update your window.onload to this:
+window.onload = async function() {
   loadGalleryByCategory('EVENT SETUP');
   updateCartCount();
+
+  // Fetch booked dates before initializing Flatpickr
+  const bookedDates = await getBookedDates();
 
   flatpickr("#rentalDateRange", {
     mode: "range",
     dateFormat: "Y-m-d",
     minDate: "today",
+    disable: bookedDates, // this disables the already booked dates
     onClose: function(selectedDates, dateStr, instance) {
       const input = document.getElementById("rentalDateRange");
 
       if (selectedDates.length === 1) {
-        // 👇 User clicked just one date — treat it as 1-day range
+        // User clicked just one date — treat it as 1-day range
         const onlyDate = selectedDates[0];
         const formatted = instance.formatDate(onlyDate, "Y-m-d");
         input.value = `${formatted} to ${formatted}`; // force a 1-day range
