@@ -752,29 +752,6 @@ textarea {
   return true;
   }
 
-  document.addEventListener('DOMContentLoaded', async function () {
-  // Fetch the booked ranges from Firestore
-  const bookedRanges = await fetchBookedDateRanges();
-  // Attach flatpickr to the input
-  flatpickr("#rentalDateRange", {
-    mode: "range",
-    dateFormat: "Y-m-d",
-    minDate: "today",
-    disable: bookedRanges,
-    onClose: function(selectedDates, dateStr, instance) {
-      const input = document.getElementById("rentalDateRange");
-      if (selectedDates.length === 1) {
-        const onlyDate = selectedDates[0];
-        const formatted = instance.formatDate(onlyDate, "Y-m-d");
-        input.value = `${formatted} to ${formatted}`;
-        // updateRentalDuration(); // Call if you have this function
-      } else if (selectedDates.length === 2) {
-        // updateRentalDuration(); // Call if you have this function
-      }
-    }
-  });
-});
-
 let stripe, elements, cardNumber, cardExpiry, cardCvc;
 
 // Helper functions for modal handling
@@ -1155,26 +1132,26 @@ function loadGallery(containerId) {
   });
 }
 
-window.onload = function() {
+window.onload = async function() {
   loadGalleryByCategory('EVENT SETUP');
   updateCartCount();
+
+  const bookedRanges = await fetchBookedDateRanges();
 
   flatpickr("#rentalDateRange", {
     mode: "range",
     dateFormat: "Y-m-d",
     minDate: "today",
-    disable: bookedRanges, // <-- Correct: comma present
+    disable: bookedRanges,
     onClose: function(selectedDates, dateStr, instance) {
       const input = document.getElementById("rentalDateRange");
-
       if (selectedDates.length === 1) {
-        // 👇 User clicked just one date — treat it as 1-day range
         const onlyDate = selectedDates[0];
         const formatted = instance.formatDate(onlyDate, "Y-m-d");
-        input.value = `${formatted} to ${formatted}`; // force a 1-day range
+        input.value = `${formatted} to ${formatted}`;
         updateRentalDuration();
       } else if (selectedDates.length === 2) {
-        updateRentalDuration(); // normal behavior
+        updateRentalDuration();
       }
     }
   });
