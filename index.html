@@ -753,10 +753,11 @@ function hidePaymentModal() {
 document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('closePaymentModal').onclick = hidePaymentModal;
   document.getElementById('paymentModalOverlay').onclick = hidePaymentModal;
-
-  // Initialize Flatpickr with disabled dates
+  document.addEventListener('DOMContentLoaded', function () {
+  // Any other initialization code you have...
+  
+  // This will fetch disabled dates and initialize Flatpickr
   loadDisabledDates();
-
 });
 
   // Stripe initialization (only once)
