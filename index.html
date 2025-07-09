@@ -1126,24 +1126,7 @@ window.onload = function() {
   loadGalleryByCategory('EVENT SETUP');
   updateCartCount();
 
-  flatpickr("#rentalDateRange", {
-    mode: "range",
-    dateFormat: "Y-m-d",
-    minDate: "today",
-    onClose: function(selectedDates, dateStr, instance) {
-      const input = document.getElementById("rentalDateRange");
-
-      if (selectedDates.length === 1) {
-        // 👇 User clicked just one date — treat it as 1-day range
-        const onlyDate = selectedDates[0];
-        const formatted = instance.formatDate(onlyDate, "Y-m-d");
-        input.value = `${formatted} to ${formatted}`; // force a 1-day range
-        updateRentalDuration();
-      } else if (selectedDates.length === 2) {
-        updateRentalDuration(); // normal behavior
-      }
-    }
-  });
+  loadDisabledDates();
 };
 
 // Handle star rating UI
