@@ -899,133 +899,63 @@ function handlePayment(paymentType) {
   window._stripePaymentType = paymentType;
 }
 
-  async function completeBooking() {
-  // 1. Get booking details
-  const name = document.getElementById("customerName")?.value.trim() || "";
-  const phone = document.getElementById("customerPhone")?.value.trim() || "";
-  const location = document.getElementById("customerLocation")?.value.trim() || "";
-  const rentalDates = document.getElementById("rentalDateRange")?.value.trim() || "";
-  const startTime = document.getElementById("startTime")?.value || "";
-  const endTime = document.getElementById("endTime")?.value || "";
+function completeBooking() {
+  // Get details from your form or page
+  const name = document.getElementById("customerName")?.value || "N/A";
+  const phone = document.getElementById("customerPhone")?.value || "N/A";
+  const location = document.getElementById("customerLocation")?.value || "N/A";
+  const rentalDates = document.getElementById("rentalDateRange")?.value || "N/A";
+  const startTime = document.getElementById("startTime")?.value || "N/A";
+  const endTime = document.getElementById("endTime")?.value || "N/A";
   const paymentType = window._stripePaymentType === "full" ? "Full Price" : "Deposit";
 
-  // 2. Validate fields
-  if (!name || !phone || !location || !rentalDates || !startTime || !endTime) {
-    alert("Please fill in all required booking fields.");
-    return;
-  }
-  if (startTime >= endTime) {
-    alert("End time must be after start time.");
-    return;
-  }
+  // ✅ CALL the Telegram function
+  sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType);
 
-  // 3. Get start and end dates as Date objects
-  let [startDateStr, endDateStr] = rentalDates.split(" to ");
-  if (!endDateStr) endDateStr = startDateStr; // single day booking support
-
-  const newStartDate = new Date(startDateStr);
-  const newEndDate = new Date(endDateStr);
-
-  // 4. Prevent overlapping bookings
-  try {
-    // Get all reservations that have any overlap with chosen date range
-    const snapshot = await db.collection("reservations")
-      .where("startDate", "<=", endDateStr)
-      .where("endDate", ">=", startDateStr)
-      .get();
-
-    let conflictFound = false;
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      // Date overlap is already filtered by query, now check time overlap per day
-      // If the reservation is for the exact same day(s), check time interval
-      // If multiple days: as long as any day overlaps, time must be checked
-      let existingStartDate = new Date(data.startDate);
-      let existingEndDate = new Date(data.endDate);
-
-      // For each overlapping day, compare times
-      let overlap = (
-        (newStartDate <= existingEndDate) && (newEndDate >= existingStartDate)
-      );
-      if (overlap) {
-        // If dates overlap, check for time conflict for each day (simplified: just check times if dates match)
-        // If it's exactly the same day, check time
-        if (
-          (startDateStr === data.startDate && endDateStr === data.endDate) ||
-          (startDateStr === data.startDate) ||
-          (endDateStr === data.endDate)
-        ) {
-          // Time overlap check: (startA < endB) && (endA > startB)
-          if (startTime < data.endTime && endTime > data.startTime) {
-            conflictFound = true;
-          }
-        } else {
-          // Multi-day bookings: any overlap is a conflict
-          conflictFound = true;
-        }
-      }
-    });
-
-    if (conflictFound) {
-      alert("This time slot is already booked. Please select a different time or date.");
-      return;
-    }
-  } catch (error) {
-    console.error("Error checking for conflicts:", error);
-    alert("Could not verify availability. Please try again.");
-    return;
-  }
-
-  // 5. Send Telegram notification (optional, after conflict check)
-  try {
-    sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType);
-  } catch (e) { /* ignore Telegram errors */ }
-
-  // 6. Save reservation to Firestore (store dates as separate fields)
-  try {
-    await db.collection("reservations").add({
-      name,
-      phone,
-      location,
-      rentalDates,
-      startDate: startDateStr,
-      endDate: endDateStr,
-      startTime,
-      endTime,
-      paymentType,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    // 7. Clear cart and update UI
-    localStorage.removeItem('cart');
-    if (typeof updateCartCount === "function") updateCartCount();
-
-    Swal.fire({
-      title: 'ORDER MADE',
-      html: `
-        <div style="font-size: 18px; font-weight: 500; color: #333; text-align: center;">
-          WE WILL DELIVER THE ITEMS TO<br>
-          <span style="color: #1a73e8; font-weight: 600;">${location}</span><br><br>
-          ON <span style="color: #1a73e8; font-weight: 600;">${rentalDates}</span><br>
-          AT <span style="color: #1a73e8; font-weight: 600;">${startTime}</span>
-        </div>
-      `,
-      icon: 'success',
-      iconColor: '#4caf50',
-      background: '#f8f9fa',
-      confirmButtonText: 'Awesome!',
-      confirmButtonColor: '#1a73e8',
-      customClass: {
-        popup: 'swal2-rounded',
-        title: 'swal2-title-custom',
-        confirmButton: 'swal2-confirm-custom'
-      }
-    });
-  } catch (error) {
+  // Send to Firestore for Admin Dashboard
+  db.collection("reservations").add({
+    name,
+    phone,
+    location,
+    rentalDates,
+    startTime,
+    endTime,
+    paymentType,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  })
+  .then(() => {
+    console.log("Reservation added to Firestore!");
+  })
+  .catch((error) => {
     console.error("Error adding reservation: ", error);
-    alert("There was an error saving your reservation. Please try again.");
+  });
+
+  // Finish existing logic
+  localStorage.removeItem('cart');
+  updateCartCount && updateCartCount();
+
+  // ✅ Show SweetAlert confirmation popup (no end time)
+  Swal.fire({
+  title: 'ORDER MADE',
+  html: `
+    <div style="font-size: 18px; font-weight: 500; color: #333; text-align: center;">
+      WE WILL DELIVER THE ITEMS TO<br>
+      <span style="color: #1a73e8; font-weight: 600;">${location}</span><br><br>
+      ON <span style="color: #1a73e8; font-weight: 600;">${rentalDates}</span><br>
+      AT <span style="color: #1a73e8; font-weight: 600;">${startTime}</span>
+    </div>
+  `,
+  icon: 'success',
+  iconColor: '#4caf50',
+  background: '#f8f9fa',
+  confirmButtonText: 'Awesome!',
+  confirmButtonColor: '#1a73e8',
+  customClass: {
+    popup: 'swal2-rounded',
+    title: 'swal2-title-custom',
+    confirmButton: 'swal2-confirm-custom'
   }
-  }
+});
 
   // Telegram notification function
   function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType) {
@@ -1807,4 +1737,4 @@ function removeItem(index) {
 
   </script>
   </body>
-</html>
+  </html>
