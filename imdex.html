@@ -717,6 +717,23 @@ textarea {
       }
     });
 
+  // Fetch all reservations from Firestore and convert to JS Date objects
+async function getExistingBookings() {
+  const snapshot = await db.collection("reservations").get();
+  const bookings = [];
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    // Parse rentalDates and times
+    if (data.rentalDates && data.startTime && data.endTime) {
+      const [startDateStr, endDateStr] = data.rentalDates.split(' to ');
+      const start = new Date(`${startDateStr}T${data.startTime}`);
+      const end = new Date(`${endDateStr}T${data.endTime}`);
+      bookings.push({ start, end });
+    }
+  });
+  return bookings;
+}
+
 let stripe, elements, cardNumber, cardExpiry, cardCvc;
 
 // Helper functions for modal handling
@@ -863,7 +880,7 @@ document.getElementById('payDeposit').addEventListener('click', () => {
   }
 
 // Main payment handler
-function handlePayment(paymentType) {
+async function handlePayment(paymentType) {
   const fields = [
     document.getElementById("customerName"),
     document.getElementById("customerPhone"),
@@ -886,6 +903,22 @@ function handlePayment(paymentType) {
     firstError.focus();
     return;
   }
+
+  // --- AVAILABILITY CHECK STARTS HERE ---
+  const rentalRange = document.getElementById('rentalDateRange').value;
+  const startTime = document.getElementById('startTime').value;
+  const endTime = document.getElementById('endTime').value;
+
+  const [startDateStr, endDateStr] = rentalRange.split(' to ');
+  const newStart = new Date(`${startDateStr}T${startTime}`);
+  const newEnd = new Date(`${endDateStr}T${endTime}`);
+
+  const bookings = await getExistingBookings();
+  if (!isBookingAvailable(newStart, newEnd, bookings)) {
+    alert("Sorry, this slot is already booked. Please select a different time.");
+    return;
+  }
+  // --- AVAILABILITY CHECK ENDS HERE ---
 
   document.getElementById('cartModal').style.display = 'none';
   showPaymentModal();
