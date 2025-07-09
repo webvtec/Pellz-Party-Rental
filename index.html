@@ -912,6 +912,38 @@ function completeBooking() {
   // ✅ CALL the Telegram function
   sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType);
 
+  const rentalDates = document.getElementById("rentalDateRange")?.value || "N/A";
+const startTime = document.getElementById("startTime")?.value || "N/A";
+const endTime = document.getElementById("endTime")?.value || "N/A";
+
+const [startDate, endDate] = rentalDates.split(" to ");
+const newStart = new Date(`${startDate}T${startTime}`);
+const newEnd = new Date(`${startDate}T${endTime}`);
+
+// 🔁 Check Firestore for overlapping bookings
+const conflictSnapshot = await db.collection("reservations")
+  .where("rentalDates", "==", rentalDates)
+  .get();
+
+let conflictFound = false;
+
+conflictSnapshot.forEach(doc => {
+  const data = doc.data();
+  const existingStart = new Date(`${startDate}T${data.startTime}`);
+  const existingEnd = new Date(`${startDate}T${data.endTime}`);
+
+  if (
+    (newStart < existingEnd && newEnd > existingStart) // time overlap
+  ) {
+    conflictFound = true;
+  }
+});
+
+if (conflictFound) {
+  alert("This time slot is already booked. Please select a different time.");
+  return;
+}
+
   // Send to Firestore for Admin Dashboard
   db.collection("reservations").add({
     name,
