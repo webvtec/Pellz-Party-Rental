@@ -938,6 +938,32 @@ async function handlePayment(paymentType) {
   return false; // No conflict
 }
 
+  async function loadDisabledDates() {
+  try {
+    const snapshot = await db.collection("reservations").get();
+    const disabledDates = [];
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.rentalDates) {
+        const [startStr, endStr] = data.rentalDates.split(' to ');
+        const start = new Date(startStr);
+        const end = new Date(endStr);
+
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          disabledDates.push(new Date(d));
+        }
+      }
+    });
+
+    console.log('Disabled Dates Loaded:', disabledDates);
+    initDatePicker(disabledDates);
+  } catch (error) {
+    console.error('Error loading disabled dates:', error);
+    initDatePicker([]);  // fallback: load calendar without disabled dates
+  }
+}
+
 function completeBooking() {
   // Get details from your form or page
   const name = document.getElementById("customerName")?.value || "N/A";
