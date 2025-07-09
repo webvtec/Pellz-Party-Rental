@@ -863,7 +863,7 @@ document.getElementById('payDeposit').addEventListener('click', () => {
   }
 
 // Main payment handler
-function handlePayment(paymentType) {
+async function handlePayment(paymentType) {
   const fields = [
     document.getElementById("customerName"),
     document.getElementById("customerPhone"),
@@ -887,16 +887,55 @@ function handlePayment(paymentType) {
     return;
   }
 
+  // 🔒 Cross Booking Check
+  const rentalRange = document.getElementById("rentalDateRange").value;
+  const [startStr, endStr] = rentalRange.split(" to ");
+  if (!startStr || !endStr) {
+    alert("Please select valid rental dates.");
+    return;
+  }
+
+  const conflict = await checkCrossBookingConflict(startStr, endStr);
+  if (conflict) {
+    alert("Selected dates are already booked. Please choose different dates.");
+    return;
+  }
+
+  // ✅ Proceed to payment
   document.getElementById('cartModal').style.display = 'none';
   showPaymentModal();
 
-  // Payment calculation
   const cartTotal = getCartTotal();
   window._stripeCartTotal = cartTotal;
   window._stripePaymentAmount = paymentType === 'full'
     ? cartTotal
     : Math.round(cartTotal * 0.25);
   window._stripePaymentType = paymentType;
+}
+
+
+  async function checkCrossBookingConflict(newStartDate, newEndDate) {
+  const existing = await db.collection("reservations").get();
+  const newStart = new Date(newStartDate);
+  const newEnd = new Date(newEndDate);
+
+  for (let doc of existing.docs) {
+    const data = doc.data();
+    if (!data.rentalDates) continue;
+
+    const [existingStartStr, existingEndStr] = data.rentalDates.split(" to ");
+    const existingStart = new Date(existingStartStr);
+    const existingEnd = new Date(existingEndStr);
+
+    // Check for overlap
+    if (
+      (newStart <= existingEnd && newEnd >= existingStart)
+    ) {
+      return true; // Conflict found
+    }
+  }
+
+  return false; // No conflict
 }
 
 function completeBooking() {
