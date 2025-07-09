@@ -753,6 +753,12 @@ function hidePaymentModal() {
 document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('closePaymentModal').onclick = hidePaymentModal;
   document.getElementById('paymentModalOverlay').onclick = hidePaymentModal;
+  document.addEventListener('DOMContentLoaded', function () {
+  // Any other initialization code you have...
+  
+  // This will fetch disabled dates and initialize Flatpickr
+  loadDisabledDates();
+});
 
   // Stripe initialization (only once)
   stripe = Stripe('your_stripe_publishable_key'); // <-- REPLACE with your real Stripe publishable key
@@ -938,31 +944,46 @@ async function handlePayment(paymentType) {
   return false; // No conflict
 }
 
-  async function loadDisabledDates() {
+  // Call this function after DOMContentLoaded!
+async function loadDisabledDates() {
   try {
+    // Fetch all reservations from Firestore
     const snapshot = await db.collection("reservations").get();
     const disabledDates = [];
 
     snapshot.forEach(doc => {
       const data = doc.data();
       if (data.rentalDates) {
+        // rentalDates format: "YYYY-MM-DD to YYYY-MM-DD"
         const [startStr, endStr] = data.rentalDates.split(' to ');
         const start = new Date(startStr);
         const end = new Date(endStr);
 
+        // Add each day between start and end (inclusive) to the disabledDates array
         for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          // Push a new Date object to avoid reference issues
           disabledDates.push(new Date(d));
         }
       }
     });
 
     console.log('Disabled Dates Loaded:', disabledDates);
+    // Initialize Flatpickr with the disabled dates
     initDatePicker(disabledDates);
   } catch (error) {
     console.error('Error loading disabled dates:', error);
-    initDatePicker([]);  // fallback: load calendar without disabled dates
+    // Fallback: initialize Flatpickr with no disabled dates
+    initDatePicker([]);
   }
 }
+
+  function initDatePicker(disabledDates) {
+  flatpickr("#rentalDateRange", {
+    mode: "range",
+    dateFormat: "Y-m-d",
+    disable: disabledDates
+  });
+  }
 
 function completeBooking() {
   // Get details from your form or page
