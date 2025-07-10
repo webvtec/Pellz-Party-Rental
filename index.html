@@ -961,10 +961,11 @@ async function loadDisabledDates() {
         const end = endStr ? new Date(endStr) : new Date(startStr);
 
         // Add each day between start and end (inclusive) to the disabledDates array
-        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-          disabledDates.push(new Date(d));
-          // Prevent infinite loop for single-day rental
-          if (d.getTime() === end.getTime()) break;
+        let d = new Date(start);
+        while (d <= end) {
+          // Always push a new date string in "YYYY-MM-DD" format
+          disabledDates.push(d.toISOString().slice(0, 10));
+          d.setDate(d.getDate() + 1);
         }
       }
     });
@@ -978,7 +979,6 @@ async function loadDisabledDates() {
     initDatePicker([]);
   }
 }
-
 function completeBooking() {
   // Get details from your form or page
   const name = document.getElementById("customerName")?.value || "N/A";
