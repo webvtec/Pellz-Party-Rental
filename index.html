@@ -954,15 +954,17 @@ async function loadDisabledDates() {
     snapshot.forEach(doc => {
       const data = doc.data();
       if (data.rentalDates) {
-        // rentalDates format: "YYYY-MM-DD to YYYY-MM-DD"
+        // rentalDates format: "YYYY-MM-DD to YYYY-MM-DD" or "YYYY-MM-DD"
         const [startStr, endStr] = data.rentalDates.split(' to ');
         const start = new Date(startStr);
-        const end = new Date(endStr);
+        // If endStr is undefined, it's a single-day booking
+        const end = endStr ? new Date(endStr) : new Date(startStr);
 
         // Add each day between start and end (inclusive) to the disabledDates array
         for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-          // Push a new Date object to avoid reference issues
           disabledDates.push(new Date(d));
+          // Prevent infinite loop for single-day rental
+          if (d.getTime() === end.getTime()) break;
         }
       }
     });
@@ -976,14 +978,6 @@ async function loadDisabledDates() {
     initDatePicker([]);
   }
 }
-
-  function initDatePicker(disabledDates) {
-  flatpickr("#rentalDateRange", {
-    mode: "range",
-    dateFormat: "Y-m-d",
-    disable: disabledDates
-  });
-  }
 
 function completeBooking() {
   // Get details from your form or page
