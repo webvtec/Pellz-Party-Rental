@@ -717,6 +717,31 @@ textarea {
       }
     });
 
+  let bookedDates = [];
+
+function fetchBookedDatesAndInitCalendar() {
+  db.collection("reservations").get().then(snapshot => {
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.rentalDates) {
+        const range = data.rentalDates.split(" to ");
+        if (range.length === 2) {
+          const start = new Date(range[0]);
+          const end = new Date(range[1]);
+          let current = new Date(start);
+          while (current <= end) {
+            bookedDates.push(current.toISOString().split('T')[0]); // Format to Y-m-d
+            current.setDate(current.getDate() + 1);
+          }
+        }
+      }
+    });
+  }).then(() => {
+    initializeDatepicker(); // Now initialize calendar
+  });
+}
+
+
 let stripe, elements, cardNumber, cardExpiry, cardCvc;
 
 // Helper functions for modal handling
@@ -1087,24 +1112,9 @@ window.onload = function() {
   loadGalleryByCategory('EVENT SETUP');
   updateCartCount();
 
-  flatpickr("#rentalDateRange", {
-    mode: "range",
-    dateFormat: "Y-m-d",
-    minDate: "today",
-    onClose: function(selectedDates, dateStr, instance) {
-      const input = document.getElementById("rentalDateRange");
-
-      if (selectedDates.length === 1) {
-        // 👇 User clicked just one date — treat it as 1-day range
-        const onlyDate = selectedDates[0];
-        const formatted = instance.formatDate(onlyDate, "Y-m-d");
-        input.value = `${formatted} to ${formatted}`; // force a 1-day range
-        updateRentalDuration();
-      } else if (selectedDates.length === 2) {
-        updateRentalDuration(); // normal behavior
-      }
-    }
-  });
+  // ✅ Instead of initializing flatpickr directly,
+  // we now fetch booked dates and initialize it after
+  fetchBookedDatesAndInitCalendar();
 };
 
 // Handle star rating UI
@@ -1476,6 +1486,27 @@ function updateRentalDuration() {
 
   localStorage.setItem('cart', JSON.stringify(cart));
   viewCart();
+}
+
+  function initializeDatepicker() {
+  flatpickr("#rentalDateRange", {
+    mode: "range",
+    dateFormat: "Y-m-d",
+    minDate: "today",
+    disable: bookedDates,
+    onClose: function(selectedDates, dateStr, instance) {
+      const input = document.getElementById("rentalDateRange");
+
+      if (selectedDates.length === 1) {
+        const onlyDate = selectedDates[0];
+        const formatted = instance.formatDate(onlyDate, "Y-m-d");
+        input.value = `${formatted} to ${formatted}`;
+        updateRentalDuration();
+      } else if (selectedDates.length === 2) {
+        updateRentalDuration();
+      }
+    }
+  });
 }
 
 function viewCart() {
