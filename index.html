@@ -721,6 +721,7 @@ textarea {
 
 function fetchBookedDatesAndInitCalendar() {
   db.collection("reservations").get().then(snapshot => {
+    bookedDates = []; // clear previous
     snapshot.forEach(doc => {
       const data = doc.data();
       if (data.rentalDates) {
@@ -730,14 +731,14 @@ function fetchBookedDatesAndInitCalendar() {
           const end = new Date(range[1]);
           let current = new Date(start);
           while (current <= end) {
-            bookedDates.push(current.toISOString().split('T')[0]); // Format to Y-m-d
+            bookedDates.push(current.toISOString().split('T')[0]);
             current.setDate(current.getDate() + 1);
           }
         }
       }
     });
   }).then(() => {
-    initializeDatepicker(); // Now initialize calendar
+    initializeDatepicker(); // Initialize after fetching all booked dates
   });
 }
 
