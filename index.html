@@ -569,12 +569,12 @@ textarea {
   </div>
 
   <!-- Reviews Section -->
-  <div id="reviewsSection" class="content-section" style="padding-top: 32.7px; background-color: black; color: white;">
+  <div id="reviewsSection" class="content-section" style="padding-top: 34px; background-color: black; color: white;">
 
   <div id="reviewFormContainer" style="
     max-width: 500px;
     margin: 10px auto 20px auto;
-    background-color: #F1C232;
+    background-color: #6A0DAD;
     padding: 5px;
     border-radius: 10px;
     color: black;">
@@ -753,12 +753,6 @@ function hidePaymentModal() {
 document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('closePaymentModal').onclick = hidePaymentModal;
   document.getElementById('paymentModalOverlay').onclick = hidePaymentModal;
-  document.addEventListener('DOMContentLoaded', function () {
-  // Any other initialization code you have...
-  
-  // This will fetch disabled dates and initialize Flatpickr
-  loadDisabledDates();
-});
 
   // Stripe initialization (only once)
   stripe = Stripe('your_stripe_publishable_key'); // <-- REPLACE with your real Stripe publishable key
@@ -869,7 +863,7 @@ document.getElementById('payDeposit').addEventListener('click', () => {
   }
 
 // Main payment handler
-async function handlePayment(paymentType) {
+function handlePayment(paymentType) {
   const fields = [
     document.getElementById("customerName"),
     document.getElementById("customerPhone"),
@@ -893,24 +887,10 @@ async function handlePayment(paymentType) {
     return;
   }
 
-  // 🔒 Cross Booking Check
-  const rentalRange = document.getElementById("rentalDateRange").value;
-  const [startStr, endStr] = rentalRange.split(" to ");
-  if (!startStr || !endStr) {
-    alert("Please select valid rental dates.");
-    return;
-  }
-
-  const conflict = await checkCrossBookingConflict(startStr, endStr);
-  if (conflict) {
-    alert("Selected dates are already booked. Please choose different dates.");
-    return;
-  }
-
-  // ✅ Proceed to payment
   document.getElementById('cartModal').style.display = 'none';
   showPaymentModal();
 
+  // Payment calculation
   const cartTotal = getCartTotal();
   window._stripeCartTotal = cartTotal;
   window._stripePaymentAmount = paymentType === 'full'
@@ -919,66 +899,6 @@ async function handlePayment(paymentType) {
   window._stripePaymentType = paymentType;
 }
 
-
-  async function checkCrossBookingConflict(newStartDate, newEndDate) {
-  const existing = await db.collection("reservations").get();
-  const newStart = new Date(newStartDate);
-  const newEnd = new Date(newEndDate);
-
-  for (let doc of existing.docs) {
-    const data = doc.data();
-    if (!data.rentalDates) continue;
-
-    const [existingStartStr, existingEndStr] = data.rentalDates.split(" to ");
-    const existingStart = new Date(existingStartStr);
-    const existingEnd = new Date(existingEndStr);
-
-    // Check for overlap
-    if (
-      (newStart <= existingEnd && newEnd >= existingStart)
-    ) {
-      return true; // Conflict found
-    }
-  }
-
-  return false; // No conflict
-}
-
-  // Call this function after DOMContentLoaded!
-async function loadDisabledDates() {
-  try {
-    // Fetch all reservations from Firestore
-    const snapshot = await db.collection("reservations").get();
-    const disabledDates = [];
-
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      if (data.rentalDates) {
-        // rentalDates format: "YYYY-MM-DD to YYYY-MM-DD" or "YYYY-MM-DD"
-        const [startStr, endStr] = data.rentalDates.split(' to ');
-        const start = new Date(startStr);
-        // If endStr is undefined, it's a single-day booking
-        const end = endStr ? new Date(endStr) : new Date(startStr);
-
-        // Add each day between start and end (inclusive) to the disabledDates array
-        let d = new Date(start);
-        while (d <= end) {
-          // Always push a new date string in "YYYY-MM-DD" format
-          disabledDates.push(d.toISOString().slice(0, 10));
-          d.setDate(d.getDate() + 1);
-        }
-      }
-    });
-
-    console.log('Disabled Dates Loaded:', disabledDates);
-    // Initialize Flatpickr with the disabled dates
-    initDatePicker(disabledDates);
-  } catch (error) {
-    console.error('Error loading disabled dates:', error);
-    // Fallback: initialize Flatpickr with no disabled dates
-    initDatePicker([]);
-  }
-}
 function completeBooking() {
   // Get details from your form or page
   const name = document.getElementById("customerName")?.value || "N/A";
@@ -1167,7 +1087,24 @@ window.onload = function() {
   loadGalleryByCategory('EVENT SETUP');
   updateCartCount();
 
-  loadDisabledDates();
+  flatpickr("#rentalDateRange", {
+    mode: "range",
+    dateFormat: "Y-m-d",
+    minDate: "today",
+    onClose: function(selectedDates, dateStr, instance) {
+      const input = document.getElementById("rentalDateRange");
+
+      if (selectedDates.length === 1) {
+        // 👇 User clicked just one date — treat it as 1-day range
+        const onlyDate = selectedDates[0];
+        const formatted = instance.formatDate(onlyDate, "Y-m-d");
+        input.value = `${formatted} to ${formatted}`; // force a 1-day range
+        updateRentalDuration();
+      } else if (selectedDates.length === 2) {
+        updateRentalDuration(); // normal behavior
+      }
+    }
+  });
 };
 
 // Handle star rating UI
@@ -1656,4 +1593,4 @@ function removeItem(index) {
 
   </script>
   </body>
-  </html>
+</html>
