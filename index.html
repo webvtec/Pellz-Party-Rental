@@ -546,7 +546,7 @@ textarea {
   <button class="menu-button" onclick="toggleMenu()">☰</button>
   <div class="header-title">VTEC RENTALS</div>
 
-  <div class="add-to-cart-button" onclick="openCartModal()" style="display: flex; flex-direction: column; align-items: center; background: #6A0DAD; border: none; cursor: pointer;">
+  <div class="add-to-cart-button" onclick="viewCart()" style="display: flex; flex-direction: column; align-items: center; background: #6A0DAD; border: none; cursor: pointer;">
     <span style="font-size: 20px;">🛒</span>
     <span id="cart-count" style="font-size: 15px; color: red; margin-top: 2px;">0</span>
   </div>
@@ -720,7 +720,6 @@ textarea {
   let bookedDates = [];
 
 function fetchBookedDatesAndInitCalendar() {
-  bookedDates = [];
   db.collection("reservations").get().then(snapshot => {
     snapshot.forEach(doc => {
       const data = doc.data();
@@ -731,39 +730,17 @@ function fetchBookedDatesAndInitCalendar() {
           const end = new Date(range[1]);
           let current = new Date(start);
           while (current <= end) {
-            bookedDates.push(current.toISOString().split('T')[0]);
+            bookedDates.push(current.toISOString().split('T')[0]); // Format to Y-m-d
             current.setDate(current.getDate() + 1);
           }
         }
       }
     });
   }).then(() => {
-    initializeDatepicker();
+    initializeDatepicker(); // Now initialize calendar
   });
 }
 
-  let rentalDatePickerInstance = null;
-
-function initializeDatepicker() {
-  // Destroy previous instance if exists
-  if (rentalDatePickerInstance) {
-    rentalDatePickerInstance.destroy();
-  }
-  rentalDatePickerInstance = flatpickr("#rentalDateRange", {
-    mode: "range",
-    minDate: "today",
-    dateFormat: "Y-m-d",
-    disable: bookedDates,
-    onOpen: function(selectedDates, dateStr, instance) {
-      instance.set('disable', bookedDates);
-    }
-  });
-}
-
-  function openCartModal() {
-  fetchBookedDatesAndInitCalendar();
-  document.getElementById('cartModal').style.display = 'block';
-  }
 
 let stripe, elements, cardNumber, cardExpiry, cardCvc;
 
@@ -1571,108 +1548,110 @@ function updateRentalDuration() {
 }
 
 function viewCart() {
-  openCartModal(); // ✅ handles modal display
+  const modal = document.getElementById('cartModal');
+  const container = document.getElementById('cartItemsContainer');
+  const totalElem = document.getElementById('cartTotal');
+  container.innerHTML = ''; // Clear the cart container
 
-  const container = document.getElementById('cartItemsContainer');
-  const totalElem = document.getElementById('cartTotal');
-  container.innerHTML = ''; // Clear the cart container
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  if (cart.length === 0) {
+    container.innerHTML = '<p>Your cart is empty.</p>';
+    totalElem.textContent = '';
+  } else {
+    let total = 0;
 
-  const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  if (cart.length === 0) {
-    container.innerHTML = '<p>Your cart is empty.</p>';
-    totalElem.textContent = '';
-  } else {
-    let total = 0;
+    cart.forEach((item, index) => {
+  const days = item.days || 1;
+  const quantity = item.quantity || 1;
+  const unitPrice = item.price || 0;
 
-    cart.forEach((item, index) => {
-      const days = item.days || 1;
-      const quantity = item.quantity || 1;
-      const unitPrice = item.price || 0;
+  const itemTotal = unitPrice * quantity * days;
+  total += itemTotal;
 
-      const itemTotal = unitPrice * quantity * days;
-      total += itemTotal;
+  const itemDiv = document.createElement('div');
+  itemDiv.style.display = 'flex';
+  itemDiv.style.alignItems = 'center';
+  itemDiv.style.justifyContent = 'space-between';
+  itemDiv.style.padding = '8px 0';
+  itemDiv.style.borderBottom = '1px solid #eee';
 
-      const itemDiv = document.createElement('div');
-      itemDiv.style.display = 'flex';
-      itemDiv.style.alignItems = 'center';
-      itemDiv.style.justifyContent = 'space-between';
-      itemDiv.style.padding = '8px 0';
-      itemDiv.style.borderBottom = '1px solid #eee';
+  const img = document.createElement('img');
+  img.src = item.imageUrl;
+  img.alt = item.name;
+  img.style.width = '50px';
+  img.style.height = '50px';
+  img.style.objectFit = 'cover';
+  img.style.borderRadius = '6px';
+  img.style.marginRight = '8px';
 
-      const img = document.createElement('img');
-      img.src = item.imageUrl;
-      img.alt = item.name;
-      img.style.width = '50px';
-      img.style.height = '50px';
-      img.style.objectFit = 'cover';
-      img.style.borderRadius = '6px';
-      img.style.marginRight = '8px';
+  const infoDiv = document.createElement('div');
+  infoDiv.style.flexGrow = '1';
+  infoDiv.style.display = 'flex';
+  infoDiv.style.alignItems = 'center';
+  infoDiv.style.justifyContent = 'space-between';
 
-      const infoDiv = document.createElement('div');
-      infoDiv.style.flexGrow = '1';
-      infoDiv.style.display = 'flex';
-      infoDiv.style.alignItems = 'center';
-      infoDiv.style.justifyContent = 'space-between';
+  const nameSpan = document.createElement('span');
+  nameSpan.textContent = item.name;
 
-      const nameSpan = document.createElement('span');
-      nameSpan.textContent = item.name;
+  const quantityText = document.createElement('span');
+  quantityText.textContent = `Qty: ${quantity}`;
+  quantityText.style.marginLeft = '10px';
 
-      const quantityText = document.createElement('span');
-      quantityText.textContent = `Qty: ${quantity}`;
-      quantityText.style.marginLeft = '10px';
+  const priceSpan = document.createElement('span');
+  priceSpan.textContent = `$${itemTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} (${days} day${days > 1 ? 's' : ''})`;
+  priceSpan.style.marginLeft = '10px';
+  priceSpan.style.fontWeight = 'bold';
 
-      const priceSpan = document.createElement('span');
-      priceSpan.textContent = `$${itemTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} (${days} day${days > 1 ? 's' : ''})`;
-      priceSpan.style.marginLeft = '10px';
-      priceSpan.style.fontWeight = 'bold';
+  const controlsDiv = document.createElement('div');
+  controlsDiv.style.display = 'flex';
+  controlsDiv.style.alignItems = 'center';
 
-      const controlsDiv = document.createElement('div');
-      controlsDiv.style.display = 'flex';
-      controlsDiv.style.alignItems = 'center';
+  const removeBtn = document.createElement('button');
+  removeBtn.textContent = '✖';
+  removeBtn.style.color = 'red';
+  removeBtn.style.marginLeft = '8px';
+  removeBtn.onclick = () => removeItem(index);
 
-      const removeBtn = document.createElement('button');
-      removeBtn.textContent = '✖';
-      removeBtn.style.color = 'red';
-      removeBtn.style.marginLeft = '8px';
-      removeBtn.onclick = () => removeItem(index);
+  controlsDiv.appendChild(quantityText);
+  controlsDiv.appendChild(removeBtn);
 
-      controlsDiv.appendChild(quantityText);
-      controlsDiv.appendChild(removeBtn);
+  infoDiv.appendChild(nameSpan);
+  infoDiv.appendChild(priceSpan);
 
-      infoDiv.appendChild(nameSpan);
-      infoDiv.appendChild(priceSpan);
+  itemDiv.appendChild(img);
+  itemDiv.appendChild(infoDiv);
+  itemDiv.appendChild(controlsDiv);
 
-      itemDiv.appendChild(img);
-      itemDiv.appendChild(infoDiv);
-      itemDiv.appendChild(controlsDiv);
+  container.appendChild(itemDiv);
+});
 
-      container.appendChild(itemDiv);
-    });
+    totalElem.textContent = `Total: $${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  }
 
-    totalElem.textContent = `Total: $${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-  }
+  modal.style.display = 'block'; // Show the cart modal
 
-  // Re-initialize flatpickr
-  setTimeout(() => {
-    flatpickr("#rentalDateRange", {
-      mode: "range",
-      dateFormat: "Y-m-d",
-      minDate: "today",
-      disable: bookedDates,
-      onClose: function(selectedDates, dateStr, instance) {
-        const input = document.getElementById("rentalDateRange");
+// ⬇️ Initialize or re-initialize flatpickr when modal becomes visible
+setTimeout(() => {
+  flatpickr("#rentalDateRange", {
+    mode: "range",
+    dateFormat: "Y-m-d",
+    minDate: "today",
+    disable: bookedDates,
+    onClose: function(selectedDates, dateStr, instance) {
+      const input = document.getElementById("rentalDateRange");
 
-        if (selectedDates.length === 1) {
-          const onlyDate = selectedDates[0];
-          const formatted = instance.formatDate(onlyDate, "Y-m-d");
-          input.value = `${formatted} to ${formatted}`;
-          updateRentalDuration();
-        } else if (selectedDates.length === 2) {
-          updateRentalDuration();
-        }
-      }
-    });
-  }, 100);
+      if (selectedDates.length === 1) {
+        const onlyDate = selectedDates[0];
+        const formatted = instance.formatDate(onlyDate, "Y-m-d");
+        input.value = `${formatted} to ${formatted}`;
+        updateRentalDuration();
+      } else if (selectedDates.length === 2) {
+        updateRentalDuration();
+      }
+    }
+  });
+}, 100); // Short delay ensures modal is visible before attaching
+
 }
 
 function removeItem(index) {
