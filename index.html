@@ -870,7 +870,7 @@ document.getElementById('payDeposit').addEventListener('click', () => {
     const rentalRange = document.getElementById('rentalDateRange').value;
     if (!rentalRange) return 1;
     const dates = rentalRange.split(' to ');
-    if (dates.length !== 2) return 1;
+    if (dates.length !== 2) dates[1] = dates[0];
     const start = new Date(dates[0]);
     const end = new Date(dates[1]);
     // count both start and end date, so add 1
@@ -919,7 +919,8 @@ async function handlePayment(paymentType) {
     return;
   }
 
-  const [startStr, endStr] = rentalDates.split(' to ');
+  let [startStr, endStr] = rentalDates.split(' to ');
+if (!endStr) endStr = startStr; // fallback for single-day bookings
   const startDate = new Date(startStr);
   const endDate = new Date(endStr);
 
