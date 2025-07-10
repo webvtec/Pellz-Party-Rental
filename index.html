@@ -888,7 +888,7 @@ document.getElementById('payDeposit').addEventListener('click', () => {
   }
 
 // Main payment handler
-function handlePayment(paymentType) {
+async function handlePayment(paymentType) {
   const fields = [
     document.getElementById("customerName"),
     document.getElementById("customerPhone"),
@@ -912,13 +912,49 @@ function handlePayment(paymentType) {
     return;
   }
 
-  // Payment calculation
-  const cartTotal = getCartTotal();
-  if (cartTotal === 0) {
-    alert("Your cart is empty. Please add items before proceeding.");
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const rentalDates = document.getElementById("rentalDateRange").value;
+  if (!rentalDates || cart.length === 0) {
+    alert("Please select rental dates and ensure your cart is not empty.");
     return;
   }
 
+  const [startStr, endStr] = rentalDates.split(' to ');
+  const startDate = new Date(startStr);
+  const endDate = new Date(endStr);
+
+  // Conflict check
+  const snapshot = await db.collection("reservations").get();
+  const conflictingItems = [];
+
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (!data.rentalDates || !data.cartItems) return;
+
+    const [resStartStr, resEndStr] = data.rentalDates.split(" to ");
+    const resStart = new Date(resStartStr);
+    const resEnd = new Date(resEndStr);
+
+    const overlap = startDate <= resEnd && endDate >= resStart;
+
+    if (overlap) {
+      data.cartItems.forEach(reservedItem => {
+        cart.forEach(cartItem => {
+          if (reservedItem.name === cartItem.name) {
+            conflictingItems.push(cartItem.name);
+          }
+        });
+      });
+    }
+  });
+
+  if (conflictingItems.length > 0) {
+    alert(`The following item(s) are already booked for the selected dates:\n\n${[...new Set(conflictingItems)].join(', ')}`);
+    return;
+  }
+
+  // Payment calculation
+  const cartTotal = getCartTotal();
   window._stripeCartTotal = cartTotal;
   window._stripePaymentAmount = paymentType === 'full'
     ? cartTotal
@@ -928,9 +964,8 @@ function handlePayment(paymentType) {
   // Hide cart modal
   document.getElementById('cartModal').style.display = 'none';
 
-  // Skip real Stripe modal, and trigger booking directly
-  completeBooking(); // Direct confirmation
-  // showPaymentModal(); // ← Keep disabled for now
+  // Proceed to booking
+  completeBooking();
 }
 
 function completeBooking() {
