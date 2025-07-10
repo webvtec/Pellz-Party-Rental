@@ -920,12 +920,12 @@ async function handlePayment(paymentType) {
   }
 
   let [startStr, endStr] = rentalDates.split(' to ');
-  if (!endStr) endStr = startStr; // fallback for single-day bookings
+  if (!endStr) endStr = startStr; // handle single-day bookings
 
   const startDate = new Date(startStr);
   const endDate = new Date(endStr);
 
-  // Build reserved quantity map
+  // Check for conflicts
   const snapshot = await db.collection("reservations").get();
   const bookedQuantities = {};
 
@@ -948,7 +948,7 @@ async function handlePayment(paymentType) {
     });
   });
 
-  // Check against maxQuantity
+  // Check against inventory
   const conflicts = [];
 
   for (const cartItem of cart) {
@@ -971,86 +971,90 @@ async function handlePayment(paymentType) {
     return;
   }
 
-  // ✅ Payment calculation (stripe uses cents)
-  const cartTotalCents = getCartTotal(); // in cents
-  const paymentAmountCents = paymentType === 'full'
-    ? cartTotalCents
-    : Math.round(cartTotalCents * 0.25);
-
-  // Store payment info in global for booking/payment modal
-  window._stripeCartTotal = cartTotalCents;
-  window._stripePaymentAmount = paymentAmountCents;
+  // Prepare payment data
+  const cartTotal = getCartTotal(); // in cents
+  window._stripeCartTotal = cartTotal;
+  window._stripePaymentAmount = paymentType === 'full'
+    ? cartTotal
+    : Math.round(cartTotal * 0.25);
   window._stripePaymentType = paymentType;
 
-  // ✅ For now, skip Stripe modal and book directly
-  document.getElementById('cartModal').style.display = 'none';
-
+  // ⚠️ Don't hide modal here – wait for completeBooking to finish
   completeBooking();
 }
 
-function completeBooking() {
-  // Get form values
-  const name = document.getElementById("customerName")?.value || "N/A";
-  const phone = document.getElementById("customerPhone")?.value || "N/A";
-  const location = document.getElementById("customerLocation")?.value || "N/A";
-  const rentalDates = document.getElementById("rentalDateRange")?.value || "N/A";
-  const startTime = document.getElementById("startTime")?.value || "N/A";
-  const endTime = document.getElementById("endTime")?.value || "N/A";
-  const paymentType = window._stripePaymentType === "full" ? "Full Price" : "Deposit";
+async function completeBooking() {
+  try {
+    const name = document.getElementById("customerName")?.value || "N/A";
+    const phone = document.getElementById("customerPhone")?.value || "N/A";
+    const location = document.getElementById("customerLocation")?.value || "N/A";
+    const rentalDates = document.getElementById("rentalDateRange")?.value || "N/A";
+    const startTime = document.getElementById("startTime")?.value || "N/A";
+    const endTime = document.getElementById("endTime")?.value || "N/A";
 
-  const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const totalAmount = (window._stripePaymentAmount / 100).toFixed(2);
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
 
-  // ✅ Call Telegram
-  sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount);
+    const totalAmount = (window._stripePaymentAmount / 100).toFixed(2);
+    const paymentType = window._stripePaymentType || 'unknown';
 
-  // ✅ Save to Firestore
-  db.collection("reservations").add({
-    name,
-    phone,
-    location,
-    rentalDates,
-    startTime,
-    endTime,
-    paymentType,
-    cartItems: cart,
-    amountPaid: Number(totalAmount),
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  })
-  .then(() => {
+    const message = `
+🛒 *New Booking Received*
+*Name:* ${name}
+*Phone:* ${phone}
+*Location:* ${location}
+*Rental Dates:* ${rentalDates}
+*Start Time:* ${startTime}
+*End Time:* ${endTime}
+*Payment Type:* ${paymentType.toUpperCase()}
+*Total Amount:* $${totalAmount}
+*Items:*
+${cart.map(item => `- ${item.quantity || 1} x ${item.name}`).join('\n')}
+    `;
+
+    // Save to Firestore
+    await db.collection("reservations").add({
+      customerName: name,
+      customerPhone: phone,
+      customerLocation: location,
+      rentalDates,
+      startTime,
+      endTime,
+      cartItems: cart,
+      paymentType,
+      totalAmount: Number(totalAmount),
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
     console.log("Reservation added to Firestore!");
-  })
-  .catch((error) => {
-    console.error("Error adding reservation: ", error);
-  });
 
-  // ✅ Clear cart and update UI
-  localStorage.removeItem('cart');
-  updateCartCount && updateCartCount();
+    // Send to Telegram
+    await fetch(`https://api.telegram.org/b${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: message,
+        parse_mode: "Markdown"
+      })
+    });
 
-  // ✅ SweetAlert Confirmation
-  Swal.fire({
-    title: 'ORDER MADE',
-    html: `
-      <div style="font-size: 18px; font-weight: 500; color: #333; text-align: center;">
-        WE WILL DELIVER THE ITEMS TO<br>
-        <span style="color: #1a73e8; font-weight: 600;">${location}</span><br><br>
-        ON <span style="color: #1a73e8; font-weight: 600;">${rentalDates}</span><br>
-        AT <span style="color: #1a73e8; font-weight: 600;">${startTime}</span>
-      </div>
-    `,
-    icon: 'success',
-    iconColor: '#4caf50',
-    background: '#f8f9fa',
-    confirmButtonText: 'Awesome!',
-    confirmButtonColor: '#1a73e8',
-    customClass: {
-      popup: 'swal2-rounded',
-      title: 'swal2-title-custom',
-      confirmButton: 'swal2-confirm-custom'
-    }
-  });
+    // Clear cart and form
+    localStorage.removeItem('cart');
+    document.getElementById("cartItemsContainer").innerHTML = '';
+    document.getElementById("cartTotal").textContent = '';
+    document.getElementById("rentalForm").reset();
+
+    alert("Booking successful! A confirmation has been sent.");
+
+    // ✅ Now hide modal
+    document.getElementById('cartModal').style.display = 'none';
+
+  } catch (error) {
+    console.error("Error completing booking:", error);
+    alert("An error occurred while completing the booking. Please try again.");
+  }
 }
+
 
   // Telegram notification function
 function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount) {
