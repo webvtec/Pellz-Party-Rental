@@ -546,7 +546,7 @@ textarea {
   <button class="menu-button" onclick="toggleMenu()">☰</button>
   <div class="header-title">VTEC RENTALS</div>
 
-  <div class="add-to-cart-button" onclick="viewCart()" style="display: flex; flex-direction: column; align-items: center; background: #6A0DAD; border: none; cursor: pointer;">
+  <div class="add-to-cart-button" onclick="openCartModal()" style="display: flex; flex-direction: column; align-items: center; background: #6A0DAD; border: none; cursor: pointer;">
     <span style="font-size: 20px;">🛒</span>
     <span id="cart-count" style="font-size: 15px; color: red; margin-top: 2px;">0</span>
   </div>
@@ -720,8 +720,8 @@ textarea {
   let bookedDates = [];
 
 function fetchBookedDatesAndInitCalendar() {
+  bookedDates = [];
   db.collection("reservations").get().then(snapshot => {
-    bookedDates = []; // clear previous
     snapshot.forEach(doc => {
       const data = doc.data();
       if (data.rentalDates) {
@@ -738,20 +738,31 @@ function fetchBookedDatesAndInitCalendar() {
       }
     });
   }).then(() => {
-    initializeDatepicker(); // Initialize after fetching all booked dates
+    initializeDatepicker();
   });
 }
 
-  function initializeDatepicker() {
-  flatpickr("#rentalDateRange", {
+  let rentalDatePickerInstance = null;
+
+function initializeDatepicker() {
+  // Destroy previous instance if exists
+  if (rentalDatePickerInstance) {
+    rentalDatePickerInstance.destroy();
+  }
+  rentalDatePickerInstance = flatpickr("#rentalDateRange", {
     mode: "range",
     minDate: "today",
     dateFormat: "Y-m-d",
-    disable: bookedDates, // <--- This disables booked dates
+    disable: bookedDates,
     onOpen: function(selectedDates, dateStr, instance) {
-      instance.set('disable', bookedDates); // just in case
+      instance.set('disable', bookedDates);
     }
   });
+}
+
+  function openCartModal() {
+  fetchBookedDatesAndInitCalendar();
+  document.getElementById('cartModal').style.display = 'block';
   }
 
 let stripe, elements, cardNumber, cardExpiry, cardCvc;
