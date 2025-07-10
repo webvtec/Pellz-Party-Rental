@@ -913,7 +913,8 @@ function handlePayment(paymentType) {
   }
 
   document.getElementById('cartModal').style.display = 'none';
-  showPaymentModal();
+  // showPaymentModal();  ← disable the real payment modal
+completeBooking();      // ← trigger booking directly
 
   // Payment calculation
   const cartTotal = getCartTotal();
