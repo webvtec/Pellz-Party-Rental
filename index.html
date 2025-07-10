@@ -870,7 +870,7 @@ document.getElementById('payDeposit').addEventListener('click', () => {
     const rentalRange = document.getElementById('rentalDateRange').value;
     if (!rentalRange) return 1;
     const dates = rentalRange.split(' to ');
-    if (dates.length !== 2) dates[1] = dates[0];
+    if (dates.length !== 2) return 1;
     const start = new Date(dates[0]);
     const end = new Date(dates[1]);
     // count both start and end date, so add 1
@@ -888,7 +888,7 @@ document.getElementById('payDeposit').addEventListener('click', () => {
   }
 
 // Main payment handler
-async function handlePayment(paymentType) {
+function handlePayment(paymentType) {
   const fields = [
     document.getElementById("customerName"),
     document.getElementById("customerPhone"),
@@ -912,149 +912,90 @@ async function handlePayment(paymentType) {
     return;
   }
 
-  const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const rentalDates = document.getElementById("rentalDateRange").value;
-  if (!rentalDates || cart.length === 0) {
-    alert("Please select rental dates and ensure your cart is not empty.");
+  // Payment calculation
+  const cartTotal = getCartTotal();
+  if (cartTotal === 0) {
+    alert("Your cart is empty. Please add items before proceeding.");
     return;
   }
 
-  let [startStr, endStr] = rentalDates.split(' to ');
-  if (!endStr) endStr = startStr; // handle single-day bookings
-
-  const startDate = new Date(startStr);
-  const endDate = new Date(endStr);
-
-  // Check for conflicts
-  const snapshot = await db.collection("reservations").get();
-  const bookedQuantities = {};
-
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    if (!data.rentalDates || !data.cartItems) return;
-
-    const [resStartStr, resEndStr] = data.rentalDates.split(" to ");
-    const resStart = new Date(resStartStr);
-    const resEnd = new Date(resEndStr);
-
-    const overlap = startDate <= resEnd && endDate >= resStart;
-    if (!overlap) return;
-
-    data.cartItems.forEach(item => {
-      if (!bookedQuantities[item.name]) {
-        bookedQuantities[item.name] = 0;
-      }
-      bookedQuantities[item.name] += item.quantity || 1;
-    });
-  });
-
-  // Check against inventory
-  const conflicts = [];
-
-  for (const cartItem of cart) {
-    const itemSnap = await db.collection("gallery").where("name", "==", cartItem.name).limit(1).get();
-    if (itemSnap.empty) continue;
-
-    const itemData = itemSnap.docs[0].data();
-    const maxAvailable = itemData.maxQuantity || 1;
-
-    const alreadyBooked = bookedQuantities[cartItem.name] || 0;
-    const totalRequested = alreadyBooked + (cartItem.quantity || 1);
-
-    if (totalRequested > maxAvailable) {
-      conflicts.push(`${cartItem.name} (only ${maxAvailable - alreadyBooked} left)`);
-    }
-  }
-
-  if (conflicts.length > 0) {
-    alert(`The following item(s) exceed availability for the selected dates:\n\n${conflicts.join('\n')}`);
-    return;
-  }
-
-  // Prepare payment data
-  const cartTotal = getCartTotal(); // in cents
   window._stripeCartTotal = cartTotal;
   window._stripePaymentAmount = paymentType === 'full'
     ? cartTotal
     : Math.round(cartTotal * 0.25);
   window._stripePaymentType = paymentType;
 
-  // ⚠️ Don't hide modal here – wait for completeBooking to finish
-  completeBooking();
+  // Hide cart modal
+  document.getElementById('cartModal').style.display = 'none';
+
+  // Skip real Stripe modal, and trigger booking directly
+  completeBooking(); // Direct confirmation
+  // showPaymentModal(); // ← Keep disabled for now
 }
 
-async function completeBooking() {
-  try {
-    const name = document.getElementById("customerName")?.value || "N/A";
-    const phone = document.getElementById("customerPhone")?.value || "N/A";
-    const location = document.getElementById("customerLocation")?.value || "N/A";
-    const rentalDates = document.getElementById("rentalDateRange")?.value || "N/A";
-    const startTime = document.getElementById("startTime")?.value || "N/A";
-    const endTime = document.getElementById("endTime")?.value || "N/A";
+function completeBooking() {
+  // Get form values
+  const name = document.getElementById("customerName")?.value || "N/A";
+  const phone = document.getElementById("customerPhone")?.value || "N/A";
+  const location = document.getElementById("customerLocation")?.value || "N/A";
+  const rentalDates = document.getElementById("rentalDateRange")?.value || "N/A";
+  const startTime = document.getElementById("startTime")?.value || "N/A";
+  const endTime = document.getElementById("endTime")?.value || "N/A";
+  const paymentType = window._stripePaymentType === "full" ? "Full Price" : "Deposit";
 
-    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const totalAmount = (window._stripePaymentAmount / 100).toFixed(2);
 
-    const totalAmount = (window._stripePaymentAmount / 100).toFixed(2);
-    const paymentType = window._stripePaymentType || 'unknown';
+  // ✅ Call Telegram
+  sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount);
 
-    const message = `
-🛒 *New Booking Received*
-*Name:* ${name}
-*Phone:* ${phone}
-*Location:* ${location}
-*Rental Dates:* ${rentalDates}
-*Start Time:* ${startTime}
-*End Time:* ${endTime}
-*Payment Type:* ${paymentType.toUpperCase()}
-*Total Amount:* $${totalAmount}
-*Items:*
-${cart.map(item => `- ${item.quantity || 1} x ${item.name}`).join('\n')}
-    `;
-
-    // Save to Firestore
-    await db.collection("reservations").add({
-      customerName: name,
-      customerPhone: phone,
-      customerLocation: location,
-      rentalDates,
-      startTime,
-      endTime,
-      cartItems: cart,
-      paymentType,
-      totalAmount: Number(totalAmount),
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
+  // ✅ Save to Firestore
+  db.collection("reservations").add({
+    name,
+    phone,
+    location,
+    rentalDates,
+    startTime,
+    endTime,
+    paymentType,
+    cartItems: cart,
+    amountPaid: Number(totalAmount),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  })
+  .then(() => {
     console.log("Reservation added to Firestore!");
+  })
+  .catch((error) => {
+    console.error("Error adding reservation: ", error);
+  });
 
-    // Send to Telegram
-    await fetch(`https://api.telegram.org/b${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: message,
-        parse_mode: "Markdown"
-      })
-    });
+  // ✅ Clear cart and update UI
+  localStorage.removeItem('cart');
+  updateCartCount && updateCartCount();
 
-    // Clear cart and form
-    localStorage.removeItem('cart');
-    document.getElementById("cartItemsContainer").innerHTML = '';
-    document.getElementById("cartTotal").textContent = '';
-    document.getElementById("rentalForm").reset();
-
-    alert("Booking successful! A confirmation has been sent.");
-
-    // ✅ Now hide modal
-    document.getElementById('cartModal').style.display = 'none';
-
-  } catch (error) {
-    console.error("Error completing booking:", error);
-    alert("An error occurred while completing the booking. Please try again.");
-  }
+  // ✅ SweetAlert Confirmation
+  Swal.fire({
+    title: 'ORDER MADE',
+    html: `
+      <div style="font-size: 18px; font-weight: 500; color: #333; text-align: center;">
+        WE WILL DELIVER THE ITEMS TO<br>
+        <span style="color: #1a73e8; font-weight: 600;">${location}</span><br><br>
+        ON <span style="color: #1a73e8; font-weight: 600;">${rentalDates}</span><br>
+        AT <span style="color: #1a73e8; font-weight: 600;">${startTime}</span>
+      </div>
+    `,
+    icon: 'success',
+    iconColor: '#4caf50',
+    background: '#f8f9fa',
+    confirmButtonText: 'Awesome!',
+    confirmButtonColor: '#1a73e8',
+    customClass: {
+      popup: 'swal2-rounded',
+      title: 'swal2-title-custom',
+      confirmButton: 'swal2-confirm-custom'
+    }
+  });
 }
-
 
   // Telegram notification function
 function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount) {
@@ -1620,105 +1561,98 @@ function viewCart() {
     let total = 0;
 
     cart.forEach((item, index) => {
-      const days = item.days || 1;
-      const quantity = item.quantity || 1;
-      const unitPrice = item.price || 0;
+  const days = item.days || 1;
+  const quantity = item.quantity || 1;
+  const unitPrice = item.price || 0;
 
-      const itemTotal = unitPrice * quantity * days;
-      total += itemTotal;
+  const itemTotal = unitPrice * quantity * days;
+  total += itemTotal;
 
-      const itemDiv = document.createElement('div');
-      itemDiv.style.display = 'flex';
-      itemDiv.style.alignItems = 'center';
-      itemDiv.style.justifyContent = 'space-between';
-      itemDiv.style.padding = '8px 0';
-      itemDiv.style.borderBottom = '1px solid #eee';
+  const itemDiv = document.createElement('div');
+  itemDiv.style.display = 'flex';
+  itemDiv.style.alignItems = 'center';
+  itemDiv.style.justifyContent = 'space-between';
+  itemDiv.style.padding = '8px 0';
+  itemDiv.style.borderBottom = '1px solid #eee';
 
-      const img = document.createElement('img');
-      img.src = item.imageUrl;
-      img.alt = item.name;
-      img.style.width = '50px';
-      img.style.height = '50px';
-      img.style.objectFit = 'cover';
-      img.style.borderRadius = '6px';
-      img.style.marginRight = '8px';
+  const img = document.createElement('img');
+  img.src = item.imageUrl;
+  img.alt = item.name;
+  img.style.width = '50px';
+  img.style.height = '50px';
+  img.style.objectFit = 'cover';
+  img.style.borderRadius = '6px';
+  img.style.marginRight = '8px';
 
-      const infoDiv = document.createElement('div');
-      infoDiv.style.flexGrow = '1';
-      infoDiv.style.display = 'flex';
-      infoDiv.style.alignItems = 'center';
-      infoDiv.style.justifyContent = 'space-between';
+  const infoDiv = document.createElement('div');
+  infoDiv.style.flexGrow = '1';
+  infoDiv.style.display = 'flex';
+  infoDiv.style.alignItems = 'center';
+  infoDiv.style.justifyContent = 'space-between';
 
-      const nameSpan = document.createElement('span');
-      nameSpan.textContent = item.name;
+  const nameSpan = document.createElement('span');
+  nameSpan.textContent = item.name;
 
-      const quantityText = document.createElement('span');
-      quantityText.textContent = `Qty: ${quantity}`;
-      quantityText.style.marginLeft = '10px';
+  const quantityText = document.createElement('span');
+  quantityText.textContent = `Qty: ${quantity}`;
+  quantityText.style.marginLeft = '10px';
 
-      const priceSpan = document.createElement('span');
-      priceSpan.textContent = `$${itemTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} (${days} day${days > 1 ? 's' : ''})`;
-      priceSpan.style.marginLeft = '10px';
-      priceSpan.style.fontWeight = 'bold';
+  const priceSpan = document.createElement('span');
+  priceSpan.textContent = `$${itemTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} (${days} day${days > 1 ? 's' : ''})`;
+  priceSpan.style.marginLeft = '10px';
+  priceSpan.style.fontWeight = 'bold';
 
-      const controlsDiv = document.createElement('div');
-      controlsDiv.style.display = 'flex';
-      controlsDiv.style.alignItems = 'center';
+  const controlsDiv = document.createElement('div');
+  controlsDiv.style.display = 'flex';
+  controlsDiv.style.alignItems = 'center';
 
-      const removeBtn = document.createElement('button');
-      removeBtn.textContent = '✖';
-      removeBtn.style.color = 'red';
-      removeBtn.style.marginLeft = '8px';
-      removeBtn.onclick = () => removeItem(index);
+  const removeBtn = document.createElement('button');
+  removeBtn.textContent = '✖';
+  removeBtn.style.color = 'red';
+  removeBtn.style.marginLeft = '8px';
+  removeBtn.onclick = () => removeItem(index);
 
-      controlsDiv.appendChild(quantityText);
-      controlsDiv.appendChild(removeBtn);
+  controlsDiv.appendChild(quantityText);
+  controlsDiv.appendChild(removeBtn);
 
-      infoDiv.appendChild(nameSpan);
-      infoDiv.appendChild(priceSpan);
+  infoDiv.appendChild(nameSpan);
+  infoDiv.appendChild(priceSpan);
 
-      itemDiv.appendChild(img);
-      itemDiv.appendChild(infoDiv);
-      itemDiv.appendChild(controlsDiv);
+  itemDiv.appendChild(img);
+  itemDiv.appendChild(infoDiv);
+  itemDiv.appendChild(controlsDiv);
 
-      container.appendChild(itemDiv);
-    });
+  container.appendChild(itemDiv);
+});
 
     totalElem.textContent = `Total: $${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   }
 
   modal.style.display = 'block'; // Show the cart modal
 
-  // Rebind flatpickr
-  setTimeout(() => {
-    flatpickr("#rentalDateRange", {
-      mode: "range",
-      dateFormat: "Y-m-d",
-      minDate: "today",
-      disable: bookedDates,
-      onClose: function (selectedDates, dateStr, instance) {
-        const input = document.getElementById("rentalDateRange");
+// ⬇️ Initialize or re-initialize flatpickr when modal becomes visible
+setTimeout(() => {
+  flatpickr("#rentalDateRange", {
+    mode: "range",
+    dateFormat: "Y-m-d",
+    minDate: "today",
+    disable: bookedDates,
+    onClose: function(selectedDates, dateStr, instance) {
+      const input = document.getElementById("rentalDateRange");
 
-        if (selectedDates.length === 1) {
-          const onlyDate = selectedDates[0];
-          const formatted = instance.formatDate(onlyDate, "Y-m-d");
-          input.value = `${formatted} to ${formatted}`;
-          updateRentalDuration();
-        } else if (selectedDates.length === 2) {
-          updateRentalDuration();
-        }
+      if (selectedDates.length === 1) {
+        const onlyDate = selectedDates[0];
+        const formatted = instance.formatDate(onlyDate, "Y-m-d");
+        input.value = `${formatted} to ${formatted}`;
+        updateRentalDuration();
+      } else if (selectedDates.length === 2) {
+        updateRentalDuration();
       }
-    });
+    }
+  });
+}, 100); // Short delay ensures modal is visible before attaching
 
-    // ✅ Rebind payment buttons
-    const depositBtn = document.getElementById('payDeposit');
-    const fullBtn = document.getElementById('payFullPrice');
-
-    if (depositBtn) depositBtn.onclick = () => handlePayment('deposit');
-    if (fullBtn) fullBtn.onclick = () => handlePayment('full');
-  }, 100);
 }
-
 
 function removeItem(index) {
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
