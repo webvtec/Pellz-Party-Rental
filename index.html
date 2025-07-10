@@ -912,21 +912,29 @@ function handlePayment(paymentType) {
     return;
   }
 
-  document.getElementById('cartModal').style.display = 'none';
-  // showPaymentModal();  ← disable the real payment modal
-completeBooking();      // ← trigger booking directly
-
   // Payment calculation
   const cartTotal = getCartTotal();
+  if (cartTotal === 0) {
+    alert("Your cart is empty. Please add items before proceeding.");
+    return;
+  }
+
   window._stripeCartTotal = cartTotal;
   window._stripePaymentAmount = paymentType === 'full'
     ? cartTotal
     : Math.round(cartTotal * 0.25);
   window._stripePaymentType = paymentType;
+
+  // Hide cart modal
+  document.getElementById('cartModal').style.display = 'none';
+
+  // Skip real Stripe modal, and trigger booking directly
+  completeBooking(); // Direct confirmation
+  // showPaymentModal(); // ← Keep disabled for now
 }
 
 function completeBooking() {
-  // Get details from your form or page
+  // Get form values
   const name = document.getElementById("customerName")?.value || "N/A";
   const phone = document.getElementById("customerPhone")?.value || "N/A";
   const location = document.getElementById("customerLocation")?.value || "N/A";
@@ -935,10 +943,13 @@ function completeBooking() {
   const endTime = document.getElementById("endTime")?.value || "N/A";
   const paymentType = window._stripePaymentType === "full" ? "Full Price" : "Deposit";
 
-  // ✅ CALL the Telegram function
-  sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType);
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const totalAmount = (window._stripePaymentAmount / 100).toFixed(2);
 
-  // Send to Firestore for Admin Dashboard
+  // ✅ Call Telegram
+  sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount);
+
+  // ✅ Save to Firestore
   db.collection("reservations").add({
     name,
     phone,
@@ -947,6 +958,8 @@ function completeBooking() {
     startTime,
     endTime,
     paymentType,
+    cartItems: cart,
+    amountPaid: Number(totalAmount),
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   })
   .then(() => {
@@ -956,58 +969,82 @@ function completeBooking() {
     console.error("Error adding reservation: ", error);
   });
 
-  // Finish existing logic
+  // ✅ Clear cart and update UI
   localStorage.removeItem('cart');
   updateCartCount && updateCartCount();
 
-  // ✅ Show SweetAlert confirmation popup (no end time)
+  // ✅ SweetAlert Confirmation
   Swal.fire({
-  title: 'ORDER MADE',
-  html: `
-    <div style="font-size: 18px; font-weight: 500; color: #333; text-align: center;">
-      WE WILL DELIVER THE ITEMS TO<br>
-      <span style="color: #1a73e8; font-weight: 600;">${location}</span><br><br>
-      ON <span style="color: #1a73e8; font-weight: 600;">${rentalDates}</span><br>
-      AT <span style="color: #1a73e8; font-weight: 600;">${startTime}</span>
-    </div>
-  `,
-  icon: 'success',
-  iconColor: '#4caf50',
-  background: '#f8f9fa',
-  confirmButtonText: 'Awesome!',
-  confirmButtonColor: '#1a73e8',
-  customClass: {
-    popup: 'swal2-rounded',
-    title: 'swal2-title-custom',
-    confirmButton: 'swal2-confirm-custom'
-  }
-});
+    title: 'ORDER MADE',
+    html: `
+      <div style="font-size: 18px; font-weight: 500; color: #333; text-align: center;">
+        WE WILL DELIVER THE ITEMS TO<br>
+        <span style="color: #1a73e8; font-weight: 600;">${location}</span><br><br>
+        ON <span style="color: #1a73e8; font-weight: 600;">${rentalDates}</span><br>
+        AT <span style="color: #1a73e8; font-weight: 600;">${startTime}</span>
+      </div>
+    `,
+    icon: 'success',
+    iconColor: '#4caf50',
+    background: '#f8f9fa',
+    confirmButtonText: 'Awesome!',
+    confirmButtonColor: '#1a73e8',
+    customClass: {
+      popup: 'swal2-rounded',
+      title: 'swal2-title-custom',
+      confirmButton: 'swal2-confirm-custom'
+    }
+  });
+}
 
   // Telegram notification function
-  function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType) {
-    const telegramBotToken = '7638261664:AAGm0MNVQxN0hlW1bhXBRf-kSRuMgRkCLC8'; // Replace!
-    const chatId = '-1002734216867'; // Replace!
-    const message = `User: ${name} | Phone: ${phone} | Location: ${location} | Rental Dates: ${rentalDates} | Start: ${startTime} | End: ${endTime} | Payment: ${paymentType}`;
-    const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
+function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount) {
+  const telegramBotToken = '7638261664:AAGm0MNVQxN0hlW1bhXBRf-kSRuMgRkCLC8'; // Replace!
+  const chatId = '-1002734216867'; // Replace!
 
-    fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: message,
-      })
+  let itemsSummary = cart.map(item => {
+    const qty = item.quantity || 1;
+    const days = item.days || 1;
+    const total = (item.price * qty * days).toFixed(2);
+    return `• ${item.name} (x${qty}, ${days} day${days > 1 ? 's' : ''}) = $${total}`;
+  }).join('\n');
+
+  const message = `
+🛒 New Reservation
+
+👤 Name: ${name}
+📞 Phone: ${phone}
+📍 Location: ${location}
+
+📅 Dates: ${rentalDates}
+⏰ Time: ${startTime} to ${endTime}
+💳 Payment: ${paymentType}
+💰 Amount Paid: $${totalAmount}
+
+🧾 Cart Items:
+${itemsSummary}
+  `.trim();
+
+  const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
+
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: message,
+      parse_mode: 'Markdown'
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.ok) {
-        console.log('Message sent successfully!');
-      } else {
-        console.error('Error sending message:', data);
-      }
-    })
-    .catch(error => console.error('Error:', error));
-  }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.ok) {
+      console.log('Telegram message sent!');
+    } else {
+      console.error('Telegram error:', data);
+    }
+  })
+  .catch(error => console.error('Telegram fetch error:', error));
 }
 
   function isBookingAvailable(newStart, newEnd, bookings) {
