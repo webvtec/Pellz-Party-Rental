@@ -920,13 +920,14 @@ async function handlePayment(paymentType) {
   }
 
   let [startStr, endStr] = rentalDates.split(' to ');
-if (!endStr) endStr = startStr; // fallback for single-day bookings
+  if (!endStr) endStr = startStr; // fallback for single-day bookings
+
   const startDate = new Date(startStr);
   const endDate = new Date(endStr);
 
   // Build reserved quantity map
   const snapshot = await db.collection("reservations").get();
-  const bookedQuantities = {}; // { itemName: quantity }
+  const bookedQuantities = {};
 
   snapshot.forEach(doc => {
     const data = doc.data();
@@ -970,18 +971,20 @@ if (!endStr) endStr = startStr; // fallback for single-day bookings
     return;
   }
 
-  // Payment calculation
-  const cartTotal = getCartTotal();
-  window._stripeCartTotal = cartTotal;
-  window._stripePaymentAmount = paymentType === 'full'
-    ? cartTotal
-    : Math.round(cartTotal * 0.25);
+  // ✅ Payment calculation (stripe uses cents)
+  const cartTotalCents = getCartTotal(); // in cents
+  const paymentAmountCents = paymentType === 'full'
+    ? cartTotalCents
+    : Math.round(cartTotalCents * 0.25);
+
+  // Store payment info in global for booking/payment modal
+  window._stripeCartTotal = cartTotalCents;
+  window._stripePaymentAmount = paymentAmountCents;
   window._stripePaymentType = paymentType;
 
-  // Hide cart modal
+  // ✅ For now, skip Stripe modal and book directly
   document.getElementById('cartModal').style.display = 'none';
 
-  // Proceed to booking
   completeBooking();
 }
 
