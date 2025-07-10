@@ -923,9 +923,9 @@ async function handlePayment(paymentType) {
   const startDate = new Date(startStr);
   const endDate = new Date(endStr);
 
-  // Conflict check
+  // Build reserved quantity map
   const snapshot = await db.collection("reservations").get();
-  const conflictingItems = [];
+  const bookedQuantities = {}; // { itemName: quantity }
 
   snapshot.forEach(doc => {
     const data = doc.data();
@@ -936,20 +936,36 @@ async function handlePayment(paymentType) {
     const resEnd = new Date(resEndStr);
 
     const overlap = startDate <= resEnd && endDate >= resStart;
+    if (!overlap) return;
 
-    if (overlap) {
-      data.cartItems.forEach(reservedItem => {
-        cart.forEach(cartItem => {
-          if (reservedItem.name === cartItem.name) {
-            conflictingItems.push(cartItem.name);
-          }
-        });
-      });
-    }
+    data.cartItems.forEach(item => {
+      if (!bookedQuantities[item.name]) {
+        bookedQuantities[item.name] = 0;
+      }
+      bookedQuantities[item.name] += item.quantity || 1;
+    });
   });
 
-  if (conflictingItems.length > 0) {
-    alert(`The following item(s) are already booked for the selected dates:\n\n${[...new Set(conflictingItems)].join(', ')}`);
+  // Check against maxQuantity
+  const conflicts = [];
+
+  for (const cartItem of cart) {
+    const itemSnap = await db.collection("gallery").where("name", "==", cartItem.name).limit(1).get();
+    if (itemSnap.empty) continue;
+
+    const itemData = itemSnap.docs[0].data();
+    const maxAvailable = itemData.maxQuantity || 1;
+
+    const alreadyBooked = bookedQuantities[cartItem.name] || 0;
+    const totalRequested = alreadyBooked + (cartItem.quantity || 1);
+
+    if (totalRequested > maxAvailable) {
+      conflicts.push(`${cartItem.name} (only ${maxAvailable - alreadyBooked} left)`);
+    }
+  }
+
+  if (conflicts.length > 0) {
+    alert(`The following item(s) exceed availability for the selected dates:\n\n${conflicts.join('\n')}`);
     return;
   }
 
