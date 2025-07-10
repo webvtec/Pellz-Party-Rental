@@ -1591,6 +1591,29 @@ function viewCart() {
   }
 
   modal.style.display = 'block'; // Show the cart modal
+
+// ⬇️ Initialize or re-initialize flatpickr when modal becomes visible
+setTimeout(() => {
+  flatpickr("#rentalDateRange", {
+    mode: "range",
+    dateFormat: "Y-m-d",
+    minDate: "today",
+    disable: bookedDates,
+    onClose: function(selectedDates, dateStr, instance) {
+      const input = document.getElementById("rentalDateRange");
+
+      if (selectedDates.length === 1) {
+        const onlyDate = selectedDates[0];
+        const formatted = instance.formatDate(onlyDate, "Y-m-d");
+        input.value = `${formatted} to ${formatted}`;
+        updateRentalDuration();
+      } else if (selectedDates.length === 2) {
+        updateRentalDuration();
+      }
+    }
+  });
+}, 100); // Short delay ensures modal is visible before attaching
+
 }
 
 function removeItem(index) {
