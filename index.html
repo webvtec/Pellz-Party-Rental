@@ -742,6 +742,17 @@ function fetchBookedDatesAndInitCalendar() {
   });
 }
 
+  function initializeDatepicker() {
+  flatpickr("#rentalDateRange", {
+    mode: "range",
+    minDate: "today",
+    dateFormat: "Y-m-d",
+    disable: bookedDates, // <--- This disables booked dates
+    onOpen: function(selectedDates, dateStr, instance) {
+      instance.set('disable', bookedDates); // just in case
+    }
+  });
+  }
 
 let stripe, elements, cardNumber, cardExpiry, cardCvc;
 
