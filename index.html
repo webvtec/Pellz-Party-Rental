@@ -947,27 +947,15 @@ async function completeBooking() {
   const start = new Date(startDateStr);
   const end = new Date(endDateStr);
 
-  // ✅ Define qtyMap stock availability
-  const qtyMap = {
-    "CROSSBACK CHAIRS": { options: [10, 20, 50, 100, 200], stock: 200 },
-    "PLASTIC TABLES": { options: [2, 4, 6], stock: 6 },
-    "Podium": { options: [1, 2, 3], stock: 3 },
-    "Plates": { options: [10, 20, 30, 50], stock: 50 },
-    "Lights": { options: [1, 5, 10], stock: 10 },
-    "Beach Umbrella": { options: [1, 2, 4], stock: 4 },
-    "Bluetooth Speaker": { options: [1, 2], stock: 2 },
-    "Tents": { options: [1, 2, 3], stock: 3 },
-    "Portable Bar": { options: [1, 2], stock: 2 },
-    "Outdoor Fan": { options: [1, 2, 4], stock: 4 },
-    "Warm Pan": { options: [2, 4, 6], stock: 6 }
-  };
-
+  // 🔍 Load all bookings from Firestore
   const snapshot = await db.collection("reservations").get();
 
   for (const cartItem of cart) {
     const itemName = cartItem.name;
     const qtyRequested = cartItem.quantity || 1;
-    const stockAvailable = qtyMap[itemName]?.stock || 1; // Default to 1 if not in qtyMap
+
+    // 🔎 Get max stock from global qtyMap or default to 1
+    const stockAvailable = qtyMap[itemName]?.options?.slice(-1)[0] || 1;
 
     const bookedQtyPerDate = {};
 
@@ -994,6 +982,7 @@ async function completeBooking() {
       }
     }
 
+    // 🚫 Check for overbooking on each date
     let d = new Date(start);
     while (d <= end) {
       const key = d.toISOString().split("T")[0];
@@ -1010,7 +999,7 @@ async function completeBooking() {
     }
   }
 
-  // ✅ Send Telegram + Firestore booking
+  // ✅ Proceed with Telegram & Firestore save
   sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount);
 
   await db.collection("reservations").add({
@@ -1051,6 +1040,7 @@ async function completeBooking() {
     }
   });
 }
+
 
   // Telegram notification function
 function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount) {
