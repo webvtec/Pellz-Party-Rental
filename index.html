@@ -933,7 +933,8 @@ function handlePayment(paymentType) {
   // showPaymentModal(); // ← Keep disabled for now
 }
 
-function completeBooking() {
+
+async function completeBooking() {
   // Get form values
   const name = document.getElementById("customerName")?.value || "N/A";
   const phone = document.getElementById("customerPhone")?.value || "N/A";
@@ -945,6 +946,37 @@ function completeBooking() {
 
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
   const totalAmount = (window._stripePaymentAmount / 100).toFixed(2);
+
+  const [startDateStr, endDateStr] = rentalDates.split(" to ");
+  const start = new Date(startDateStr);
+  const end = new Date(endDateStr);
+
+  // 🚫 Check for item conflicts
+  const snapshot = await db.collection("reservations").get();
+
+  for (const item of cart) {
+    const itemName = item.name;
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      if (!data.rentalDates || !data.cartItems) continue;
+
+      const [bookedStartStr, bookedEndStr] = data.rentalDates.split(" to ");
+      const bookedStart = new Date(bookedStartStr);
+      const bookedEnd = new Date(bookedEndStr);
+
+      const overlaps = start <= bookedEnd && end >= bookedStart;
+      const itemIsBooked = data.cartItems.some(ci => ci.name === itemName);
+
+      if (overlaps && itemIsBooked) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Item Unavailable',
+          text: `${itemName} is already booked for ${data.rentalDates}.`,
+        });
+        return; // Stop booking process
+      }
+    }
+  }
 
   // ✅ Call Telegram
   sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount);
@@ -996,6 +1028,7 @@ function completeBooking() {
     }
   });
 }
+
 
   // Telegram notification function
 function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount) {
