@@ -928,9 +928,7 @@ function handlePayment(paymentType) {
   // Hide cart modal
   document.getElementById('cartModal').style.display = 'none';
 
-  // Skip real Stripe modal, and trigger booking directly
-  completeBooking(); // Direct confirmation
-  // showPaymentModal(); // ← Keep disabled for now
+showPaymentModal();
 }
 
 
