@@ -931,9 +931,7 @@ function handlePayment(paymentType) {
 showPaymentModal();
 }
 
-
 async function completeBooking() {
-  // Get form values
   const name = document.getElementById("customerName")?.value || "N/A";
   const phone = document.getElementById("customerPhone")?.value || "N/A";
   const location = document.getElementById("customerLocation")?.value || "N/A";
@@ -949,11 +947,30 @@ async function completeBooking() {
   const start = new Date(startDateStr);
   const end = new Date(endDateStr);
 
-  // 🚫 Check for item conflicts
+  // ✅ Define qtyMap stock availability
+  const qtyMap = {
+    "CROSSBACK CHAIRS": { options: [10, 20, 50, 100, 200], stock: 200 },
+    "PLASTIC TABLES": { options: [2, 4, 6], stock: 6 },
+    "Podium": { options: [1, 2, 3], stock: 3 },
+    "Plates": { options: [10, 20, 30, 50], stock: 50 },
+    "Lights": { options: [1, 5, 10], stock: 10 },
+    "Beach Umbrella": { options: [1, 2, 4], stock: 4 },
+    "Bluetooth Speaker": { options: [1, 2], stock: 2 },
+    "Tents": { options: [1, 2, 3], stock: 3 },
+    "Portable Bar": { options: [1, 2], stock: 2 },
+    "Outdoor Fan": { options: [1, 2, 4], stock: 4 },
+    "Warm Pan": { options: [2, 4, 6], stock: 6 }
+  };
+
   const snapshot = await db.collection("reservations").get();
 
-  for (const item of cart) {
-    const itemName = item.name;
+  for (const cartItem of cart) {
+    const itemName = cartItem.name;
+    const qtyRequested = cartItem.quantity || 1;
+    const stockAvailable = qtyMap[itemName]?.stock || 1; // Default to 1 if not in qtyMap
+
+    const bookedQtyPerDate = {};
+
     for (const doc of snapshot.docs) {
       const data = doc.data();
       if (!data.rentalDates || !data.cartItems) continue;
@@ -962,25 +979,41 @@ async function completeBooking() {
       const bookedStart = new Date(bookedStartStr);
       const bookedEnd = new Date(bookedEndStr);
 
-      const overlaps = start <= bookedEnd && end >= bookedStart;
-      const itemIsBooked = data.cartItems.some(ci => ci.name === itemName);
+      if (start > bookedEnd || end < bookedStart) continue;
 
-      if (overlaps && itemIsBooked) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Item Unavailable',
-          text: `${itemName} is already booked for ${data.rentalDates}.`,
-        });
-        return; // Stop booking process
+      for (const bookedItem of data.cartItems) {
+        if (bookedItem.name !== itemName) continue;
+
+        const bookedQty = bookedItem.quantity || 1;
+        let d = new Date(bookedStart);
+        while (d <= bookedEnd) {
+          const key = d.toISOString().split("T")[0];
+          bookedQtyPerDate[key] = (bookedQtyPerDate[key] || 0) + bookedQty;
+          d.setDate(d.getDate() + 1);
+        }
       }
+    }
+
+    let d = new Date(start);
+    while (d <= end) {
+      const key = d.toISOString().split("T")[0];
+      const alreadyBooked = bookedQtyPerDate[key] || 0;
+      if (alreadyBooked + qtyRequested > stockAvailable) {
+        Swal.fire({
+          icon: "error",
+          title: "Item Overbooked",
+          text: `${itemName} is overbooked on ${key}. Only ${stockAvailable - alreadyBooked} left.`,
+        });
+        return;
+      }
+      d.setDate(d.getDate() + 1);
     }
   }
 
-  // ✅ Call Telegram
+  // ✅ Send Telegram + Firestore booking
   sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount);
 
-  // ✅ Save to Firestore
-  db.collection("reservations").add({
+  await db.collection("reservations").add({
     name,
     phone,
     location,
@@ -991,19 +1024,11 @@ async function completeBooking() {
     cartItems: cart,
     amountPaid: Number(totalAmount),
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  })
-  .then(() => {
-    console.log("Reservation added to Firestore!");
-  })
-  .catch((error) => {
-    console.error("Error adding reservation: ", error);
   });
 
-  // ✅ Clear cart and update UI
-  localStorage.removeItem('cart');
+  localStorage.removeItem("cart");
   updateCartCount && updateCartCount();
 
-  // ✅ SweetAlert Confirmation
   Swal.fire({
     title: 'ORDER MADE',
     html: `
@@ -1026,7 +1051,6 @@ async function completeBooking() {
     }
   });
 }
-
 
   // Telegram notification function
 function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount) {
