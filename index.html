@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VTEC RENTALS</title>
+  <title>VTEC RENTALS.CA</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -40,7 +40,7 @@
 
     .header-title {
       font-family: 'Zilla Slab', serif;
-      font-size: 34px;
+      font-size: 28px;
       font-weight: bold;
       background: linear-gradient(90deg, #6A0DAD, #007BFF, #2E8B57, #6A0DAD);
       -webkit-background-clip: text;
@@ -544,7 +544,7 @@ textarea {
 
   <div class="header-bar">
   <button class="menu-button" onclick="toggleMenu()">☰</button>
-  <div class="header-title">VTEC RENTALS</div>
+  <div class="header-title">VTEC RENTALS.CA</div>
 
   <div class="add-to-cart-button" onclick="viewCart()" style="display: flex; flex-direction: column; align-items: center; background: #6A0DAD; border: none; cursor: pointer;">
     <span style="font-size: 20px;">🛒</span>
@@ -560,9 +560,10 @@ textarea {
 
   <!-- Menu -->
   <div class="menu" id="menu">
-    <a onclick="loadGalleryByCategory('EVENT SETUP'); closeMenu();" href="javascript:void(0);">🎉 EVENT SETUP</a>
+    <a onclick="loadGalleryByCategory('EVENT ITEMS'); closeMenu();" href="javascript:void(0);">🎉 EVENT ITEMS</a>
     <a onclick="loadGalleryByCategory('THRILL RIDES'); closeMenu();" href="javascript:void(0);">🏁 THRILL RIDES</a>
-<a onclick="loadGalleryByCategory('PARTY BUS'); closeMenu();" href="javascript:void(0);">🚍 PARTY BUS</a>
+    <a onclick="loadGalleryByCategory('CARS'); closeMenu();" href="javascript:void(0);">🚘 MOTORCARS</a>
+    <a onclick="loadGalleryByCategory('BATHROOM'); closeMenu();" href="javascript:void(0);">🚻 BATHROOM</a>
     <a onclick="showSection('reviewsSection'); closeMenu();" href="javascript:void(0);">⭐️ REVIEWS</a>
     <a onclick="logoutUser(); closeMenu();" style="display:block; text-align:center; margin:10px auto; padding:10px 20px; background-color:red; color:white; border-radius:6px; cursor:pointer; text-decoration:none; width:80%; font-weight:bold;" href="javascript:void(0);">LOGOUT</a>
     <a onclick="login(); closeMenu();" class="admin-button" style="display:block; text-align:center; margin:10px auto; padding:10px 20px; background-color:#6200ea; color:white; border-radius:6px; text-decoration:none; width:80%; font-weight:bold;" href="javascript:void(0);">ADMIN</a>
@@ -603,45 +604,59 @@ textarea {
   <div id="reviewsContainer" style="max-width: 600px; margin: 0 auto; color: white;"></div>
 </div>
 
-  <!-- Cart Modal -->
+<!-- Cart Modal -->
 <div id="cartModal" style="display: none;"> <!-- Initially hidden -->
+  <div style="position: relative;"> <!-- Wrapper to position the ✖ correctly -->
+
+    <button id="closeCheckoutBtn" style="position: absolute; top: 10px; right: 15px; font-size: 20px; background: none; border: none; color: #6A0DAD; cursor: pointer;">
+      ✖
+    </button>
+
     <div>
-        <h2>YOUR CART</h2>
-        <div style="margin-bottom: 10px;">
-            <label for="customerName"><strong>Your Name:</strong></label>
-            <input type="text" id="customerName" placeholder="Enter your name" style="width: 100%; padding: 10px;" required />
+      <h2>YOUR CART</h2>
+
+      <div style="margin-bottom: 10px;">
+        <label for="customerName"><strong>Your Name:</strong></label>
+        <input type="text" id="customerName" placeholder="Enter your name" style="width: 100%; padding: 10px;" required />
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <label for="customerPhone"><strong>Phone Number:</strong></label>
+        <input type="tel" id="customerPhone" placeholder="Enter phone number" style="width: 100%; padding: 10px;" required />
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <label for="rentalDateRange"><strong>Select Rental Dates:</strong></label>
+        <input id="rentalDateRange" placeholder="Select start and end date" style="width: 100%; padding: 10px;" />
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <div style="flex: 1;">
+          <label for="startTime">Start Time:</label>
+          <input type="time" id="startTime" style="width: 100%; padding: 10px;" />
         </div>
-        <div style="margin-bottom: 15px;">
-            <label for="customerPhone"><strong>Phone Number:</strong></label>
-            <input type="tel" id="customerPhone" placeholder="Enter phone number" style="width: 100%; padding: 10px;" required />
+        <div style="flex: 1;">
+          <label for="endTime">End Time:</label>
+          <input type="time" id="endTime" style="width: 100%; padding: 10px;" />
         </div>
-        <div style="margin-bottom: 15px;">
-            <label for="rentalDateRange"><strong>Select Rental Dates:</strong></label>
-            <input id="rentalDateRange" placeholder="Select start and end date" style="width: 100%; padding: 10px;" />
-        </div>
-        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-            <div style="flex: 1;">
-                <label for="startTime">Start Time:</label>
-                <input type="time" id="startTime" style="width: 100%; padding: 10px;" />
-            </div>
-            <div style="flex: 1;">
-                <label for="endTime">End Time:</label>
-                <input type="time" id="endTime" style="width: 100%; padding: 10px;" />
-            </div>
-        </div>
-        <div style="margin-bottom: 15px;">
-            <label for="customerLocation"><strong>Location:</strong></label>
-            <input type="text" id="customerLocation" placeholder="Enter delivery location" style="width: 100%; padding: 10px;" required />
-        </div>
-        <div id="cartItemsContainer"></div>
-        <div id="cartTotal" style="text-align:right; font-weight:bold; margin-top: 10px;"></div>
-        <div id="cartButtons">
-            <!-- Renamed 'Close' and 'Checkout' buttons with payment options -->
-            <button id="payDeposit" class="payment-button">DEPOSIT (25%) & REST ON ARRIVAL</button>
-          <button id="payFullPrice" class="payment-button">PAY NOW</button>
-        </div>
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <label for="customerLocation"><strong>Location:</strong></label>
+        <input type="text" id="customerLocation" placeholder="Enter delivery location" style="width: 100%; padding: 10px;" required />
+      </div>
+
+      <div id="cartItemsContainer"></div>
+      <div id="cartTotal" style="text-align:right; font-weight:bold; margin-top: 10px;"></div>
+
+      <div id="cartButtons">
+        <button id="payDeposit" class="payment-button">DEPOSIT (25%) & REST ON ARRIVAL</button>
+        <button id="payFullPrice" class="payment-button">PAY NOW</button>
+      </div>
     </div>
+  </div>
 </div>
+
 
 <!-- Payment Modal Popup -->
 <div id="paymentOptionsModal" class="payment-modal">
@@ -697,12 +712,13 @@ textarea {
       let currentUser = null;
 
     const firebaseConfig = {
-  apiKey: "AIzaSyACGG7Wf-TwdoeAxjqxQ8iIdpmPegEtunY",
-  authDomain: "vtec-rentals.firebaseapp.com",
-  projectId: "vtec-rentals",
-  storageBucket: "vtec-rentals.firebasestorage.app",
-  messagingSenderId: "278776721799",
-  appId: "1:278776721799:web:f70b283d8313cd84eca322"
+  apiKey: "AIzaSyC8rhDzgS9a7g9P1tDY3YlhYpfNU21ut7s",
+  authDomain: "vtec-rentals-ca.firebaseapp.com",
+  databaseURL: "https://vtec-rentals-ca-default-rtdb.firebaseio.com",
+  projectId: "vtec-rentals-ca",
+  storageBucket: "vtec-rentals-ca.firebasestorage.app",
+  messagingSenderId: "847517897544",
+  appId: "1:847517897544:web:68185dc0bf0f534e6d997d"
 };
 
     firebase.initializeApp(firebaseConfig);
@@ -718,6 +734,7 @@ textarea {
     });
 
   let bookedDates = [];
+
 
 function fetchBookedDatesAndInitCalendar() {
   db.collection("reservations").get().then(snapshot => {
@@ -1192,7 +1209,7 @@ function loadGallery(containerId) {
 }
 
 window.onload = function() {
-  loadGalleryByCategory('EVENT SETUP');
+  loadGalleryByCategory('EVENT ITEMS');
   updateCartCount();
 
   // ✅ Instead of initializing flatpickr directly,
@@ -1345,9 +1362,9 @@ function deleteReview(docId) {
       options: [10, 20, 50, 100, 200],
       prices: { 10: 30, 20: 55, 50: 120, 100: 200, 200: 300 }
     },
-    "PLASTIC TABLES": {
-      options: [2, 4, 6],
-      prices: { 2: 20, 4: 35, 6: 50 }
+    "PLASTIC TABLE": {
+      options: [1, 2, 4, 6],
+      prices: { 1: 10, 2: 20, 4: 35, 6: 50 }
     },
     "Podium": {
       options: [1, 2, 3],
@@ -1399,6 +1416,10 @@ function deleteReview(docId) {
       galleryContainer.innerHTML = `
         <div class="gallery-category">
           <h3>${categoryFilter}</h3>
+          ${categoryFilter === 'EVENT ITEMS' ? `
+            <p style="margin-top: 3px; font-size: 18px; font-weight: bold; color: #6A0DAD; text-align: center;">
+              DELIVERY ONLY. SETUP NOT INCLUDED!!
+            </p>` : ''}
           <div class="gallery-wrapper">
             <div class="gallery-grid" id="gallery-${categoryFilter}"></div>
           </div>
@@ -1412,75 +1433,122 @@ function deleteReview(docId) {
         const imageUrl = data.url;
         const name = data.name || 'Unnamed';
         const itemId = name.replace(/\s+/g, '-');
+        const firebasePrice = data.price || 0;
 
-        let quantityOptions = [1];
-        let quantityPrices = { 1: data.price || 0 };
+        if (!imageUrl || !name) return;
 
-        if (qtyMap[name]) {
-          quantityOptions = qtyMap[name].options;
-          quantityPrices = qtyMap[name].prices;
-        }
-
-        const optionsHTML = quantityOptions.map(qty =>
-          `<option value="${qty}">${qty}</option>`
-        ).join('');
-
-        categoryContainer.innerHTML += `
+        let html = `
           <div class="product-card">
             <img src="${imageUrl}" alt="${name}">
             <div class="product-info">
-              <div class="product-name">${name}</div>
+              <div class="product-name">${name}</div>`;
+
+        // Check if item is in qtyMap
+        if (qtyMap[name]) {
+          const quantityOptions = qtyMap[name].options;
+          const quantityPrices = qtyMap[name].prices;
+          const defaultQty = quantityOptions[0];
+          const defaultPrice = quantityPrices[defaultQty] || 0;
+
+          html += `
               <div class="product-price">
-                Total: $<span id="price-${itemId}">${quantityPrices[quantityOptions[0]].toFixed(2)}</span>
+                Total: $<span id="price-${itemId}">${defaultPrice.toFixed(2)}</span>
               </div>
               <select id="qty-${itemId}" onchange="updateManualPrice('${itemId}', ${JSON.stringify(quantityPrices).replace(/"/g, '&quot;')})">
-                ${optionsHTML}
-              </select>
-              <button onclick="addToCartWithQty('${name}', 0, '${imageUrl}')">Add to Cart</button>
-            </div>
-          </div>
-        `;
+                ${quantityOptions.map(qty => `<option value="${qty}">${qty}</option>`).join('')}
+              </select>`;
+        } else {
+          // Not in qtyMap — treat as fixed-price item
+          html += `
+              <div class="product-price">
+                Price: $<span id="price-${itemId}">${firebasePrice.toFixed(2)}</span>
+              </div>`;
+        }
+
+        if (qtyMap[name]) {
+  html += `
+    <button onclick="addToCartWithQty('${name}', 0, '${imageUrl}')">Add to Cart</button>
+  `;
+} else {
+  html += `
+    <button onclick="addToCart('${name}', ${firebasePrice}, '${imageUrl}')">Add to Cart</button>
+  `;
+}
+
+html += `
+  </div>
+</div>`;
+
+        categoryContainer.innerHTML += html;
       });
     })
     .catch((error) => {
       console.error("Error loading gallery:", error);
+      galleryContainer.innerHTML = `<p style="text-align:center; color:red;">Error loading items. Please try again later.</p>`;
     });
 
   showSection('gallerySection');
 }
 
-    // Add item to cart with selected quantity
+  const restrictedCategories = ['BATHROOM', 'THRILL RIDES', 'CARS'];
+
+        // Add fixed-price item to cart (used by Bathroom, Cars, Thrill Rides)
 function addToCartWithQty(name, _, imageUrl) {
   const itemId = name.replace(/\s+/g, '-');
-  const qty = parseInt(document.getElementById(`qty-${itemId}`).value) || 1;
+  const qtyElement = document.getElementById(`qty-${itemId}`);
+  const priceElement = document.getElementById(`price-${itemId}`);
 
-  const totalPriceDisplayed = parseFloat(document.getElementById(`price-${itemId}`).textContent.replace(/,/g, ''));
-  const unitPrice = totalPriceDisplayed / qty; // ✅ FIXED: Get price per unit
+  if (!qtyElement || !priceElement) return;
+
+  const qty = parseInt(qtyElement.value) || 1;
+  const totalPriceDisplayed = parseFloat(priceElement.textContent.replace(/,/g, ''));
+  const unitPrice = totalPriceDisplayed / qty;
   const days = 1;
-  const totalPrice = unitPrice * qty * days;
 
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
-  const duplicate = cart.find(item => item.name === name && item.quantity === qty);
-  if (duplicate) {
-    showToast("MAXIMUM AMOUNT REACHED", "error");
-    return;
-  }
+  db.collection('gallery')
+    .where('name', '==', name)
+    .limit(1)
+    .get()
+    .then(snapshot => {
+      if (snapshot.empty) return;
 
-  const existingItem = cart.find(item => item.name === name);
-  if (existingItem) {
-    existingItem.quantity = qty;
-    existingItem.price = unitPrice;
-    existingItem.days = days;
-    existingItem.totalPrice = totalPrice;
-  } else {
-    cart.push({ name, price: unitPrice, imageUrl, quantity: qty, totalPrice, days });
-  }
+      const item = snapshot.docs[0].data();
+      const category = item.category || '';
+      const isRestricted = restrictedCategories.includes(category.toUpperCase());
 
-  localStorage.setItem('cart', JSON.stringify(cart));
-  updateCartCount();
-  showToast("Added to cart", "success");
+      const exists = cart.find(i => i.name === name);
+
+      if (exists && isRestricted) {
+        showToast("YOU CAN ONLY ADD THIS ITEM ONCE", "error");
+        return;
+      }
+
+      if (exists) {
+        exists.quantity = qty;
+        exists.price = unitPrice;
+        exists.days = days;
+        exists.totalPrice = unitPrice * qty * days;
+      } else {
+        cart.push({
+          name,
+          price: unitPrice,
+          imageUrl,
+          quantity: qty,
+          totalPrice: unitPrice * qty * days,
+          days,
+          category
+        });
+      }
+
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartCount();
+      showToast("ADDED TO CART", "success");
+    });
 }
+
+
 
 // Update price when quantity is selected
 function updateManualPrice(itemId, priceMap) {
@@ -1514,16 +1582,42 @@ function logoutUser() {
 // Add item to the cart
 function addToCart(name, price, imageUrl) {
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const existingItem = cart.find(item => item.name === name);
-  if (existingItem) {
-    existingItem.quantity += 1;
-  } else {
-    cart.push({ name, price, imageUrl, quantity: 1 });
-  }
-  localStorage.setItem('cart', JSON.stringify(cart));
-  updateCartCount();
-  alert(`${name} added to cart.`);
+
+  db.collection('gallery')
+    .where('name', '==', name)
+    .limit(1)
+    .get()
+    .then(snapshot => {
+      if (snapshot.empty) return;
+
+      const item = snapshot.docs[0].data();
+      const category = item.category || '';
+      const isRestricted = restrictedCategories.includes(category.toUpperCase());
+
+      const exists = cart.find(i => i.name === name);
+
+      // ❌ Block if item exists and it's from a restricted category
+      if (exists && isRestricted) {
+        showToast("YOU CAN ONLY ADD THIS ITEM ONCE", "error");
+        return;
+      }
+
+      // ✅ Add new item
+      if (!exists) {
+        cart.push({ name, price, imageUrl, quantity: 1, category });
+        localStorage.setItem('cart', JSON.stringify(cart));
+        updateCartCount();
+        showToast('ADDED TO CART', 'success');
+      } else {
+        // ✅ If not restricted, allow quantity to increase
+        exists.quantity += 1;
+        localStorage.setItem('cart', JSON.stringify(cart));
+        updateCartCount();
+        showToast("ADDED TO CART", "success");
+      }
+    });
 }
+
 
 // Update cart item count
 function updateCartCount() {
@@ -1728,6 +1822,10 @@ function removeItem(index) {
   }, 2500);
 }
 
+  document.getElementById("closeCheckoutBtn").addEventListener("click", function () {
+    document.getElementById("cartModal").style.display = "none";
+  });
+
   </script>
   </body>
-</html>
+  </html>
