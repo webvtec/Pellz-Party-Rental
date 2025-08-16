@@ -638,23 +638,6 @@ textarea {
 </div>
 
 
-<!-- Payment Modal Popup -->
-<div id="paymentOptionsModal" class="payment-modal">
-  <h2>Payment Information</h2>
-  <!-- Display the amount to pay -->
-  <div id="payment-amount" style="font-size:18px; color:#6200ea; margin-bottom:12px; font-weight:bold;">
-    <!-- JS will populate this with the amount -->
-  </div>
-  <form id="stripePaymentForm" style="display: flex; flex-direction: column; gap: 18px;">
-    <input type="text" id="cardholderName" placeholder="Cardholder Name" required style="padding: 12px; border-radius: 8px; border:1px solid #ccc; font-size:16px;">
-    <div id="card-number-element" style="margin-bottom: 8px;"></div>
-    <div id="card-expiry-element" style="margin-bottom: 8px;"></div>
-    <div id="card-cvc-element" style="margin-bottom: 8px;"></div>
-    <div id="card-errors" role="alert" style="color:red; min-height:20px;"></div>
-    <button type="submit" class="payment-button" style="align-items: center; margin-top:10px;">PAY UPON ARRIVAL</button>
-    <button type="button" class="close-btn" id="closePaymentModal">Cancel</button>
-  </form>
-</div>
 <style>
   .payment-modal { /* Already exists, ensure it is as shown in your CSS */ }
   #paymentModalOverlay {
