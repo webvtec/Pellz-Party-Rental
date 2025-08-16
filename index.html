@@ -400,13 +400,6 @@ textarea {
   background-color: #fff4f4;
 }
 
-/* Title Styling */
-.payment-modal h2 {
-  font-size: 22px;
-  margin-bottom: 20px;
-  color: #333;
-}
-
 /* Close Button Styling */
 .close-btn {
   padding: 8px 16px;
@@ -425,22 +418,6 @@ textarea {
   background-color: #999;
 }
 
-/* Styling for the Stripe Elements card input */
-#card-element {
-  background-color: #f9f9f9;
-  border: 1px solid #ccc;
-  padding: 14px 16px;
-  border-radius: 8px;
-  font-size: 16px;
-  margin-top: 10px;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
-  transition: border-color 0.3s ease;
-}
-
-#card-element.StripeElement--focus {
-  border-color: #4CAF50; /* Green focus */
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
-}
 
 /* Pay Now Button Styling */
 .payment-button {
@@ -627,24 +604,8 @@ textarea {
     </div>
   </div>
 </div>
-
-
-<style>
-  .payment-modal { /* Already exists, ensure it is as shown in your CSS */ }
-  #paymentModalOverlay {
-    display: none;
-    position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.4); z-index: 9998;
-  }
-  /* Add optional styling for Stripe Elements containers */
-  #card-number-element, #card-expiry-element, #card-cvc-element {
-    border: 1px solid #ccc;
-    padding: 12px;
-    border-radius: 8px;
-    background: #fff;
-  }
+  
 </style>
-<div id="paymentModalOverlay"></div>
   
 <!-- Toast Notification for Cart Addition -->
 <div id="toast" style="
