@@ -15,7 +15,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://js.stripe.com/v3/"></script>
 
   <style>
     body {
@@ -398,32 +397,6 @@ textarea {
   background-color: #fff4f4;
 }
 
-/* Payment Modal Styling (Popup) */
-.payment-modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: #fff;
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  width: 100%;
-  max-width: 500px;
-  text-align: center;
-  z-index: 9999;
-  display: none; /* Hidden by default */
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-/* Title Styling */
-.payment-modal h2 {
-  font-size: 22px;
-  margin-bottom: 20px;
-  color: #333;
-}
-
 /* Close Button Styling */
 .close-btn {
   padding: 8px 16px;
@@ -440,52 +413,6 @@ textarea {
 
 .close-btn:hover {
   background-color: #999;
-}
-
-/* Styling for the Stripe Elements card input */
-#card-element {
-  background-color: #f9f9f9;
-  border: 1px solid #ccc;
-  padding: 14px 16px;
-  border-radius: 8px;
-  font-size: 16px;
-  margin-top: 10px;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
-  transition: border-color 0.3s ease;
-}
-
-#card-element.StripeElement--focus {
-  border-color: #4CAF50; /* Green focus */
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Pay Now Button Styling */
-.payment-button {
-  padding: 12px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  border: none;
-  text-align: center;
-  background-color: #6200ea;
-  color: #fff;
-  border-radius: 8px;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  width: 100%;
-  max-width: 250px;
-  margin-top: 20px;
-  margin: 10px auto;
-}
-
-.payment-button:hover {
-  background-color: #4500b0;
-  transform: translateY(-3px);
-}
-
-/* Error Message Styling */
-#card-errors {
-  color: red;
-  font-size: 14px;
-  margin-top: 10px;
 }
 
 /* Responsiveness for smaller screens */
@@ -650,48 +577,15 @@ textarea {
       <div id="cartTotal" style="text-align:right; font-weight:bold; margin-top: 10px;"></div>
 
       <div id="cartButtons">
-        <button id="payDeposit" class="payment-button">DEPOSIT (25%) & REST ON ARRIVAL</button>
-        <button id="payFullPrice" class="payment-button">PAY NOW</button>
-      </div>
+  <button id="placeOrderBtn" style="background-color:#6A0DAD; color:white; border:none; padding:10px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer;">
+    PLACE ORDER
+  </button>
+</div>
+
     </div>
   </div>
 </div>
 
-
-<!-- Payment Modal Popup -->
-<div id="paymentOptionsModal" class="payment-modal">
-  <h2>Payment Information</h2>
-  <!-- Display the amount to pay -->
-  <div id="payment-amount" style="font-size:18px; color:#6200ea; margin-bottom:12px; font-weight:bold;">
-    <!-- JS will populate this with the amount -->
-  </div>
-  <form id="stripePaymentForm" style="display: flex; flex-direction: column; gap: 18px;">
-    <input type="text" id="cardholderName" placeholder="Cardholder Name" required style="padding: 12px; border-radius: 8px; border:1px solid #ccc; font-size:16px;">
-    <div id="card-number-element" style="margin-bottom: 8px;"></div>
-    <div id="card-expiry-element" style="margin-bottom: 8px;"></div>
-    <div id="card-cvc-element" style="margin-bottom: 8px;"></div>
-    <div id="card-errors" role="alert" style="color:red; min-height:20px;"></div>
-    <button type="submit" class="payment-button" style="margin-top:10px;">Pay Now</button>
-    <button type="button" class="close-btn" id="closePaymentModal">Cancel</button>
-  </form>
-</div>
-<style>
-  .payment-modal { /* Already exists, ensure it is as shown in your CSS */ }
-  #paymentModalOverlay {
-    display: none;
-    position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.4); z-index: 9998;
-  }
-  /* Add optional styling for Stripe Elements containers */
-  #card-number-element, #card-expiry-element, #card-cvc-element {
-    border: 1px solid #ccc;
-    padding: 12px;
-    border-radius: 8px;
-    background: #fff;
-  }
-</style>
-<div id="paymentModalOverlay"></div>
-  
 <!-- Toast Notification for Cart Addition -->
 <div id="toast" style="
   display: none;
@@ -757,131 +651,6 @@ function fetchBookedDatesAndInitCalendar() {
     initializeDatepicker(); // Now initialize calendar
   });
 }
-
-
-let stripe, elements, cardNumber, cardExpiry, cardCvc;
-
-// Helper functions for modal handling
-function showPaymentModal() {
-  const modal = document.getElementById('paymentOptionsModal');
-  const overlay = document.getElementById('paymentModalOverlay');
-  modal.style.display = 'block';
-  overlay.style.display = 'block';
-  setTimeout(() => { modal.style.opacity = 1; }, 20);
-
-  // Fix: Always set payment amount if missing
-  if (typeof window._stripePaymentAmount !== 'number') {
-    window._stripePaymentAmount = getCartTotal(); // fallback to full cart total
-  }
-
-  // Show the payment amount in the modal
-  const amountDiv = document.getElementById('payment-amount');
-  if (amountDiv && typeof window._stripePaymentAmount === 'number') {
-    let dollars = (window._stripePaymentAmount / 100).toFixed(2);
-    amountDiv.textContent = "Amount to Pay: $" + dollars;
-  }
-}
-  
-function hidePaymentModal() {
-  const modal = document.getElementById('paymentOptionsModal');
-  const overlay = document.getElementById('paymentModalOverlay');
-  modal.style.opacity = 0;
-  setTimeout(() => {
-    modal.style.display = 'none';
-    overlay.style.display = 'none';
-  }, 300);
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-  document.getElementById('closePaymentModal').onclick = hidePaymentModal;
-  document.getElementById('paymentModalOverlay').onclick = hidePaymentModal;
-
-  // Stripe initialization (only once)
-  stripe = Stripe('your_stripe_publishable_key'); // <-- REPLACE with your real Stripe publishable key
-  elements = stripe.elements();
-
-  // Create split Stripe Elements
-  cardNumber = elements.create('cardNumber', {
-    style: {
-      base: {
-        color: '#32325d',
-        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-        fontSize: '16px',
-        '::placeholder': { color: '#aab7c4' },
-      },
-    },
-  });
-  cardExpiry = elements.create('cardExpiry', {
-    style: {
-      base: {
-        color: '#32325d',
-        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-        fontSize: '16px',
-        '::placeholder': { color: '#aab7c4' },
-      },
-    },
-  });
-  cardCvc = elements.create('cardCvc', {
-    style: {
-      base: {
-        color: '#32325d',
-        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-        fontSize: '16px',
-        '::placeholder': { color: '#aab7c4' },
-      },
-    },
-  });
-
-  cardNumber.mount('#card-number-element');
-  cardExpiry.mount('#card-expiry-element');
-  cardCvc.mount('#card-cvc-element');
-
-  // Payment option buttons
-  document.getElementById('payFullPrice').addEventListener('click', () => {
-  handlePayment('full');
-});
-document.getElementById('payDeposit').addEventListener('click', () => {
-  handlePayment('deposit');
-});
-
-  // Stripe form submission
-  document.getElementById('stripePaymentForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const name = document.getElementById('cardholderName').value.trim();
-    if (!name) {
-      document.getElementById('cardholderName').classList.add('error');
-      return;
-    } else {
-      document.getElementById('cardholderName').classList.remove('error');
-    }
-
-    // Create PaymentIntent on your server
-    fetch('/create-payment-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paymentAmount: window._stripePaymentAmount })
-    })
-    .then(res => res.json())
-    .then(data => {
-      const clientSecret = data.clientSecret;
-      return stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: cardNumber, // Use cardNumber element for confirmation
-          billing_details: { name }
-        }
-      });
-    })
-    .then(function(result) {
-      if (result.error) {
-        document.getElementById('card-errors').textContent = result.error.message;
-      } else if (result.paymentIntent.status === 'succeeded') {
-        hidePaymentModal();
-        alert('Payment successful!');
-        completeBooking();
-      }
-    });
-  });
-});
 
   function getRentalDayCount() {
     const rentalRange = document.getElementById('rentalDateRange').value;
@@ -955,16 +724,24 @@ async function completeBooking() {
   const rentalDates = document.getElementById("rentalDateRange")?.value || "N/A";
   const startTime = document.getElementById("startTime")?.value || "N/A";
   const endTime = document.getElementById("endTime")?.value || "N/A";
-  const paymentType = window._stripePaymentType === "full" ? "Full Price" : "Deposit";
+  const paymentType = "Pay on Delivery";  // always set
 
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const totalAmount = (window._stripePaymentAmount / 100).toFixed(2);
+
+  // ✅ Calculate total in JMD
+  let totalAmount = 0;
+  cart.forEach(item => {
+    const days = item.days || 1;
+    const qty = item.quantity || 1;
+    totalAmount += (item.price * qty * days);
+  });
+  totalAmount = totalAmount.toFixed(2);
 
   const [startDateStr, endDateStr] = rentalDates.split(" to ");
   const start = new Date(startDateStr);
   const end = new Date(endDateStr);
 
-  // 🔍 Load all bookings from Firestore
+  // 🔍 Load all bookings from Firestore to check for overbooking
   const snapshot = await db.collection("reservations").get();
 
   for (const cartItem of cart) {
@@ -1028,7 +805,7 @@ async function completeBooking() {
     endTime,
     paymentType,
     cartItems: cart,
-    amountPaid: Number(totalAmount),
+    totalAmount: Number(totalAmount),   // renamed to avoid “amountPaid” confusion
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
 
@@ -1057,7 +834,6 @@ async function completeBooking() {
     }
   });
 }
-
 
   // Telegram notification function
 function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount) {
@@ -1825,6 +1601,22 @@ function removeItem(index) {
   document.getElementById("closeCheckoutBtn").addEventListener("click", function () {
     document.getElementById("cartModal").style.display = "none";
   });
+
+      document.getElementById("placeOrderBtn").addEventListener("click", function () {
+  // validate required fields
+  const name = document.getElementById("customerName").value.trim();
+  const phone = document.getElementById("customerPhone").value.trim();
+  const location = document.getElementById("customerLocation").value.trim();
+  const rentalDates = document.getElementById("rentalDateRange").value.trim();
+
+  if (!name || !phone || !location || !rentalDates) {
+    alert("Please fill in all required fields.");
+    return;
+  }
+
+  completeBooking(); // directly call booking
+});
+
 
   </script>
   </body>
