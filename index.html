@@ -619,13 +619,10 @@ textarea {
     const db = firebase.firestore();
 
     firebase.auth().onAuthStateChanged(user => {
-      if (!user) {
-        window.location.href = 'login.html';
-      } else {
-        currentUser = user;
-        loadReviews(currentUser);
-      }
-    });
+  currentUser = user || null;
+  loadReviews(currentUser);
+});
+
 
   let bookedDates = [];
 
