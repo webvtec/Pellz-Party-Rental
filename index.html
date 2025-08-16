@@ -671,30 +671,6 @@ function fetchBookedDatesAndInitCalendar() {
     initializeDatepicker(); // Now initialize calendar
   });
 }
-
-
-let stripe, elements, cardNumber, cardExpiry, cardCvc;
-
-// Helper functions for modal handling
-function showPaymentModal() {
-  const modal = document.getElementById('paymentOptionsModal');
-  const overlay = document.getElementById('paymentModalOverlay');
-  modal.style.display = 'block';
-  overlay.style.display = 'block';
-  setTimeout(() => { modal.style.opacity = 1; }, 20);
-
-  // Fix: Always set payment amount if missing
-  if (typeof window._stripePaymentAmount !== 'number') {
-    window._stripePaymentAmount = getCartTotal(); // fallback to full cart total
-  }
-
-  // Show the payment amount in the modal
-  const amountDiv = document.getElementById('payment-amount');
-  if (amountDiv && typeof window._stripePaymentAmount === 'number') {
-    let dollars = (window._stripePaymentAmount / 100).toFixed(2);
-    amountDiv.textContent = "Amount to Pay: $" + dollars;
-  }
-}
   
   function getRentalDayCount() {
     const rentalRange = document.getElementById('rentalDateRange').value;
@@ -717,49 +693,6 @@ function showPaymentModal() {
     return Math.round(total * days * 100); // Stripe expects cents
   }
 
-// Main payment handler
-function handlePayment(paymentType) {
-  const fields = [
-    document.getElementById("customerName"),
-    document.getElementById("customerPhone"),
-    document.getElementById("customerLocation"),
-    document.getElementById("rentalDateRange"),
-    document.getElementById("startTime"),
-    document.getElementById("endTime")
-  ];
-  let firstError = null;
-
-  fields.forEach(field => {
-    field.classList.remove("error");
-    if (!field.value.trim()) {
-      field.classList.add("error");
-      if (!firstError) firstError = field;
-    }
-  });
-
-  if (firstError) {
-    firstError.focus();
-    return;
-  }
-
-  // Payment calculation
-  const cartTotal = getCartTotal();
-  if (cartTotal === 0) {
-    alert("Your cart is empty. Please add items before proceeding.");
-    return;
-  }
-
-  window._stripeCartTotal = cartTotal;
-  window._stripePaymentAmount = paymentType === 'full'
-    ? cartTotal
-    : Math.round(cartTotal * 0.25);
-  window._stripePaymentType = paymentType;
-
-  // Hide cart modal
-  document.getElementById('cartModal').style.display = 'none';
-
-showPaymentModal();
-}
 
 async function completeBooking() {
   const name = document.getElementById("customerName")?.value || "N/A";
