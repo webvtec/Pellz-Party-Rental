@@ -650,8 +650,7 @@ textarea {
       <div id="cartTotal" style="text-align:right; font-weight:bold; margin-top: 10px;"></div>
 
       <div id="cartButtons">
-        <button id="payDeposit" class="payment-button">DEPOSIT (25%) & REST ON ARRIVAL</button>
-        <button id="payFullPrice" class="payment-button">PAY NOW</button>
+        <button id="payFullPrice" class="payment-button">PAY UPON ARRIVAL</button>
       </div>
     </div>
   </div>
@@ -781,107 +780,6 @@ function showPaymentModal() {
   }
 }
   
-function hidePaymentModal() {
-  const modal = document.getElementById('paymentOptionsModal');
-  const overlay = document.getElementById('paymentModalOverlay');
-  modal.style.opacity = 0;
-  setTimeout(() => {
-    modal.style.display = 'none';
-    overlay.style.display = 'none';
-  }, 300);
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-  document.getElementById('closePaymentModal').onclick = hidePaymentModal;
-  document.getElementById('paymentModalOverlay').onclick = hidePaymentModal;
-
-  // Stripe initialization (only once)
-  stripe = Stripe('your_stripe_publishable_key'); // <-- REPLACE with your real Stripe publishable key
-  elements = stripe.elements();
-
-  // Create split Stripe Elements
-  cardNumber = elements.create('cardNumber', {
-    style: {
-      base: {
-        color: '#32325d',
-        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-        fontSize: '16px',
-        '::placeholder': { color: '#aab7c4' },
-      },
-    },
-  });
-  cardExpiry = elements.create('cardExpiry', {
-    style: {
-      base: {
-        color: '#32325d',
-        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-        fontSize: '16px',
-        '::placeholder': { color: '#aab7c4' },
-      },
-    },
-  });
-  cardCvc = elements.create('cardCvc', {
-    style: {
-      base: {
-        color: '#32325d',
-        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-        fontSize: '16px',
-        '::placeholder': { color: '#aab7c4' },
-      },
-    },
-  });
-
-  cardNumber.mount('#card-number-element');
-  cardExpiry.mount('#card-expiry-element');
-  cardCvc.mount('#card-cvc-element');
-
-  // Payment option buttons
-  document.getElementById('payFullPrice').addEventListener('click', () => {
-  handlePayment('full');
-});
-document.getElementById('payDeposit').addEventListener('click', () => {
-  handlePayment('deposit');
-});
-
-  // Stripe form submission
-  document.getElementById('stripePaymentForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const name = document.getElementById('cardholderName').value.trim();
-    if (!name) {
-      document.getElementById('cardholderName').classList.add('error');
-      return;
-    } else {
-      document.getElementById('cardholderName').classList.remove('error');
-    }
-
-    // Create PaymentIntent on your server
-    fetch('/create-payment-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paymentAmount: window._stripePaymentAmount })
-    })
-    .then(res => res.json())
-    .then(data => {
-      const clientSecret = data.clientSecret;
-      return stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: cardNumber, // Use cardNumber element for confirmation
-          billing_details: { name }
-        }
-      });
-    })
-    .then(function(result) {
-      if (result.error) {
-        document.getElementById('card-errors').textContent = result.error.message;
-      } else if (result.paymentIntent.status === 'succeeded') {
-        hidePaymentModal();
-        alert('Payment successful!');
-        completeBooking();
-      }
-    });
-  });
-});
-
   function getRentalDayCount() {
     const rentalRange = document.getElementById('rentalDateRange').value;
     if (!rentalRange) return 1;
