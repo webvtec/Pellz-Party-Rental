@@ -1639,6 +1639,44 @@ function removeItem(index) {
     document.getElementById("cartModal").style.display = "none";
   });
 
+  document.getElementById("payNowBtn").addEventListener("click", function () {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  if (cart.length === 0) {
+    Swal.fire("Empty Cart", "Please add items before proceeding.", "error");
+    return;
+  }
+
+  let total = 0;
+  cart.forEach(item => {
+    const days = item.days || 1;
+    const qty = item.quantity || 1;
+    total += item.price * qty * days;
+  });
+
+  Swal.fire({
+    title: "Complete Your Payment",
+    html: `
+      <p><b>Total:</b> J$${total.toLocaleString()}</p>
+      <p>Please transfer funds to:</p>
+      <p>
+        <b>Bank:</b> YOUR BANK NAME<br>
+        <b>Account Name:</b> YOUR ACCOUNT NAME<br>
+        <b>Account Number:</b> YOUR ACCOUNT #<br>
+        <b>Type:</b> Savings / Chequing
+      </p>
+      <p>After sending, click confirm to place your order.</p>
+    `,
+    showCancelButton: true,
+    confirmButtonText: "Confirm Order",
+    cancelButtonText: "Cancel"
+  }).then(result => {
+    if (result.isConfirmed) {
+      completeBooking(); // <-- sends order to Telegram & Firestore
+    }
+  });
+});
+
+
   </script>
   </body>
   </html>
