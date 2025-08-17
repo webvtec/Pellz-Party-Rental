@@ -1248,5 +1248,20 @@ document.getElementById("rentalDateRange")?.addEventListener("change", async (e)
   return Math.max(0, baseStock - reserved);
 }
 
+  function addToCartFromPage(productId) {
+  const productEl = document.getElementById(productId);
+  if (!productEl) return;
+
+  const name = productEl.querySelector(".product-name")?.textContent.trim() || "Unnamed Item";
+  const price = parseFloat(productEl.querySelector(".product-price")?.textContent.trim() || "0");
+  const image = productEl.querySelector(".product-image")?.getAttribute("src") || "placeholder.jpg";
+
+  // Build item object
+  const item = { id: productId, name, price, image, quantity: 1 };
+
+  addToCart(item);
+}
+
+
 
 </script>
