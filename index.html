@@ -960,7 +960,7 @@ window.addEventListener("load", () => {
   async function validateCartStock(rentalDates) {
   const warningsDiv = document.getElementById("cartWarnings");
   warningsDiv.innerHTML = ""; // clear old messages
-  cartHasWarnings = false; // reset
+  cartHasWarnings = false;
 
   if (!rentalDates.includes(" to ")) {
     togglePlaceOrderButton();
@@ -982,6 +982,7 @@ window.addEventListener("load", () => {
   }
 
   const snapshot = await db.collection("reservations").get();
+  const shownWarnings = new Set(); // 🆕 prevents duplicates
 
   for (const cartItem of cart) {
     const itemName = cartItem.name;
@@ -1017,16 +1018,20 @@ window.addEventListener("load", () => {
       const alreadyBooked = bookedQtyPerDate[key] || 0;
       if (alreadyBooked + qtyRequested > stockAvailable) {
         const left = Math.max(0, stockAvailable - alreadyBooked);
-        warningsDiv.innerHTML += `<div>⚠️ ${itemName} is overbooked on ${key}. Only ${left} available. Checkout disabled until fixed.</div>`;
+        const msg = `⚠️ ${itemName} is overbooked on ${key}. Only ${left} available. Checkout disabled until fixed.`;
+        if (!shownWarnings.has(msg)) {
+          warningsDiv.innerHTML += `<div>${msg}</div>`;
+          shownWarnings.add(msg);
+        }
         cartHasWarnings = true;
       }
       d.setDate(d.getDate() + 1);
     }
   }
 
-  // ✅ Update the button state every time
   togglePlaceOrderButton();
 }
+
 
 
 </script>
