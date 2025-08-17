@@ -426,16 +426,6 @@ async function completeBooking() {
       return;
     }
 
-    // 🚫 Block if warnings exist
-    if (cartHasWarnings) {
-      Swal.fire({
-        icon: "error",
-        title: "Stock Issue",
-        text: "Some items in your cart are overbooked. Please adjust your cart before placing the order."
-      });
-      return;
-    }
-
     // --- calculate total ---
     const days = getRentalDayCount();
     let totalAmount = 0;
@@ -449,11 +439,40 @@ async function completeBooking() {
     // --- generate unique order number ---
     const orderNumber = await generateUniqueOrderNumber(name);
 
-    /* ===================== Save to Firestore ===================== */
-    let firestoreError = null;
-    try {
-      await db.collection("reservations").add({
-        orderNumber,  // ✅ save unique order number
+    /* ===================== TRANSACTION ===================== */
+    await db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(db.collection("reservations"));
+
+      // Check for conflicts
+      for (const cartItem of cart) {
+        let alreadyBooked = 0;
+        snapshot.forEach(doc => {
+          const r = doc.data();
+          if (!r.rentalDates || !r.cartItems) return;
+
+          const [resStartStr, resEndStr] = r.rentalDates.split(" to ");
+          const resStart = new Date(resStartStr);
+          const resEnd = new Date(resEndStr);
+
+          // Check date overlap
+          if ((start <= resEnd) && (end >= resStart)) {
+            for (const bookedItem of r.cartItems) {
+              if (bookedItem.name === cartItem.name) {
+                alreadyBooked += bookedItem.quantity || 1;
+              }
+            }
+          }
+        });
+
+        const stockAvailable = (qtyMap?.[cartItem.name]?.options?.slice(-1)?.[0]) || 1;
+        if (alreadyBooked + (cartItem.quantity || 1) > stockAvailable) {
+          throw new Error(`❌ ${cartItem.name} is already fully booked.`);
+        }
+      }
+
+      // ✅ If we reach here, stock is safe → write reservation
+      transaction.set(db.collection("reservations").doc(), {
+        orderNumber,
         name, phone, location,
         rentalDates, startTime, endTime,
         paymentType,
@@ -461,25 +480,17 @@ async function completeBooking() {
         totalAmount,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      console.log("✅ Saved to Firestore with Order #", orderNumber);
-    } catch (err) {
-      console.error(" Firestore save failed:", err);
-      firestoreError = err;
-    }
+    });
 
-    /* ===================== Always Send Telegram ===================== */
-    try {
-      await sendTelegramMessage(
-        name, phone, location, rentalDates,
-        startTime, endTime, paymentType,
-        cart, totalAmount, orderNumber // ✅ include order number
-      );
-      console.log("✅ Telegram sent with Order #", orderNumber);
-    } catch (tgErr) {
-      console.error(" Telegram send failed:", tgErr);
-      Swal.fire({ icon: "error", title: "Telegram Failed", text: "Order saved, but Telegram message didn’t send." });
-      return;
-    }
+    console.log("✅ Reservation saved atomically with Order #", orderNumber);
+
+    // --- Send Telegram after transaction succeeds ---
+    await sendTelegramMessage(
+      name, phone, location, rentalDates,
+      startTime, endTime, paymentType,
+      cart, totalAmount, orderNumber
+    );
+    console.log("✅ Telegram sent with Order #", orderNumber);
 
     // --- Success ---
     localStorage.removeItem("cart");
@@ -489,15 +500,15 @@ async function completeBooking() {
     }
 
     Swal.fire({
-      title: firestoreError ? `ORDER MADE (#${orderNumber}, DB Failed)` : `ORDER MADE (#${orderNumber})`,
-      text: firestoreError ? "Your order went through, but DB didn’t save." : "We got your booking!",
+      title: `ORDER MADE (#${orderNumber})`,
+      text: "We got your booking!",
       icon: "success",
       confirmButtonColor: "#1a73e8"
     });
 
   } catch (err) {
     console.error(" completeBooking crashed:", err);
-    Swal.fire({ icon: "error", title: "Oops", text: "Unexpected error placing the order." });
+    Swal.fire({ icon: "error", title: "Stock Issue", text: err.message || "Unexpected error placing the order." });
   }
 }
 
