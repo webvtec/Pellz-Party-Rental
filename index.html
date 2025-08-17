@@ -1038,14 +1038,14 @@ window.addEventListener("load", () => {
       const totalDemand = alreadyBooked + cartQty;
 
       if (totalDemand > stockAvailable) {
-        const left = Math.max(0, stockAvailable - alreadyBooked);
-        const uniqueKey = `${itemName}-${key}`;
-        if (!shownKeys.has(uniqueKey)) {
-          warningsDiv.innerHTML += `<div>⚠️ ${itemName} is overbooked on ${key}. Only ${left} available. Checkout disabled until fixed.</div>`;
-          shownKeys.add(uniqueKey);
-        }
-        cartHasWarnings = true;
-      }
+  const left = Math.max(0, stockAvailable - alreadyBooked);
+  const uniqueKey = `${itemName}-${key}`;
+  if (!shownKeys.has(uniqueKey)) {
+    warningsDiv.innerHTML += `<div>⚠️ ${itemName} is overbooked on ${key}. Only ${left} available, but you requested ${cartQty}. Checkout disabled until fixed.</div>`;
+    shownKeys.add(uniqueKey);
+  }
+  cartHasWarnings = true;
+}
 
       d.setDate(d.getDate() + 1);
     }
