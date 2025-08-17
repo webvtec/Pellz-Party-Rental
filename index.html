@@ -1353,7 +1353,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
   try {
     const snapshot = await db.collection("reservations")
       .where("userId", "==", currentUser.uid)
-      .limit(10) // ✅ only filter, no orderBy
+      .limit(10)
       .get();
 
     if (snapshot.empty) {
@@ -1376,6 +1376,22 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     orders.forEach(data => {
       const orderNum = data.orderNumber || data.id;
       const total = formatJMD(data.totalAmount || 0);
+
+      // format rental date range nicely
+      let rentalDates = "N/A";
+      if (data.rentalDates?.includes(" to ")) {
+        const [startStr, endStr] = data.rentalDates.split(" to ");
+        const start = new Date(startStr);
+        const end = new Date(endStr);
+        if (!isNaN(start) && !isNaN(end)) {
+          const fmt = { month: "long", day: "numeric", year: "numeric" };
+          rentalDates = `${start.toLocaleDateString("en-US", fmt)} → ${end.toLocaleDateString("en-US", fmt)}`;
+        }
+      }
+
+      const location = data.location || "N/A";
+
+      // booking createdAt
       const bookedOn = data.createdAt?.toDate().toLocaleString("en-US", {
         month: "long",
         day: "numeric",
@@ -1383,21 +1399,19 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
         hour: "numeric",
         minute: "2-digit"
       }) || "N/A";
-      const rentalDates = data.rentalDates || "N/A";
-      const location = data.location || "N/A";
 
       const items = (data.cartItems || [])
         .map(i => `${i.name} x${i.quantity}`)
         .join(", ");
 
       html += `
-        <div style="margin-bottom:12px; padding:10px; border-bottom:1px solid #ccc;">
+        <div style="margin-bottom:14px; padding:12px; border-bottom:1px solid #ddd;">
           <strong>Order #${orderNum}</strong><br>
-          <span><b>Items:</b> ${items}</span><br>
           <span><b>Booked For:</b> ${rentalDates}</span><br>
-          <span><b>Total:</b> <span style="color:#6A0DAD; font-weight:bold;">${total}</span></span><br>
+          <span><b>Items:</b> ${items}</span><br>
           <span><b>Delivery Location:</b> ${location}</span><br>
-          <span><b>Booked On:</b> ${bookedOn}</span>
+          <span><b>Total:</b> <span style="color:#6A0DAD; font-weight:bold;">${total}</span></span><br>
+          <span style="font-size:0.9em; color:#555;"><i>Booked On: ${bookedOn}</i></span>
         </div>`;
     });
 
