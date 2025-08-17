@@ -381,6 +381,7 @@ async function completeBooking() {
       return;
     }
 
+    // --- calculate total ---
     const days = getRentalDayCount();
     let totalAmount = 0;
     for (const item of cart) {
@@ -391,51 +392,57 @@ async function completeBooking() {
     totalAmount = Number(totalAmount.toFixed(2));
 
     /* ===================== Stock Check ===================== */
-    const snapshot = await db.collection("reservations").get();
-    for (const cartItem of cart) {
-      const itemName = cartItem.name;
-      const qtyRequested = cartItem.quantity || 1;
-      const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
-      const bookedQtyPerDate = {};
+    try {
+      const snapshot = await db.collection("reservations").get();
+      for (const cartItem of cart) {
+        const itemName = cartItem.name;
+        const qtyRequested = cartItem.quantity || 1;
+        const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
+        const bookedQtyPerDate = {};
 
-      for (const doc of snapshot.docs) {
-        const data = doc.data();
-        if (!data.rentalDates || !data.cartItems) continue;
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (!data.rentalDates || !data.cartItems) return;
 
-        const [bookedStartStr, bookedEndStr] = String(data.rentalDates).split(" to ");
-        const bookedStart = new Date(bookedStartStr);
-        const bookedEnd = new Date(bookedEndStr);
-        if (isNaN(bookedStart) || isNaN(bookedEnd)) continue;
-        if (start > bookedEnd || end < bookedStart) continue;
+          const [bookedStartStr, bookedEndStr] = String(data.rentalDates).split(" to ");
+          const bookedStart = new Date(bookedStartStr);
+          const bookedEnd = new Date(bookedEndStr);
+          if (isNaN(bookedStart) || isNaN(bookedEnd)) return;
+          if (start > bookedEnd || end < bookedStart) return;
 
-        for (const bookedItem of data.cartItems) {
-          if (bookedItem.name !== itemName) continue;
-          const bookedQty = bookedItem.quantity || 1;
-          let d = new Date(bookedStart);
-          while (d <= bookedEnd) {
-            const key = d.toISOString().split("T")[0];
-            bookedQtyPerDate[key] = (bookedQtyPerDate[key] || 0) + bookedQty;
-            d.setDate(d.getDate() + 1);
+          for (const bookedItem of data.cartItems) {
+            if (bookedItem.name !== itemName) continue;
+            const bookedQty = bookedItem.quantity || 1;
+            let d = new Date(bookedStart);
+            while (d <= bookedEnd) {
+              const key = d.toISOString().split("T")[0];
+              bookedQtyPerDate[key] = (bookedQtyPerDate[key] || 0) + bookedQty;
+              d.setDate(d.getDate() + 1);
+            }
           }
-        }
-      }
+        });
 
-      // Check per-day availability
-      let d = new Date(start);
-      while (d <= end) {
-        const key = d.toISOString().split("T")[0];
-        const alreadyBooked = bookedQtyPerDate[key] || 0;
-        if (alreadyBooked + qtyRequested > stockAvailable) {
-          const left = Math.max(0, stockAvailable - alreadyBooked);
-          Swal.fire({
-            icon: "error",
-            title: "Item Overbooked",
-            text: `${itemName} is overbooked on ${key}. Only ${left} left.`
-          });
-          return;
+        // per-day availability check
+        let d = new Date(start);
+        while (d <= end) {
+          const key = d.toISOString().split("T")[0];
+          const alreadyBooked = bookedQtyPerDate[key] || 0;
+          if (alreadyBooked + qtyRequested > stockAvailable) {
+            const left = Math.max(0, stockAvailable - alreadyBooked);
+            Swal.fire({
+              icon: "error",
+              title: "Item Overbooked",
+              text: `${itemName} is overbooked on ${key}. Only ${left} left.`
+            });
+            return;
+          }
+          d.setDate(d.getDate() + 1);
         }
-        d.setDate(d.getDate() + 1);
       }
+    } catch (e) {
+      console.error("❌ Stock check failed:", e);
+      Swal.fire({ icon: "error", title: "Stock check failed", text: e.message || "Cannot check availability." });
+      return;
     }
 
     /* ===================== Save to Firestore ===================== */
@@ -449,8 +456,9 @@ async function completeBooking() {
         totalAmount,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+      console.log("✅ Saved to Firestore");
     } catch (err) {
-      console.error("Firestore save failed:", err);
+      console.error("❌ Firestore save failed:", err);
       firestoreError = err;
     }
 
@@ -461,13 +469,14 @@ async function completeBooking() {
         startTime, endTime, paymentType,
         cart, totalAmount
       );
+      console.log("✅ Telegram sent");
     } catch (tgErr) {
-      console.error("Telegram send failed:", tgErr);
+      console.error("❌ Telegram send failed:", tgErr);
       Swal.fire({ icon: "error", title: "Telegram Failed", text: "Order saved, but Telegram message didn’t send." });
       return;
     }
 
-    // Cleanup + success UI
+    // --- Success ---
     localStorage.removeItem("cart");
     updateCartCount();
     if (document.getElementById("cartModal")) {
@@ -476,27 +485,16 @@ async function completeBooking() {
 
     Swal.fire({
       title: firestoreError ? "ORDER MADE (Firestore Failed)" : "ORDER MADE",
-      html: `
-        <div style="font-size:18px; font-weight:500; color:#333; text-align:center;">
-          WE WILL DELIVER THE ITEMS TO<br>
-          <span style="color:#1a73e8; font-weight:600;">${location}</span><br><br>
-          ON <span style="color:#1a73e8; font-weight:600;">${rentalDates}</span><br>
-          AT <span style="color:#1a73e8; font-weight:600;">${startTime}</span>
-        </div>
-      `,
-      icon: 'success',
-      iconColor: '#4caf50',
-      background: '#f8f9fa',
-      confirmButtonText: 'Awesome!',
-      confirmButtonColor: '#1a73e8'
+      text: firestoreError ? "Your order went through, but DB didn’t save." : "We got your booking!",
+      icon: "success",
+      confirmButtonColor: "#1a73e8"
     });
 
   } catch (err) {
-    console.error("completeBooking error:", err);
-    Swal.fire({ icon: "error", title: "Oops", text: "Something went wrong placing the order." });
+    console.error("❌ completeBooking crashed:", err);
+    Swal.fire({ icon: "error", title: "Oops", text: "Unexpected error placing the order." });
   }
 }
-
 
 
 
