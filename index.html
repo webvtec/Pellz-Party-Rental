@@ -509,25 +509,22 @@ async function sendTelegramMessage(
   cart, totalAmount, orderNumber
 ) {
   try {
-    const botToken = "YOUR_TELEGRAM_BOT_TOKEN";   // 🔑 replace with your bot token
-    const chatId = "YOUR_CHAT_ID";                // 🔑 replace with your chat ID
+    const botToken = "7638261664:AAGm0MNVQxN0hlW1bhXBRf-kSRuMgRkCLC8"; // 🔑 replace
+    const chatId = "1002734216867"; // 🔑 replace
 
-    // Format cart items
-    const cartText = cart.map(item => 
+    const cartText = cart.map(item =>
       `- ${item.name} x${item.quantity} @ $${item.price}`
     ).join("\n");
 
     const message = `
-📦 New Order Received!
----------------------------
-🆔 Order #: ${orderNumber}
-👤 Name: ${name}
-📞 Phone: ${phone}
-📍 Location: ${location}
-
-📅 Dates: ${rentalDates}
-⏰ Time: ${startTime} - ${endTime}
-💳 Payment: ${paymentType}
+📦 New Order!
+🆔 Order: ${orderNumber}
+👤 ${name}
+📞 ${phone}
+📍 ${location}
+📅 ${rentalDates}
+⏰ ${startTime} - ${endTime}
+💳 ${paymentType}
 
 🛒 Cart:
 ${cartText}
@@ -536,11 +533,7 @@ ${cartText}
     `;
 
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-    const payload = {
-      chat_id: chatId,
-      text: message,
-      parse_mode: "Markdown"
-    };
+    const payload = { chat_id: chatId, text: message, parse_mode: "Markdown" };
 
     const res = await fetch(url, {
       method: "POST",
@@ -548,20 +541,19 @@ ${cartText}
       body: JSON.stringify(payload)
     });
 
+    const data = await res.json();
     if (!res.ok) {
-      const errText = await res.text();
-      console.error(" Telegram API error:", errText);
-      throw new Error("Telegram send failed: " + errText);
+      console.error("❌ Telegram API error:", data);
+      throw new Error(data.description || "Telegram send failed");
     }
 
-    console.log("✅ Telegram message sent");
+    console.log("✅ Telegram message sent:", data);
 
   } catch (err) {
-    console.error(" Telegram send error:", err);
-    throw err; // let completeBooking catch it
+    console.error("❌ Telegram send error:", err);
+    throw err;
   }
 }
-
 
 /* ===================== Gallery / Cart ===================== */
 function loadGalleryByCategory(categoryFilter) {
