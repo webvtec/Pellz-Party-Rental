@@ -661,6 +661,10 @@ async function addToCart(item) {
     }
     localStorage.setItem("cart", JSON.stringify(cart));
     updateCartCount();
+
+    // 🔔 NEW: Validate after adding
+    validateCartStock(document.getElementById("rentalDateRange").value.trim());
+
     Swal.fire({ icon: "success", title: "Added", text: `${item.name} added to cart.` });
 
   } catch (err) {
@@ -668,6 +672,7 @@ async function addToCart(item) {
     Swal.fire({ icon: "error", title: "Error", text: "Could not check stock. Try again." });
   }
 }
+
 
 function addToCartWithQty(name, imageUrl) {
   const itemId = name.replace(/\s+/g, '-');
@@ -704,9 +709,14 @@ function addToCartWithQty(name, imageUrl) {
 
     localStorage.setItem('cart', JSON.stringify(cart));
     updateCartCount();
+
+    // 🔔 NEW: Validate after adding
+    validateCartStock(document.getElementById("rentalDateRange").value.trim());
+
     showToast("ADDED TO CART", "success");
   });
 }
+
 
 
 function updateCartCount() {
@@ -820,6 +830,10 @@ function removeFromCart(index) {
   cart.splice(index, 1);
   localStorage.setItem('cart', JSON.stringify(cart));
   updateCartCount();
+
+  // 🔔 NEW: Validate after removing
+  validateCartStock(document.getElementById("rentalDateRange").value.trim());
+
   viewCart();
 }
 
