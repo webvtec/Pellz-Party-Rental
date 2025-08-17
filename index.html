@@ -800,11 +800,10 @@ function viewCart() {
 
     totalElem.textContent = "TOTAL: " + formatJMD(total);
 
-    // 🔎 Check stock for the currently selected dates
+    // ❌ Removed validateCartStock() call here
+    // Validation will only run on rentalDateRange change
     const rentalDates = (document.getElementById("rentalDateRange")?.value || "").trim();
-    if (rentalDates) {
-      validateCartStock(rentalDates);
-    } else {
+    if (!rentalDates) {
       cartHasWarnings = false;
       togglePlaceOrderButton(); // ✅ ensure button resets when no dates
     }
@@ -812,7 +811,6 @@ function viewCart() {
 
   modal.style.display = 'block';
 }
-
 
 
 /* ===================== Cart Helpers ===================== */
