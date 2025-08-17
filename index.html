@@ -1198,20 +1198,8 @@ function debounceValidateCartStock(rentalDates) {
 }
 
 async function validateCartStock(rentalDates) {
-  const locationInput = document.getElementById("customerLocation");
-  let errorEl = document.getElementById("stockErrorMsg");
-
-  // Create inline error element if missing
-  if (!errorEl) {
-    errorEl = document.createElement("div");
-    errorEl.id = "stockErrorMsg";
-    errorEl.style.color = "red";
-    errorEl.style.marginTop = "5px";
-    locationInput.insertAdjacentElement("afterend", errorEl);
-  }
-
+  let errorEl = document.getElementById("cartWarnings"); // ✅ use existing element
   errorEl.innerHTML = ""; 
-  shownKeysGlobal.clear(); // reset global keys each run
   cartHasWarnings = false;
 
   // Bail if dates not valid yet
@@ -1219,6 +1207,7 @@ async function validateCartStock(rentalDates) {
     togglePlaceOrderButton();
     return;
   }
+
   const [startStr, endStr] = rentalDates.split(" to ");
   const start = new Date(startStr);
   const end = new Date(endStr);
@@ -1240,12 +1229,13 @@ async function validateCartStock(rentalDates) {
   }
 
   const snapshot = await db.collection("reservations").get();
+  const shownKeys = new Set();
 
   for (const [itemName, cartQty] of Object.entries(cartGrouped)) {
     const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
 
-    // ✅ Aggregate booked quantities per date across ALL reservations
     const bookedQtyPerDate = {};
+
     snapshot.forEach(doc => {
       const data = doc.data();
       if (!data.rentalDates || !data.cartItems) return;
@@ -1269,7 +1259,7 @@ async function validateCartStock(rentalDates) {
       }
     });
 
-    // ✅ Now only check once per date
+    // Compare demand vs stock per date
     let d = new Date(start);
     while (d <= end) {
       const key = d.toISOString().split("T")[0];
@@ -1280,9 +1270,9 @@ async function validateCartStock(rentalDates) {
         const left = Math.max(0, stockAvailable - alreadyBooked);
         const uniqueKey = `${itemName}-${key}`;
 
-        if (!shownKeysGlobal.has(uniqueKey)) {
+        if (!shownKeys.has(uniqueKey)) {
           errorEl.innerHTML += `<div>❌ Only ${left} ${itemName}(s) available for ${key}. You requested ${cartQty}.</div>`;
-          shownKeysGlobal.add(uniqueKey); // ✅ prevent duplicates
+          shownKeys.add(uniqueKey);
         }
 
         cartHasWarnings = true;
@@ -1294,6 +1284,7 @@ async function validateCartStock(rentalDates) {
 
   togglePlaceOrderButton();
 }
+
 
 
 /* ===================== HOOK VALIDATION ON DATE CHANGE ===================== */
