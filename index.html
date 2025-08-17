@@ -971,7 +971,7 @@ window.addEventListener("load", () => {
   for (const cartItem of cart) {
     const itemName = cartItem.name;
     const qtyRequested = cartItem.quantity || 1;
-    const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1; // last option = max stock
+    const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
 
     const bookedQtyPerDate = {};
     for (const doc of snapshot.docs) {
@@ -999,15 +999,14 @@ window.addEventListener("load", () => {
     let d = new Date(start);
     while (d <= end) {
       const key = d.toISOString().split("T")[0];
-      const alreadyBooked = bookedQtyPerDate[key] || 0;
-      if (alreadyBooked + qtyRequested > stockAvailable) {
-        return { ok: false, item: itemName, date: key, left: stockAvailable - alreadyBooked };
+      if ((bookedQtyPerDate[key] || 0) + qtyRequested > stockAvailable) {
+        return false; // Not enough stock for this item
       }
       d.setDate(d.getDate() + 1);
     }
   }
-  return { ok: true };
-}
+  return true; // All items available
+  }
 
   async function validateCartStock(rentalDates) {
   const warningsDiv = document.getElementById("cartWarnings");
