@@ -888,22 +888,93 @@ function loadReviews() {
   const container = document.getElementById("reviewsContainer");
   if (!container) return;
   container.innerHTML = "";
+
   db.collection("reviews").orderBy("createdAt", "desc").get().then(snapshot => {
     snapshot.forEach(doc => {
       const r = doc.data();
+      const reviewId = doc.id;
       const stars = "★".repeat(r.rating || 0) + "☆".repeat(5 - (r.rating || 0));
+
+      // Format createdAt
+      let dateStr = "";
+      if (r.createdAt && r.createdAt.toDate) {
+        dateStr = r.createdAt.toDate().toLocaleString();
+      }
+
+      // Check if current user owns this review
+      const currentUid = firebase.auth().currentUser?.uid;
+      const isOwner = (r.userId === currentUid);
+
+      // Build review element
       const div = document.createElement("div");
       div.style.marginBottom = "10px";
       div.innerHTML = `
         <div style="font-weight:bold; color:#9b59b6;">${r.name}</div>
         <div style="color:gold;">${stars}</div>
         <div>${r.comment}</div>
+        <div style="font-size:12px; color:#888;">${dateStr}</div>
+        ${isOwner ? `<button onclick="deleteReview('${reviewId}')">Delete</button>` : ""}
         <hr style="border:0; border-top:1px solid #555; margin:8px 0;">
       `;
+
       container.appendChild(div);
     });
   });
 }
+
+  function submitReview() {
+  const reviewText = document.getElementById("reviewText").value.trim();
+  const selectedRating = parseInt(document.getElementById("reviewRating").value);
+
+  const user = firebase.auth().currentUser;
+  if (!user) {
+    alert("You must be logged in to submit a review.");
+    return;
+  }
+
+  if (!reviewText) {
+    alert("Please write something before submitting.");
+    return;
+  }
+
+  db.collection("reviews").add({
+    userId: user.uid,
+    name: user.displayName || "Anonymous",
+    rating: selectedRating,
+    comment: reviewText,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => {
+    console.log("Review added!");
+    document.getElementById("reviewText").value = "";
+    document.getElementById("reviewRating").value = "5"; // reset to default
+    loadReviews(); // refresh list
+  }).catch(err => {
+    console.error("Error adding review:", err);
+  });
+}
+
+
+  function deleteReview(reviewId) {
+  const user = firebase.auth().currentUser;
+  if (!user) return;
+
+  db.collection("reviews").doc(reviewId).get().then(doc => {
+    if (!doc.exists) return;
+
+    const review = doc.data();
+    if (review.userId === user.uid) {
+      // ✅ user owns it → allow delete
+      db.collection("reviews").doc(reviewId).delete().then(() => {
+        console.log("Review deleted");
+      }).catch(err => {
+        console.error("Delete failed", err);
+      });
+    } else {
+      alert("You can only delete your own review.");
+    }
+  });
+}
+
 
 /* ===================== Event Listeners ===================== */
 document.getElementById("closeCheckoutBtn").addEventListener("click", () => {
