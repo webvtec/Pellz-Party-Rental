@@ -939,14 +939,16 @@ function timeAgo(date) {
 }
 
 
-  function submitReview() {
+function submitReview() {
   const reviewText = document.getElementById("reviewText").value.trim();
   const selectedRating = parseInt(document.getElementById("reviewRating").value);
 
   const user = firebase.auth().currentUser;
+
+  // 🚨 Not logged in → prompt + redirect
   if (!user) {
     if (confirm("You must be logged in to leave a review. Click OK to go to login.")) {
-      window.location.href = "/login.html"; // 👈 change this
+      window.location.href = "/login.html"; // 👈 change this to your actual login page path
     }
     return;
   }
@@ -956,6 +958,7 @@ function timeAgo(date) {
     return;
   }
 
+  // ✅ Logged in → save review
   db.collection("reviews").add({
     userId: user.uid,
     name: user.displayName || "Anonymous",
@@ -966,7 +969,7 @@ function timeAgo(date) {
     console.log("Review added!");
     document.getElementById("reviewText").value = "";
     document.getElementById("reviewRating").value = "5";
-    loadReviews();
+    loadReviews(); // refresh list
   }).catch(err => {
     console.error("Error adding review:", err);
   });
