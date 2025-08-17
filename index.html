@@ -648,203 +648,188 @@ function fetchBookedDatesAndInitCalendar() {
   });
 }
 
-  function getRentalDayCount() {
-    const rentalRange = document.getElementById('rentalDateRange').value;
-    if (!rentalRange) return 1;
-    const dates = rentalRange.split(' to ');
-    if (dates.length !== 2) return 1;
-    const start = new Date(dates[0]);
-    const end = new Date(dates[1]);
-    // count both start and end date, so add 1
-    return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-  }
+  
+    // --- Utility helpers ---
+function getRentalDayCount() {
+  const value = document.getElementById("rentalDateRange")?.value?.trim() || "";
+  if (!value.includes(" to ")) return 1;
 
-  function getCartTotal() {
-    let cart = JSON.parse(localStorage.getItem('cart')) || [];
-    let total = 0;
-    cart.forEach(item => {
-      total += item.price * (item.quantity || 1);
-    });
-    const days = getRentalDayCount();
-    return Math.round(total * days * 100); // Stripe expects cents
-  }
+  const [startStr, endStr] = value.split(" to ");
+  const start = new Date(startStr);
+  const end = new Date(endStr);
 
-// Main payment handler
-function handlePayment(paymentType) {
-  const fields = [
-    document.getElementById("customerName"),
-    document.getElementById("customerPhone"),
-    document.getElementById("customerLocation"),
-    document.getElementById("rentalDateRange"),
-    document.getElementById("startTime"),
-    document.getElementById("endTime")
-  ];
-  let firstError = null;
+  if (isNaN(start) || isNaN(end)) return 1;
 
-  fields.forEach(field => {
-    field.classList.remove("error");
-    if (!field.value.trim()) {
-      field.classList.add("error");
-      if (!firstError) firstError = field;
-    }
-  });
-
-  if (firstError) {
-    firstError.focus();
-    return;
-  }
-
-  // Payment calculation
-  const cartTotal = getCartTotal();
-  if (cartTotal === 0) {
-    alert("Your cart is empty. Please add items before proceeding.");
-    return;
-  }
-
-  window._stripeCartTotal = cartTotal;
-  window._stripePaymentAmount = paymentType === 'full'
-    ? cartTotal
-    : Math.round(cartTotal * 0.25);
-  window._stripePaymentType = paymentType;
-
-  // Hide cart modal
-  document.getElementById('cartModal').style.display = 'none';
-
-showPaymentModal();
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  const raw = Math.ceil((end - start) / MS_PER_DAY) + 1; // inclusive
+  return Math.max(1, raw);
 }
 
-async function completeBooking() {
-  const name = document.getElementById("customerName")?.value || "N/A";
-  const phone = document.getElementById("customerPhone")?.value || "N/A";
-  const location = document.getElementById("customerLocation")?.value || "N/A";
-  const rentalDates = document.getElementById("rentalDateRange")?.value || "N/A";
-  const startTime = document.getElementById("startTime")?.value || "N/A";
-  const endTime = document.getElementById("endTime")?.value || "N/A";
-  const paymentType = "Pay on Delivery";  // always set
-
-  const cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-  // ✅ Calculate total in JMD
-  let totalAmount = 0;
-  cart.forEach(item => {
-    const days = item.days || 1;
-    const qty = item.quantity || 1;
-    totalAmount += (item.price * qty * days);
+function formatJMD(amount) {
+  return 'JMD $' + Number(amount).toLocaleString('en-JM', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   });
-  totalAmount = totalAmount.toFixed(2);
+}
 
-  const [startDateStr, endDateStr] = rentalDates.split(" to ");
-  const start = new Date(startDateStr);
-  const end = new Date(endDateStr);
+function getCartTotal() {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const days = getRentalDayCount();
+  let total = 0;
+  cart.forEach(item => {
+    const qty = item.quantity || 1;
+    const price = Number(item.price) || 0;
+    total += price * qty * days;
+  });
+  return Number(total.toFixed(2));
+}
 
-  // 🔍 Load all bookings from Firestore to check for overbooking
-  const snapshot = await db.collection("reservations").get();
+// --- Main order handler (called when user clicks Place Order) ---
+async function completeBooking() {
+  try {
+    const name = document.getElementById("customerName")?.value.trim() || "N/A";
+    const phone = document.getElementById("customerPhone")?.value.trim() || "N/A";
+    const location = document.getElementById("customerLocation")?.value.trim() || "N/A";
+    const rentalDates = document.getElementById("rentalDateRange")?.value.trim() || "N/A";
+    const startTime = document.getElementById("startTime")?.value.trim() || "N/A";
+    const endTime = document.getElementById("endTime")?.value.trim() || "N/A";
+    const paymentType = "Pay on Delivery"; // fixed
 
-  for (const cartItem of cart) {
-    const itemName = cartItem.name;
-    const qtyRequested = cartItem.quantity || 1;
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    if (cart.length === 0) {
+      Swal.fire({ icon: "info", title: "Cart is empty", text: "Add items before placing an order." });
+      return;
+    }
 
-    // 🔎 Get max stock from global qtyMap or default to 1
-    const stockAvailable = qtyMap[itemName]?.options?.slice(-1)[0] || 1;
+    // ✅ Calculate total in JMD
+    const days = getRentalDayCount();
+    let totalAmount = 0;
+    cart.forEach(item => {
+      const qty = item.quantity || 1;
+      const price = Number(item.price) || 0;
+      totalAmount += price * qty * days;
+    });
+    totalAmount = Number(totalAmount.toFixed(2));
 
-    const bookedQtyPerDate = {};
+    // --- Validate date range ---
+    if (!rentalDates.includes(" to ")) {
+      Swal.fire({ icon: "error", title: "Invalid dates", text: "Please select a valid rental date range." });
+      return;
+    }
+    const [startDateStr, endDateStr] = rentalDates.split(" to ");
+    const start = new Date(startDateStr);
+    const end = new Date(endDateStr);
+    if (isNaN(start) || isNaN(end)) {
+      Swal.fire({ icon: "error", title: "Invalid dates", text: "Please select a valid rental date range." });
+      return;
+    }
 
-    for (const doc of snapshot.docs) {
-      const data = doc.data();
-      if (!data.rentalDates || !data.cartItems) continue;
+    // --- Overbooking check ---
+    const snapshot = await db.collection("reservations").get();
+    for (const cartItem of cart) {
+      const itemName = cartItem.name;
+      const qtyRequested = cartItem.quantity || 1;
+      const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
+      const bookedQtyPerDate = {};
 
-      const [bookedStartStr, bookedEndStr] = data.rentalDates.split(" to ");
-      const bookedStart = new Date(bookedStartStr);
-      const bookedEnd = new Date(bookedEndStr);
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        if (!data.rentalDates || !data.cartItems) continue;
 
-      if (start > bookedEnd || end < bookedStart) continue;
+        const [bookedStartStr, bookedEndStr] = String(data.rentalDates).split(" to ");
+        const bookedStart = new Date(bookedStartStr);
+        const bookedEnd = new Date(bookedEndStr);
+        if (isNaN(bookedStart) || isNaN(bookedEnd)) continue;
 
-      for (const bookedItem of data.cartItems) {
-        if (bookedItem.name !== itemName) continue;
+        if (start > bookedEnd || end < bookedStart) continue;
 
-        const bookedQty = bookedItem.quantity || 1;
-        let d = new Date(bookedStart);
-        while (d <= bookedEnd) {
-          const key = d.toISOString().split("T")[0];
-          bookedQtyPerDate[key] = (bookedQtyPerDate[key] || 0) + bookedQty;
-          d.setDate(d.getDate() + 1);
+        for (const bookedItem of data.cartItems) {
+          if (bookedItem.name !== itemName) continue;
+          const bookedQty = bookedItem.quantity || 1;
+
+          let d = new Date(bookedStart);
+          while (d <= bookedEnd) {
+            const key = d.toISOString().split("T")[0];
+            bookedQtyPerDate[key] = (bookedQtyPerDate[key] || 0) + bookedQty;
+            d.setDate(d.getDate() + 1);
+          }
         }
       }
-    }
 
-    // 🚫 Check for overbooking on each date
-    let d = new Date(start);
-    while (d <= end) {
-      const key = d.toISOString().split("T")[0];
-      const alreadyBooked = bookedQtyPerDate[key] || 0;
-      if (alreadyBooked + qtyRequested > stockAvailable) {
-        Swal.fire({
-          icon: "error",
-          title: "Item Overbooked",
-          text: `${itemName} is overbooked on ${key}. Only ${stockAvailable - alreadyBooked} left.`,
-        });
-        return;
+      let d = new Date(start);
+      while (d <= end) {
+        const key = d.toISOString().split("T")[0];
+        const alreadyBooked = bookedQtyPerDate[key] || 0;
+        if (alreadyBooked + qtyRequested > stockAvailable) {
+          const left = Math.max(0, stockAvailable - alreadyBooked);
+          Swal.fire({
+            icon: "error",
+            title: "Item Overbooked",
+            text: `${itemName} is overbooked on ${key}. Only ${left} left.`,
+          });
+          return;
+        }
+        d.setDate(d.getDate() + 1);
       }
-      d.setDate(d.getDate() + 1);
     }
+
+    // ✅ Proceed with Telegram & Firestore save
+    sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount);
+
+    await db.collection("reservations").add({
+      name,
+      phone,
+      location,
+      rentalDates,
+      startTime,
+      endTime,
+      paymentType,
+      cartItems: cart,
+      totalAmount,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    localStorage.removeItem("cart");
+    updateCartCount && updateCartCount();
+
+    Swal.fire({
+      title: 'ORDER MADE',
+      html: `
+        <div style="font-size: 18px; font-weight: 500; color: #333; text-align: center;">
+          WE WILL DELIVER THE ITEMS TO<br>
+          <span style="color: #1a73e8; font-weight: 600;">${location}</span><br><br>
+          ON <span style="color: #1a73e8; font-weight: 600;">${rentalDates}</span><br>
+          AT <span style="color: #1a73e8; font-weight: 600;">${startTime}</span>
+        </div>
+      `,
+      icon: 'success',
+      iconColor: '#4caf50',
+      background: '#f8f9fa',
+      confirmButtonText: 'Awesome!',
+      confirmButtonColor: '#1a73e8'
+    });
+
+  } catch (err) {
+    console.error('completeBooking error:', err);
+    Swal.fire({ icon: 'error', title: 'Oops', text: 'Something went wrong placing the order.' });
   }
-
-  // ✅ Proceed with Telegram & Firestore save
-  sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount);
-
-  await db.collection("reservations").add({
-    name,
-    phone,
-    location,
-    rentalDates,
-    startTime,
-    endTime,
-    paymentType,
-    cartItems: cart,
-    totalAmount: Number(totalAmount),   // renamed to avoid “amountPaid” confusion
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  localStorage.removeItem("cart");
-  updateCartCount && updateCartCount();
-
-  Swal.fire({
-    title: 'ORDER MADE',
-    html: `
-      <div style="font-size: 18px; font-weight: 500; color: #333; text-align: center;">
-        WE WILL DELIVER THE ITEMS TO<br>
-        <span style="color: #1a73e8; font-weight: 600;">${location}</span><br><br>
-        ON <span style="color: #1a73e8; font-weight: 600;">${rentalDates}</span><br>
-        AT <span style="color: #1a73e8; font-weight: 600;">${startTime}</span>
-      </div>
-    `,
-    icon: 'success',
-    iconColor: '#4caf50',
-    background: '#f8f9fa',
-    confirmButtonText: 'Awesome!',
-    confirmButtonColor: '#1a73e8',
-    customClass: {
-      popup: 'swal2-rounded',
-      title: 'swal2-title-custom',
-      confirmButton: 'swal2-confirm-custom'
-    }
-  });
 }
 
-  // Telegram notification function
+// --- Telegram notification ---
 function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount) {
-  const telegramBotToken = '7638261664:AAGm0MNVQxN0hlW1bhXBRf-kSRuMgRkCLC8'; // Replace!
-  const chatId = '-1002734216867'; // Replace!
+  const telegramBotToken = '7638261664:AAGm0MNVQxN0hlW1bhXBRf-kSRuMgRkCLC8'; // <-- replace
+  const chatId = '1002734216867';             // <-- replace
 
-  let itemsSummary = cart.map(item => {
+  const days = getRentalDayCount();
+  const itemsSummary = cart.map(item => {
     const qty = item.quantity || 1;
-    const days = item.days || 1;
-    const total = (item.price * qty * days).toFixed(2);
-    return `• ${item.name} (x${qty}, ${days} day${days > 1 ? 's' : ''}) = $${total}`;
+    const price = Number(item.price) || 0;
+    const lineTotal = Number((price * qty * days).toFixed(2));
+    return `• ${item.name} (x${qty}, ${days} day${days > 1 ? 's' : ''}) = ${formatJMD(lineTotal)}`;
   }).join('\n');
 
-  const message = `
-🛒 New Reservation
+  const message =
+`🛒 New Reservation
 
 👤 Name: ${name}
 📞 Phone: ${phone}
@@ -853,33 +838,51 @@ function sendTelegramMessage(name, phone, location, rentalDates, startTime, endT
 📅 Dates: ${rentalDates}
 ⏰ Time: ${startTime} to ${endTime}
 💳 Payment: ${paymentType}
-💰 Amount Paid: $${totalAmount}
+💰 Total: ${formatJMD(totalAmount)}
 
 🧾 Cart Items:
-${itemsSummary}
-  `.trim();
+${itemsSummary}`;
 
   const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
 
   fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: message,
-      parse_mode: 'Markdown'
-    })
+    body: JSON.stringify({ chat_id: chatId, text: message })
   })
-  .then(response => response.json())
+  .then(r => r.json())
   .then(data => {
-    if (data.ok) {
-      console.log('Telegram message sent!');
-    } else {
-      console.error('Telegram error:', data);
-    }
+    if (!data.ok) console.error('Telegram error:', data);
   })
-  .catch(error => console.error('Telegram fetch error:', error));
+  .catch(err => console.error('Telegram fetch error:', err));
 }
+
+// --- Attach to Place Order button ---
+document.addEventListener("DOMContentLoaded", function () {
+  const btn = document.getElementById("placeOrderBtn");
+  if (btn) {
+    btn.addEventListener("click", () => {
+      const requiredIds = ["customerName","customerPhone","customerLocation","rentalDateRange","startTime","endTime"];
+      let firstError = null;
+      requiredIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove("error");
+        if (!el.value || !el.value.trim()) {
+          el.classList.add("error");
+          if (!firstError) firstError = el;
+        }
+      });
+      if (firstError) {
+        firstError.focus();
+        Swal.fire({ icon: "warning", title: "Missing information", text: "Please fill in all required fields." });
+        return;
+      }
+      completeBooking();
+    });
+  }
+});
+
 
   function isBookingAvailable(newStart, newEnd, bookings) {
   // 1 hour buffer in milliseconds
