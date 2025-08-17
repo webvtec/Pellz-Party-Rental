@@ -353,7 +353,7 @@ function getCartTotal() {
 }
 
 
-/* ===================== Order: Telegram + Stock Check ===================== */
+/* ===================== Order: Firestore + Telegram ===================== */
 async function completeBooking() {
   try {
     const name = (document.getElementById("customerName")?.value || "").trim();
@@ -396,7 +396,7 @@ async function completeBooking() {
     for (const cartItem of cart) {
       const itemName = cartItem.name;
       const qtyRequested = cartItem.quantity || 1;
-      const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1; // max stock from qtyMap
+      const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1; // last option = max stock
       const bookedQtyPerDate = {};
 
       for (const doc of snapshot.docs) {
@@ -438,7 +438,17 @@ async function completeBooking() {
       }
     }
 
-    /* ===================== Send to Telegram ONLY ===================== */
+    /* ===================== Save to Firestore ===================== */
+    await db.collection("reservations").add({
+      name, phone, location,
+      rentalDates, startTime, endTime,
+      paymentType,
+      cartItems: cart,
+      totalAmount,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    /* ===================== Send to Telegram ===================== */
     sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount);
 
     // Cleanup + success UI
@@ -468,6 +478,7 @@ async function completeBooking() {
     Swal.fire({ icon: 'error', title: 'Oops', text: 'Something went wrong placing the order.' });
   }
 }
+
 
 /* Telegram: simple form POST to avoid CORS preflight */
 function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount) {
