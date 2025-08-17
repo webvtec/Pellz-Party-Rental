@@ -616,31 +616,88 @@ function updateManualPrice(itemName, itemId) {
   document.getElementById(`price-${itemId}`).textContent = formatJMD(price);
 }
 
-function addToCart(name, price, imageUrl) {
-  let cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-  db.collection('gallery').where('name', '==', name).limit(1).get().then(snapshot => {
-    if (snapshot.empty) return;
-    const item = snapshot.docs[0].data();
-    const category = (item.category || '').toUpperCase();
-    const isRestricted = restrictedCategories.includes(category);
-    const exists = cart.find(i => i.name === name);
-
-    if (exists && isRestricted) {
-      showToast("YOU CAN ONLY ADD THIS ITEM ONCE", "error");
+async function addToCart(item) {
+  try {
+    const rentalDates = (document.getElementById("rentalDateRange")?.value || "").trim();
+    if (!rentalDates.includes(" to ")) {
+      Swal.fire({ icon: "info", title: "Select Dates", text: "Please select rental dates first." });
       return;
     }
 
-    if (!exists) {
-      cart.push({ name, price, imageUrl, quantity: 1, category });
-    } else {
-      exists.quantity += 1;
+    const [startStr, endStr] = rentalDates.split(" to ");
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+    if (isNaN(start) || isNaN(end)) {
+      Swal.fire({ icon: "error", title: "Invalid Dates", text: "Please pick valid rental dates." });
+      return;
     }
 
-    localStorage.setItem('cart', JSON.stringify(cart));
+    const stockAvailable = (qtyMap?.[item.name]?.options?.slice(-1)?.[0]) || 1;
+
+    // 🔎 Check existing reservations for this item
+    const snapshot = await db.collection("reservations").get();
+    let bookedQtyPerDate = {};
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (!data.rentalDates || !data.cartItems) return;
+
+      const [bookedStartStr, bookedEndStr] = String(data.rentalDates).split(" to ");
+      const bookedStart = new Date(bookedStartStr);
+      const bookedEnd = new Date(bookedEndStr);
+      if (isNaN(bookedStart) || isNaN(bookedEnd)) return;
+      if (start > bookedEnd || end < bookedStart) return;
+
+      for (const bookedItem of data.cartItems) {
+        if (bookedItem.name !== item.name) continue;
+        const bookedQty = bookedItem.quantity || 1;
+        let d = new Date(bookedStart);
+        while (d <= bookedEnd) {
+          const key = d.toISOString().split("T")[0];
+          bookedQtyPerDate[key] = (bookedQtyPerDate[key] || 0) + bookedQty;
+          d.setDate(d.getDate() + 1);
+        }
+      }
+    });
+
+    // 🔎 Get max already booked across requested range
+    let maxBooked = 0;
+    let d = new Date(start);
+    while (d <= end) {
+      const key = d.toISOString().split("T")[0];
+      maxBooked = Math.max(maxBooked, bookedQtyPerDate[key] || 0);
+      d.setDate(d.getDate() + 1);
+    }
+
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    const existing = cart.find(i => i.name === item.name);
+    const currentQty = existing ? existing.quantity : 0;
+    const newTotal = currentQty + (item.quantity || 1);
+
+    if (maxBooked + newTotal > stockAvailable) {
+      const left = Math.max(0, stockAvailable - maxBooked - currentQty);
+      Swal.fire({
+        icon: "error",
+        title: "Not enough stock",
+        text: `Only ${left} more ${item.name} available for your selected dates.`
+      });
+      return;
+    }
+
+    // ✅ Safe to add to cart
+    if (existing) {
+      existing.quantity = newTotal;
+    } else {
+      cart.push(item);
+    }
+    localStorage.setItem("cart", JSON.stringify(cart));
     updateCartCount();
-    showToast('ADDED TO CART', 'success');
-  });
+    Swal.fire({ icon: "success", title: "Added", text: `${item.name} added to cart.` });
+
+  } catch (err) {
+    console.error("addToCart error:", err);
+    Swal.fire({ icon: "error", title: "Error", text: "Could not check stock. Try again." });
+  }
 }
 
 function addToCartWithQty(name, imageUrl) {
