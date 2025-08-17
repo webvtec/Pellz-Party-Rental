@@ -895,10 +895,10 @@ function loadReviews() {
       const reviewId = doc.id;
       const stars = "★".repeat(r.rating || 0) + "☆".repeat(5 - (r.rating || 0));
 
-      // Format createdAt
+      // Format createdAt → relative
       let dateStr = "";
       if (r.createdAt && r.createdAt.toDate) {
-        dateStr = r.createdAt.toDate().toLocaleString();
+        dateStr = timeAgo(r.createdAt.toDate());
       }
 
       // Check if current user owns this review
@@ -921,6 +921,7 @@ function loadReviews() {
     });
   });
 }
+
 
   function submitReview() {
   const reviewText = document.getElementById("reviewText").value.trim();
