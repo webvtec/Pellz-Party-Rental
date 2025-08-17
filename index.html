@@ -527,6 +527,18 @@ async function completeBooking() {
       document.getElementById("cartModal").style.display = "none";
     }
 
+    // ✅ Clear form fields
+    document.getElementById("customerName").value = "";
+    document.getElementById("customerPhone").value = "";
+    document.getElementById("customerLocation").value = "";
+    document.getElementById("rentalDateRange").value = "";
+    document.getElementById("startTime").value = "";
+    document.getElementById("endTime").value = "";
+
+    // ✅ Clear stock errors
+    const stockErrorMsg = document.getElementById("stockErrorMsg");
+    if (stockErrorMsg) stockErrorMsg.innerHTML = "";
+
     Swal.fire({
       title: `ORDER MADE (#${orderNumber})`,
       text: "We got your booking!",
@@ -534,11 +546,11 @@ async function completeBooking() {
       confirmButtonColor: "#1a73e8"
     });
 
-    // 🔄 IMPORTANT: Refresh reservations so stock validation updates immediately
-    fetchBookedDatesAndInitCalendar(); // updates datepicker + bookedDates
+    // 🔄 Refresh reservations so stock validation updates immediately
+    fetchBookedDatesAndInitCalendar();
     const rentalDatesNow = (document.getElementById("rentalDateRange")?.value || "").trim();
     if (rentalDatesNow) {
-      validateCartStock(rentalDatesNow); // re-check cart stock instantly
+      validateCartStock(rentalDatesNow);
     }
 
   } catch (err) {
@@ -546,7 +558,6 @@ async function completeBooking() {
     Swal.fire({ icon: "error", title: "Stock Issue", text: err.message || "Unexpected error placing the order." });
   }
 }
-
 
 /* Telegram: simple form POST to avoid CORS preflight */
 async function sendTelegramMessage(
