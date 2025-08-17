@@ -612,7 +612,9 @@ function loadGalleryByCategory(categoryFilter) {
         } else {
           html += `
             <div class="product-price">Price: <span id="price-${itemId}">${formatJMD(firebasePrice)}</span></div>
-            <button onclick="addToCart('${name}', ${firebasePrice}, '${imageUrl}')">Add to Cart</button>`;
+            <button onclick="addToCart({ name: '${name}', price: ${firebasePrice}, imageUrl: '${imageUrl}' })">
+              Add to Cart
+            </button>`;
         }
 
         html += `</div></div>`;
