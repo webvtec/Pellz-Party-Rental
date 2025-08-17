@@ -1363,7 +1363,6 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
 
     let html = "<div style='text-align:left; max-height:400px; overflow-y:auto;'>";
 
-    // ✅ sort newest first
     const orders = snapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
       .sort((a, b) => {
@@ -1377,21 +1376,24 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
       const orderNum = data.orderNumber || data.id;
       const total = formatJMD(data.totalAmount || 0);
 
-      // format rental date range nicely
-      let rentalDates = "N/A";
+      // Format rental range with times
+      let rentalRange = "N/A";
       if (data.rentalDates?.includes(" to ")) {
         const [startStr, endStr] = data.rentalDates.split(" to ");
         const start = new Date(startStr);
         const end = new Date(endStr);
         if (!isNaN(start) && !isNaN(end)) {
           const fmt = { month: "long", day: "numeric", year: "numeric" };
-          rentalDates = `${start.toLocaleDateString("en-US", fmt)} → ${end.toLocaleDateString("en-US", fmt)}`;
+          const startFmt = start.toLocaleDateString("en-US", fmt);
+          const endFmt = end.toLocaleDateString("en-US", fmt);
+          const startTime = data.startTime || "";
+          const endTime = data.endTime || "";
+          rentalRange = `${startFmt} ${startTime} → ${endFmt} ${endTime}`;
         }
       }
 
       const location = data.location || "N/A";
 
-      // booking createdAt
       const bookedOn = data.createdAt?.toDate().toLocaleString("en-US", {
         month: "long",
         day: "numeric",
@@ -1407,7 +1409,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
       html += `
         <div style="margin-bottom:14px; padding:12px; border-bottom:1px solid #ddd;">
           <strong>Order #${orderNum}</strong><br>
-          <span><b>Booked For:</b> ${rentalDates}</span><br>
+          <span><b>Booked For:</b> ${rentalRange}</span><br>
           <span><b>Items:</b> ${items}</span><br>
           <span><b>Delivery Location:</b> ${location}</span><br>
           <span><b>Total:</b> <span style="color:#6A0DAD; font-weight:bold;">${total}</span></span><br>
@@ -1418,7 +1420,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     html += "</div>";
 
     Swal.fire({
-      title: "📦 Recent Orders",
+      title: "📦 Recent Orders", // ✅ all in one line
       html,
       width: 550,
       confirmButtonText: "Close",
