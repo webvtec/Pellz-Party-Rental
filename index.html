@@ -88,12 +88,6 @@
     .swal2-title-custom { font-size: 28px; font-family: 'Poppins', sans-serif; font-weight: 700; color: #2e7d32; text-align: center; }
     .swal2-confirm-custom { background-color: #1a73e8 !important; color: white !important; font-size: 16px; border-radius: 8px !important; padding: 10px 20px; }
 
-    .stock-warning {
-  color: red;
-  font-size: 0.9em;
-  margin-top: 4px;
-}
-
   </style>
 </head>
 
@@ -965,82 +959,6 @@ window.addEventListener("load", () => {
   }
   return { ok: true };
 }
-
-  async function validateCartStock(rentalDates) {
-  try {
-    if (!rentalDates.includes(" to ")) return;
-
-    const [startStr, endStr] = rentalDates.split(" to ");
-    const start = new Date(startStr);
-    const end = new Date(endStr);
-    if (isNaN(start) || isNaN(end)) return;
-
-    const snapshot = await db.collection("reservations").get();
-    const cart = JSON.parse(localStorage.getItem("cart")) || [];
-
-    for (const cartItem of cart) {
-      const itemName = cartItem.name;
-      const qtyRequested = cartItem.quantity || 1;
-      const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
-
-      // count how many already booked
-      let bookedQtyPerDate = {};
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (!data.rentalDates || !data.cartItems) return;
-
-        const [bookedStartStr, bookedEndStr] = String(data.rentalDates).split(" to ");
-        const bookedStart = new Date(bookedStartStr);
-        const bookedEnd = new Date(bookedEndStr);
-        if (isNaN(bookedStart) || isNaN(bookedEnd)) return;
-        if (start > bookedEnd || end < bookedStart) return;
-
-        for (const bookedItem of data.cartItems) {
-          if (bookedItem.name !== itemName) continue;
-          const bookedQty = bookedItem.quantity || 1;
-          let d = new Date(bookedStart);
-          while (d <= bookedEnd) {
-            const key = d.toISOString().split("T")[0];
-            bookedQtyPerDate[key] = (bookedQtyPerDate[key] || 0) + bookedQty;
-            d.setDate(d.getDate() + 1);
-          }
-        }
-      });
-
-      // find max booked across range
-      let maxBooked = 0;
-      let d = new Date(start);
-      while (d <= end) {
-        const key = d.toISOString().split("T")[0];
-        maxBooked = Math.max(maxBooked, bookedQtyPerDate[key] || 0);
-        d.setDate(d.getDate() + 1);
-      }
-
-      // check availability
-      const cartRow = document.querySelector(`[data-cart-item="${itemName}"]`);
-      let warningEl = cartRow?.querySelector(".stock-warning");
-      if (!warningEl && cartRow) {
-        warningEl = document.createElement("div");
-        warningEl.className = "stock-warning";
-        warningEl.style.color = "red";
-        warningEl.style.fontSize = "0.9em";
-        cartRow.appendChild(warningEl);
-      }
-
-      if (qtyRequested + maxBooked > stockAvailable) {
-        const left = Math.max(0, stockAvailable - maxBooked);
-        if (warningEl) {
-          warningEl.textContent = `⚠ Only ${left} ${itemName} available for these dates.`;
-        }
-      } else if (warningEl) {
-        warningEl.textContent = ""; // clear warning
-      }
-    }
-  } catch (err) {
-    console.error("validateCartStock error:", err);
-  }
-}
-
 
 
 </script>
