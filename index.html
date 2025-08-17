@@ -220,14 +220,9 @@ const db = firebase.firestore();
 
 let currentUser = null;
 
-  firebase.auth().onAuthStateChanged(user => {
+  document.addEventListener("DOMContentLoaded", loadReviews);
+firebase.auth().onAuthStateChanged(user => {
   currentUser = user || null;
-  // Don’t call loadReviews() again here if using onSnapshot
-});
-
-// Run once when DOM ready
-document.addEventListener("DOMContentLoaded", () => {
-  loadReviews();
 });
 
 
