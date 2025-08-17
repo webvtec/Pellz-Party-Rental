@@ -268,8 +268,9 @@ function fetchBookedDatesAndInitCalendar() {
         }
       }
     });
-  }).then(() => initializeDatepicker())
-    .catch(err => console.error('Error loading booked dates:', err));
+  })
+  .catch(err => console.error('Error loading booked dates:', err))
+  .finally(() => initializeDatepicker()); // ✅ always run
 }
 
 function initializeDatepicker() {
@@ -284,10 +285,12 @@ function initializeDatepicker() {
         const onlyDate = selectedDates[0];
         const formatted = instance.formatDate(onlyDate, "Y-m-d");
         input.value = `${formatted} to ${formatted}`;
-        updateRentalDuration();
       } else if (selectedDates.length === 2) {
-        updateRentalDuration();
+        const formattedStart = instance.formatDate(selectedDates[0], "Y-m-d");
+        const formattedEnd = instance.formatDate(selectedDates[1], "Y-m-d");
+        input.value = `${formattedStart} to ${formattedEnd}`;
       }
+      updateRentalDuration();
     }
   });
 }
