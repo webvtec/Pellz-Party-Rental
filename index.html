@@ -431,7 +431,15 @@ async function generateUniqueOrderNumber(name) {
   return orderNumber;
 }
 
+let bookingInProgress = false; // guard variable
+
 async function completeBooking() {
+  if (bookingInProgress) return; // prevent duplicate run
+  bookingInProgress = true;
+
+  const bookBtn = document.getElementById("completeBookingBtn");
+  if (bookBtn) bookBtn.disabled = true; // disable button immediately
+
   try {
     const name = (document.getElementById("customerName")?.value || "").trim();
     const phone = (document.getElementById("customerPhone")?.value || "").trim();
@@ -503,7 +511,7 @@ async function completeBooking() {
 
     /* ===================== TRANSACTION (WRITE ONLY) ===================== */
     await db.runTransaction(async (transaction) => {
-      const docRef = db.collection("reservations").doc();
+      const docRef = db.collection("reservations").doc(orderNumber); // ✅ use orderNumber as ID
       transaction.set(docRef, {
         orderNumber,
         userId: currentUser ? currentUser.uid : null, // ✅ added so we can filter later
@@ -562,6 +570,10 @@ async function completeBooking() {
   } catch (err) {
     console.error("completeBooking crashed:", err);
     Swal.fire({ icon: "error", title: "Stock Issue", text: err.message || "Unexpected error placing the order." });
+  } finally {
+    bookingInProgress = false; // reset guard
+    const bookBtn = document.getElementById("completeBookingBtn");
+    if (bookBtn) bookBtn.disabled = false; // re-enable button if failed
   }
 }
 
