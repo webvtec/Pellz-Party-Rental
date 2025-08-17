@@ -882,9 +882,12 @@ function initReviews() {
         return;
       }
       await db.collection("reviews").add({
-        name, comment, rating: selectedRating,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+  userId: currentUser ? currentUser.uid : null,   // ✅ save the UID
+  name: currentUser?.displayName || name,        // use Firebase displayName if available
+  comment,
+  rating: selectedRating,
+  createdAt: firebase.firestore.FieldValue.serverTimestamp()
+});
       document.getElementById("reviewForm").reset();
       selectedRating = 0;
       document.getElementById("reviewSubmitMsg").textContent = "✅ Review submitted!";
@@ -898,9 +901,11 @@ function initReviews() {
 function loadReviews() {
   const container = document.getElementById("reviewsContainer");
   if (!container) return;
-  container.innerHTML = "";
 
-  db.collection("reviews").orderBy("createdAt", "desc").get().then(snapshot => {
+  // Listen for live updates
+  db.collection("reviews").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+    container.innerHTML = ""; // ✅ clear before rendering
+
     snapshot.forEach(doc => {
       const r = doc.data();
       const reviewId = doc.id;
@@ -912,7 +917,7 @@ function loadReviews() {
         dateStr = timeAgo(r.createdAt.toDate());
       }
 
-      // ✅ Only show delete button if current user owns this review
+      // ✅ Only show delete button if current user owns the review
       const isOwner = currentUser && r.userId === currentUser.uid;
 
       const div = document.createElement("div");
@@ -927,11 +932,8 @@ function loadReviews() {
       `;
       container.appendChild(div);
     });
-  }).catch(err => {
-    console.error("Error loading reviews:", err);
   });
 }
-
 
   
 function timeAgo(date) {
