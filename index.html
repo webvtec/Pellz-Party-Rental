@@ -1348,6 +1348,17 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
   addToCart(item);
 }
 
+  function formatTimeTo12Hr(timeStr) {
+  if (!timeStr) return "";
+  const [hourStr, minuteStr] = timeStr.split(":");
+  let hour = parseInt(hourStr, 10);
+  const minute = parseInt(minuteStr, 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12 || 12; // 0 → 12
+  return `${hour}:${minute.toString().padStart(2, "0")} ${ampm}`;
+}
+
+
 
   async function showRecentOrders() {
   if (!currentUser) {
@@ -1388,7 +1399,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
       const orderNum = data.orderNumber || data.id;
       const total = formatJMD(data.totalAmount || 0);
 
-      // Format rental range with times
+      // ✅ Format rental range with 12-hr times
       let rentalRange = "N/A";
       if (data.rentalDates?.includes(" to ")) {
         const [startStr, endStr] = data.rentalDates.split(" to ");
@@ -1398,8 +1409,8 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
           const fmt = { month: "long", day: "numeric", year: "numeric" };
           const startFmt = start.toLocaleDateString("en-US", fmt);
           const endFmt = end.toLocaleDateString("en-US", fmt);
-          const startTime = data.startTime || "";
-          const endTime = data.endTime || "";
+          const startTime = formatTimeTo12Hr(data.startTime || "");
+          const endTime = formatTimeTo12Hr(data.endTime || "");
           rentalRange = `${startFmt} ${startTime} → ${endFmt} ${endTime}`;
         }
       }
@@ -1432,7 +1443,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     html += "</div>";
 
     Swal.fire({
-      title: "📦 Recent Orders", // ✅ all in one line
+      title: "📦 Recent Orders",
       html,
       width: 550,
       confirmButtonText: "Close",
