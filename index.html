@@ -463,7 +463,7 @@ async function completeBooking() {
       });
       console.log("✅ Saved to Firestore with Order #", orderNumber);
     } catch (err) {
-      console.error("❌ Firestore save failed:", err);
+      console.error(" Firestore save failed:", err);
       firestoreError = err;
     }
 
@@ -476,7 +476,7 @@ async function completeBooking() {
       );
       console.log("✅ Telegram sent with Order #", orderNumber);
     } catch (tgErr) {
-      console.error("❌ Telegram send failed:", tgErr);
+      console.error(" Telegram send failed:", tgErr);
       Swal.fire({ icon: "error", title: "Telegram Failed", text: "Order saved, but Telegram message didn’t send." });
       return;
     }
@@ -496,7 +496,7 @@ async function completeBooking() {
     });
 
   } catch (err) {
-    console.error("❌ completeBooking crashed:", err);
+    console.error(" completeBooking crashed:", err);
     Swal.fire({ icon: "error", title: "Oops", text: "Unexpected error placing the order." });
   }
 }
@@ -550,14 +550,14 @@ ${cartText}
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error("❌ Telegram API error:", errText);
+      console.error(" Telegram API error:", errText);
       throw new Error("Telegram send failed: " + errText);
     }
 
     console.log("✅ Telegram message sent");
 
   } catch (err) {
-    console.error("❌ Telegram send error:", err);
+    console.error(" Telegram send error:", err);
     throw err; // let completeBooking catch it
   }
 }
