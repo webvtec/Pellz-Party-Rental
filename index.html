@@ -219,8 +219,9 @@ const db = firebase.firestore();
 
 let currentUser = null;
 
-firebase.auth().onAuthStateChanged(user => {
+  firebase.auth().onAuthStateChanged(user => {
   currentUser = user || null;
+  initReviews(); // <-- Only call after auth state is determined
 });
 
 
