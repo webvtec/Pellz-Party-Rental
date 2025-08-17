@@ -954,9 +954,14 @@ function submitReview(event) {
   if (event && event.preventDefault) event.preventDefault();
 
   if (!currentUser) {
-    if (confirm("You must be logged in to leave a review. Click OK to go to login.")) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Login Required',
+      text: 'You must be logged in to leave a review.',
+      confirmButtonText: 'OK'
+    }).then(() => {
       window.location.href = "login.html"; // 👈 change path if needed
-    }
+    });
     return;
   }
 
@@ -964,7 +969,11 @@ function submitReview(event) {
   const selectedRating = parseInt(document.getElementById("reviewRating").value) || 5;
 
   if (!reviewText) {
-    alert("Please write something before submitting.");
+    Swal.fire({
+      icon: 'info',
+      title: 'Empty Review',
+      text: 'Please write something before submitting.'
+    });
     return;
   }
 
