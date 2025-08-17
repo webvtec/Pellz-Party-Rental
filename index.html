@@ -638,13 +638,13 @@ async function addToCart(item) {
   try {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-    // ✅ Make sure quantity is set, but keep the rest of the item data
-    const cartItem = { 
-      ...item, 
-      quantity: (item.quantity || 1) 
+    // ✅ Keep all item info intact, only fix quantity if missing
+    const cartItem = {
+      ...item,
+      quantity: item.quantity || 1
     };
 
-    // ✅ If item already exists, just increase quantity
+    // ✅ Merge if already exists
     const existing = cart.find(i => i.id === cartItem.id || i.name === cartItem.name);
     if (existing) {
       existing.quantity += cartItem.quantity;
@@ -670,6 +670,7 @@ async function addToCart(item) {
     });
   }
 }
+
 
 
 function addToCartWithQty(name, imageUrl) {
