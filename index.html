@@ -87,6 +87,13 @@
     .swal2-popup.swal2-rounded { border-radius: 20px; padding: 30px; text-align: center; }
     .swal2-title-custom { font-size: 28px; font-family: 'Poppins', sans-serif; font-weight: 700; color: #2e7d32; text-align: center; }
     .swal2-confirm-custom { background-color: #1a73e8 !important; color: white !important; font-size: 16px; border-radius: 8px !important; padding: 10px 20px; }
+
+    .stock-warning {
+  color: red;
+  font-size: 0.9em;
+  margin-top: 4px;
+}
+
   </style>
 </head>
 
@@ -497,7 +504,6 @@ async function completeBooking() {
 }
 
 
-
 /* Telegram: simple form POST to avoid CORS preflight */
 function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount) {
   const telegramBotToken = '7638261664:AAGm0MNVQxN0hlW1bhXBRf-kSRuMgRkCLC8'; // keep secret server-side in production
@@ -900,6 +906,12 @@ document.getElementById("closeCheckoutBtn").addEventListener("click", () => {
 });
 
 document.getElementById("placeOrderBtn").addEventListener("click", completeBooking);
+
+  document.getElementById("rentalDateRange").addEventListener("change", (e) => {
+  const rentalDates = e.target.value.trim();
+  validateCartStock(rentalDates);
+});
+
 
 /* ===================== Init ===================== */
 window.addEventListener("load", () => {
