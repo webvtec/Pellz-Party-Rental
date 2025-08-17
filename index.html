@@ -994,14 +994,19 @@ window.addEventListener("load", () => {
     return;
   }
 
+  // ✅ Group cart by itemName (sum quantities)
+  const cartGrouped = {};
+  for (const item of cart) {
+    cartGrouped[item.name] = (cartGrouped[item.name] || 0) + (item.quantity || 1);
+  }
+
   const snapshot = await db.collection("reservations").get();
   const shownKeys = new Set();
 
-  for (const cartItem of cart) {
-    const itemName = cartItem.name;
-    const cartQty = cartItem.quantity || 1;
+  for (const [itemName, cartQty] of Object.entries(cartGrouped)) {
     const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
 
+    // Build bookedQtyPerDate for this item
     const bookedQtyPerDate = {};
     snapshot.forEach(doc => {
       const data = doc.data();
@@ -1025,6 +1030,7 @@ window.addEventListener("load", () => {
       }
     });
 
+    // Compare demand vs stock per date
     let d = new Date(start);
     while (d <= end) {
       const key = d.toISOString().split("T")[0];
@@ -1047,7 +1053,6 @@ window.addEventListener("load", () => {
 
   togglePlaceOrderButton();
 }
-
 
 
 
