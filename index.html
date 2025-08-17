@@ -874,25 +874,40 @@ function initReviews() {
   const form = document.getElementById("reviewForm");
   if (form) {
     form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const name = document.getElementById("reviewName").value.trim();
-      const comment = document.getElementById("reviewComment").value.trim();
-      if (!name || !comment || !selectedRating) {
-        Swal.fire({ icon: "error", title: "Missing fields", text: "Please fill everything and pick a rating." });
-        return;
-      }
-      await db.collection("reviews").add({
-  userId: currentUser ? currentUser.uid : null,   // ✅ save the UID
-  name: currentUser?.displayName || name,        // use Firebase displayName if available
-  comment,
-  rating: selectedRating,
-  createdAt: firebase.firestore.FieldValue.serverTimestamp()
-});
-      document.getElementById("reviewForm").reset();
-      selectedRating = 0;
-      document.getElementById("reviewSubmitMsg").textContent = "✅ Review submitted!";
-      loadReviews();
+  e.preventDefault();
+
+  // ✅ Check login first
+  if (!currentUser) {
+    Swal.fire({
+      icon: "warning",
+      title: "Login Required",
+      text: "You must be logged in to leave a review.",
+      confirmButtonText: "OK"
+    }).then(() => {
+      window.location.href = "login.html"; // 👈 redirect after OK
     });
+    return;
+  }
+
+  const name = document.getElementById("reviewName").value.trim();
+  const comment = document.getElementById("reviewComment").value.trim();
+  if (!name || !comment || !selectedRating) {
+    Swal.fire({ icon: "error", title: "Missing fields", text: "Please fill everything and pick a rating." });
+    return;
+  }
+
+  await db.collection("reviews").add({
+    userId: currentUser.uid, // ✅ force attach logged-in user
+    name: currentUser.displayName || name,
+    comment,
+    rating: selectedRating,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  document.getElementById("reviewForm").reset();
+  selectedRating = 0;
+  document.getElementById("reviewSubmitMsg").textContent = "✅ Review submitted!";
+});
   }
 
   loadReviews();
