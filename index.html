@@ -619,13 +619,8 @@ textarea {
 
     firebase.auth().onAuthStateChanged(user => {
   currentUser = user || null;
-  loadReviews(currentUser);
-});
 
-
-  let bookedDates = [];
-
-
+/* ------------------ Calendar ------------------ */
 function fetchBookedDatesAndInitCalendar() {
   db.collection("reservations").get().then(snapshot => {
     snapshot.forEach(doc => {
@@ -637,39 +632,50 @@ function fetchBookedDatesAndInitCalendar() {
           const end = new Date(range[1]);
           let current = new Date(start);
           while (current <= end) {
-            bookedDates.push(current.toISOString().split('T')[0]); // Format to Y-m-d
+            bookedDates.push(current.toISOString().split('T')[0]);
             current.setDate(current.getDate() + 1);
           }
         }
       }
     });
-  }).then(() => {
-    initializeDatepicker(); // Now initialize calendar
+  }).then(() => initializeDatepicker());
+}
+
+function initializeDatepicker() {
+  flatpickr("#rentalDateRange", {
+    mode: "range",
+    dateFormat: "Y-m-d",
+    minDate: "today",
+    disable: bookedDates,
+    onClose: function(selectedDates, dateStr, instance) {
+      const input = document.getElementById("rentalDateRange");
+      if (selectedDates.length === 1) {
+        const onlyDate = selectedDates[0];
+        const formatted = instance.formatDate(onlyDate, "Y-m-d");
+        input.value = `${formatted} to ${formatted}`;
+        updateRentalDuration();
+      } else if (selectedDates.length === 2) {
+        updateRentalDuration();
+      }
+    }
   });
 }
 
-  
-    // --- Utility helpers ---
+/* ------------------ Utils ------------------ */
 function getRentalDayCount() {
   const value = document.getElementById("rentalDateRange")?.value?.trim() || "";
   if (!value.includes(" to ")) return 1;
-
   const [startStr, endStr] = value.split(" to ");
   const start = new Date(startStr);
   const end = new Date(endStr);
-
   if (isNaN(start) || isNaN(end)) return 1;
-
   const MS_PER_DAY = 24 * 60 * 60 * 1000;
   const raw = Math.ceil((end - start) / MS_PER_DAY) + 1; // inclusive
   return Math.max(1, raw);
 }
 
 function formatJMD(amount) {
-  return 'JMD $' + Number(amount).toLocaleString('en-JM', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
+  return 'JMD $' + Number(amount).toLocaleString('en-JM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function getCartTotal() {
@@ -684,7 +690,7 @@ function getCartTotal() {
   return Number(total.toFixed(2));
 }
 
-// --- Main order handler (called when user clicks Place Order) ---
+/* ------------------ ORDER ------------------ */
 async function completeBooking() {
   try {
     const name = document.getElementById("customerName")?.value.trim() || "N/A";
@@ -693,7 +699,7 @@ async function completeBooking() {
     const rentalDates = document.getElementById("rentalDateRange")?.value.trim() || "N/A";
     const startTime = document.getElementById("startTime")?.value.trim() || "N/A";
     const endTime = document.getElementById("endTime")?.value.trim() || "N/A";
-    const paymentType = "Pay on Delivery"; // fixed
+    const paymentType = "Pay on Delivery";
 
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     if (cart.length === 0) {
@@ -701,7 +707,6 @@ async function completeBooking() {
       return;
     }
 
-    // ✅ Calculate total in JMD
     const days = getRentalDayCount();
     let totalAmount = 0;
     cart.forEach(item => {
@@ -711,7 +716,6 @@ async function completeBooking() {
     });
     totalAmount = Number(totalAmount.toFixed(2));
 
-    // --- Validate date range ---
     if (!rentalDates.includes(" to ")) {
       Swal.fire({ icon: "error", title: "Invalid dates", text: "Please select a valid rental date range." });
       return;
@@ -724,7 +728,7 @@ async function completeBooking() {
       return;
     }
 
-    // --- Overbooking check ---
+    // Overbooking check (uses global qtyMap)
     const snapshot = await db.collection("reservations").get();
     for (const cartItem of cart) {
       const itemName = cartItem.name;
@@ -746,7 +750,6 @@ async function completeBooking() {
         for (const bookedItem of data.cartItems) {
           if (bookedItem.name !== itemName) continue;
           const bookedQty = bookedItem.quantity || 1;
-
           let d = new Date(bookedStart);
           while (d <= bookedEnd) {
             const key = d.toISOString().split("T")[0];
@@ -762,30 +765,19 @@ async function completeBooking() {
         const alreadyBooked = bookedQtyPerDate[key] || 0;
         if (alreadyBooked + qtyRequested > stockAvailable) {
           const left = Math.max(0, stockAvailable - alreadyBooked);
-          Swal.fire({
-            icon: "error",
-            title: "Item Overbooked",
-            text: `${itemName} is overbooked on ${key}. Only ${left} left.`,
-          });
+          Swal.fire({ icon: "error", title: "Item Overbooked", text: `${itemName} is overbooked on ${key}. Only ${left} left.` });
           return;
         }
         d.setDate(d.getDate() + 1);
       }
     }
 
-    // ✅ Proceed with Telegram & Firestore save
+    // Send Telegram + store reservation
     sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount);
 
     await db.collection("reservations").add({
-      name,
-      phone,
-      location,
-      rentalDates,
-      startTime,
-      endTime,
-      paymentType,
-      cartItems: cart,
-      totalAmount,
+      name, phone, location, rentalDates, startTime, endTime, paymentType,
+      cartItems: cart, totalAmount,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
@@ -795,11 +787,11 @@ async function completeBooking() {
     Swal.fire({
       title: 'ORDER MADE',
       html: `
-        <div style="font-size: 18px; font-weight: 500; color: #333; text-align: center;">
+        <div style="font-size:18px; font-weight:500; color:#333; text-align:center;">
           WE WILL DELIVER THE ITEMS TO<br>
-          <span style="color: #1a73e8; font-weight: 600;">${location}</span><br><br>
-          ON <span style="color: #1a73e8; font-weight: 600;">${rentalDates}</span><br>
-          AT <span style="color: #1a73e8; font-weight: 600;">${startTime}</span>
+          <span style="color:#1a73e8; font-weight:600;">${location}</span><br><br>
+          ON <span style="color:#1a73e8; font-weight:600;">${rentalDates}</span><br>
+          AT <span style="color:#1a73e8; font-weight:600;">${startTime}</span>
         </div>
       `,
       icon: 'success',
@@ -815,10 +807,11 @@ async function completeBooking() {
   }
 }
 
-// --- Telegram notification ---
+/* ------------------ Telegram ------------------ */
+/* Uses form-encoded POST to avoid CORS preflight. We fire-and-forget (the request sends even if the response is opaque). */
 function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount) {
-  const telegramBotToken = '7638261664:AAGm0MNVQxN0hlW1bhXBRf-kSRuMgRkCLC8'; // <-- replace
-  const chatId = '1002734216867';             // <-- replace
+  const telegramBotToken = '7638261664:AAGm0MNVQxN0hlW1bhXBRf-kSRuMgRkCLC8'; // keep secret server-side in future
+  const chatId = '-1002734216867'; // NOTE: leading minus for channels/supergroups
 
   const days = getRentalDayCount();
   const itemsSummary = cart.map(item => {
@@ -845,20 +838,498 @@ ${itemsSummary}`;
 
   const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
 
-  fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text: message })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (!data.ok) console.error('Telegram error:', data);
-  })
-  .catch(err => console.error('Telegram fetch error:', err));
+  // Build a simple form body to keep it a "simple request"
+  const body = new URLSearchParams();
+  body.append('chat_id', chatId);
+  body.append('text', message);
+
+  // Fire & forget (no JSON parsing; response will be opaque due to CORS)
+  fetch(url, { method: 'POST', body })
+    .catch(err => console.error('Telegram fetch error:', err));
 }
 
-// --- Attach to Place Order button ---
+/* ------------------ Cart / Gallery ------------------ */
+function showSection(sectionId) {
+  document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+  document.getElementById(sectionId).classList.add('active');
+}
+
+function login() {
+  const email = prompt('Enter admin email:');
+  const password = prompt('Enter admin password:');
+  firebase.auth().signInWithEmailAndPassword(email, password)
+    .then(() => { window.location.href = 'dashboard.html'; })
+    .catch((error) => {
+      let msg = 'Authentication failed: ' + error.message;
+      if (error.code === 'auth/wrong-password') msg = 'Incorrect password. Please try again.';
+      else if (error.code === 'auth/user-not-found') msg = 'No user found with this email. Please check and try again.';
+      alert(msg);
+    });
+}
+
+function toggleMenu(){ document.getElementById('menu').classList.toggle('show'); }
+function closeMenu(){ document.getElementById('menu').classList.remove('show'); }
+
+function loadGallery(containerId) {
+  const galleryContainer = document.getElementById(containerId);
+  galleryContainer.innerHTML = '';
+
+  db.collection('gallery').onSnapshot((querySnapshot) => {
+    const categories = {};
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const imageUrl = data.url;
+      const name = data.name || 'Unnamed';
+      const price = data.price || 0;
+      const category = data.category || 'Uncategorized';
+      if (!categories[category]) categories[category] = [];
+      categories[category].push({ imageUrl, name, price });
+    });
+
+    let galleryHTML = '';
+    for (const category in categories) {
+      galleryHTML += `
+        <div class="gallery-category">
+          <h3>${category}</h3>
+          <div class="gallery-wrapper">
+            <div class="gallery-grid" id="gallery-${category}"></div>
+          </div>
+        </div>`;
+      const categoryContainer = document.getElementById(`gallery-${category}`);
+      categories[category].forEach((item) => {
+        categoryContainer.innerHTML += `
+          <div class="product-card">
+            <img src="${item.imageUrl}" alt="${item.name}">
+            <div class="product-info">
+              <div class="product-name">${item.name}</div>
+              <div class="product-price">${formatJMD(item.price)}</div>
+              <button onclick="addToCart('${item.name}', ${item.price}, '${item.imageUrl}')">Add to Cart</button>
+            </div>
+          </div>`;
+      });
+    }
+    galleryContainer.innerHTML = galleryHTML;
+  });
+}
+
+/* Load one Firestore category, honoring qtyMap bundles */
+function loadGalleryByCategory(categoryFilter) {
+  const galleryContainer = document.getElementById('galleryDisplay');
+  galleryContainer.innerHTML = '';
+
+  db.collection('gallery')
+    .where('category', '==', categoryFilter)
+    .get()
+    .then((querySnapshot) => {
+      if (querySnapshot.empty) {
+        galleryContainer.innerHTML = `<p style="text-align:center;">No items found in "${categoryFilter}".</p>`;
+        return;
+      }
+
+      galleryContainer.innerHTML = `
+        <div class="gallery-category">
+          <h3>${categoryFilter}</h3>
+          ${categoryFilter === 'EVENT ITEMS' ? `
+            <p style="margin-top:3px; font-size:18px; font-weight:bold; color:#6A0DAD; text-align:center;">
+              DELIVERY ONLY. SETUP NOT INCLUDED!!
+            </p>` : ''}
+          <div class="gallery-wrapper">
+            <div class="gallery-grid" id="gallery-${categoryFilter}"></div>
+          </div>
+        </div>`;
+
+      const categoryContainer = document.getElementById(`gallery-${categoryFilter}`);
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const imageUrl = data.url;
+        const name = data.name || 'Unnamed';
+        const itemId = name.replace(/\s+/g, '-');
+        const firebasePrice = Number(data.price) || 0;
+
+        if (!imageUrl || !name) return;
+
+        let html = `
+          <div class="product-card">
+            <img src="${imageUrl}" alt="${name}">
+            <div class="product-info">
+              <div class="product-name">${name}</div>`;
+
+        if (qtyMap[name]) {
+          const quantityOptions = qtyMap[name].options;
+          const quantityPrices = qtyMap[name].prices;
+          const defaultQty = quantityOptions[0];
+          const defaultPrice = quantityPrices[defaultQty] || 0;
+
+          html += `
+            <div class="product-price">
+              Total: <span id="price-${itemId}">${formatJMD(defaultPrice)}</span>
+            </div>
+            <select id="qty-${itemId}" onchange="updateManualPrice('${name}', '${itemId}')">
+              ${quantityOptions.map(qty => `<option value="${qty}">${qty}</option>`).join('')}
+            </select>
+            <button onclick="addToCartWithQty('${name}', '${imageUrl}')">Add to Cart</button>`;
+        } else {
+          html += `
+            <div class="product-price">
+              Price: <span id="price-${itemId}">${formatJMD(firebasePrice)}</span>
+            </div>
+            <button onclick="addToCart('${name}', ${firebasePrice}, '${imageUrl}')">Add to Cart</button>`;
+        }
+
+        html += `</div></div>`;
+        categoryContainer.innerHTML += html;
+      });
+    })
+    .catch((error) => {
+      console.error("Error loading gallery:", error);
+      galleryContainer.innerHTML = `<p style="text-align:center; color:red;">Error loading items. Please try again later.</p>`;
+    });
+
+  showSection('gallerySection');
+}
+
+function updateManualPrice(itemName, itemId) {
+  const qty = Number(document.getElementById(`qty-${itemId}`).value) || 1;
+  const priceMap = qtyMap[itemName]?.prices || {};
+  const price = Number(priceMap[qty]) || 0;
+  document.getElementById(`price-${itemId}`).textContent = formatJMD(price);
+}
+
+function updatePrice(itemId, basePrice) { // kept for future use
+  const qty = parseInt(document.getElementById(`qty-${itemId}`).value) || 1;
+  const total = qty * basePrice;
+  document.getElementById(`price-${itemId}`).textContent = formatJMD(total);
+}
+
+function addToCart(name, price, imageUrl) {
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+  db.collection('gallery').where('name', '==', name).limit(1).get().then(snapshot => {
+    if (snapshot.empty) return;
+    const item = snapshot.docs[0].data();
+    const category = (item.category || '').toUpperCase();
+    const isRestricted = restrictedCategories.includes(category);
+
+    const exists = cart.find(i => i.name === name);
+
+    if (exists && isRestricted) {
+      showToast("YOU CAN ONLY ADD THIS ITEM ONCE", "error");
+      return;
+    }
+
+    if (!exists) {
+      cart.push({ name, price, imageUrl, quantity: 1, category });
+    } else {
+      exists.quantity += 1;
+    }
+
+    localStorage.setItem('cart', JSON.stringify(cart));
+    updateCartCount();
+    showToast('ADDED TO CART', 'success');
+  });
+}
+
+function addToCartWithQty(name, imageUrl) {
+  const itemId = name.replace(/\s+/g, '-');
+  const qtyEl = document.getElementById(`qty-${itemId}`);
+  if (!qtyEl) return;
+  const qty = Number(qtyEl.value) || 1;
+  const totalBundle = Number(qtyMap[name]?.prices?.[qty]) || 0;
+  const unitPrice = totalBundle / Math.max(1, qty);
+  const days = 1;
+
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+  db.collection('gallery').where('name', '==', name).limit(1).get().then(snapshot => {
+    if (snapshot.empty) return;
+
+    const item = snapshot.docs[0].data();
+    const category = (item.category || '').toUpperCase();
+    const isRestricted = restrictedCategories.includes(category);
+    const exists = cart.find(i => i.name === name);
+
+    if (exists && isRestricted) {
+      showToast("YOU CAN ONLY ADD THIS ITEM ONCE", "error");
+      return;
+    }
+
+    if (exists) {
+      exists.quantity = qty;
+      exists.price = unitPrice;
+      exists.days = days;
+      exists.totalPrice = unitPrice * qty * days;
+    } else {
+      cart.push({
+        name, price: unitPrice, imageUrl, quantity: qty,
+        totalPrice: unitPrice * qty * days, days, category
+      });
+    }
+
+    localStorage.setItem('cart', JSON.stringify(cart));
+    updateCartCount();
+    showToast("ADDED TO CART", "success");
+  });
+}
+
+function updateCartCount() {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const count = cart.reduce((t, i) => t + (i.quantity || 0), 0);
+  document.getElementById('cart-count').textContent = count;
+}
+
+function updateRentalDuration() {
+  const rangeInput = document.getElementById('rentalDateRange');
+  const dates = rangeInput.value.split(' to ');
+  if (dates.length === 1 && dates[0]) dates[1] = dates[0];
+
+  if (dates.length !== 2 || !dates[0] || !dates[1]) return;
+
+  const start = new Date(dates[0]);
+  const end = new Date(dates[1]);
+  const msPerDay = 86400000;
+
+  start.setHours(0,0,0,0);
+  end.setHours(0,0,0,0);
+
+  const days = Math.round((end - start) / msPerDay) + 1;
+  if (isNaN(days) || days < 1) { alert("Please select a valid rental date range."); return; }
+
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  cart.forEach(item => {
+    item.days = days;
+    item.totalPrice = item.price * item.quantity * days;
+  });
+  localStorage.setItem('cart', JSON.stringify(cart));
+  viewCart();
+}
+
+function viewCart() {
+  const modal = document.getElementById('cartModal');
+  const container = document.getElementById('cartItemsContainer');
+  const totalElem = document.getElementById('cartTotal');
+  container.innerHTML = '';
+
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  if (cart.length === 0) {
+    container.innerHTML = '<p>Your cart is empty.</p>';
+    totalElem.textContent = '';
+  } else {
+    let total = 0;
+    cart.forEach((item, index) => {
+      const days = item.days || 1;
+      const quantity = item.quantity || 1;
+      const unitPrice = item.price || 0;
+      const itemTotal = unitPrice * quantity * days;
+      total += itemTotal;
+
+      const itemDiv = document.createElement('div');
+      itemDiv.style.display = 'flex';
+      itemDiv.style.alignItems = 'center';
+      itemDiv.style.justifyContent = 'space-between';
+      itemDiv.style.padding = '8px 0';
+      itemDiv.style.borderBottom = '1px solid #eee';
+
+      const img = document.createElement('img');
+      img.src = item.imageUrl;
+      img.alt = item.name;
+      img.style.width = '50px';
+      img.style.height = '50px';
+      img.style.objectFit = 'cover';
+      img.style.borderRadius = '6px';
+      img.style.marginRight = '8px';
+
+      const infoDiv = document.createElement('div');
+      infoDiv.style.flexGrow = '1';
+      infoDiv.style.display = 'flex';
+      infoDiv.style.alignItems = 'center';
+      infoDiv.style.justifyContent = 'space-between';
+
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = item.name;
+
+      const priceSpan = document.createElement('span');
+      priceSpan.textContent = `${formatJMD(itemTotal)} (${days} day${days > 1 ? 's' : ''})`;
+      priceSpan.style.marginLeft = '10px';
+      priceSpan.style.fontWeight = 'bold';
+
+      const controlsDiv = document.createElement('div');
+      controlsDiv.style.display = 'flex';
+      controlsDiv.style.alignItems = 'center';
+
+      const quantityText = document.createElement('span');
+      quantityText.textContent = `Qty: ${quantity}`;
+      quantityText.style.marginLeft = '10px';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = '✖';
+      removeBtn.style.color = 'red';
+      removeBtn.style.marginLeft = '8px';
+      removeBtn.onclick = () => removeItem(index);
+
+      controlsDiv.appendChild(quantityText);
+      controlsDiv.appendChild(removeBtn);
+
+      infoDiv.appendChild(nameSpan);
+      infoDiv.appendChild(priceSpan);
+
+      itemDiv.appendChild(img);
+      itemDiv.appendChild(infoDiv);
+      itemDiv.appendChild(controlsDiv);
+
+      container.appendChild(itemDiv);
+    });
+
+    totalElem.textContent = `Total: ${formatJMD(total)}`;
+  }
+
+  modal.style.display = 'block';
+
+  // Re-init datepicker inside modal to ensure proper behavior
+  setTimeout(() => {
+    flatpickr("#rentalDateRange", {
+      mode: "range",
+      dateFormat: "Y-m-d",
+      minDate: "today",
+      disable: bookedDates,
+      onClose: function(selectedDates, dateStr, instance) {
+        const input = document.getElementById("rentalDateRange");
+        if (selectedDates.length === 1) {
+          const onlyDate = selectedDates[0];
+          const formatted = instance.formatDate(onlyDate, "Y-m-d");
+          input.value = `${formatted} to ${formatted}`;
+          updateRentalDuration();
+        } else if (selectedDates.length === 2) {
+          updateRentalDuration();
+        }
+      }
+    });
+  }, 100);
+}
+
+function removeItem(index) {
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  if (cart[index]) {
+    cart.splice(index, 1);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    updateCartCount();
+    viewCart();
+  }
+}
+
+/* ------------------ Reviews ------------------ */
+document.querySelectorAll('#starRating span').forEach(star => {
+  star.addEventListener('click', () => {
+    selectedRating = parseInt(star.getAttribute('data-value'));
+    document.querySelectorAll('#starRating span').forEach(s => {
+      s.style.color = parseInt(s.getAttribute('data-value')) <= selectedRating ? '#f39c12' : '#ccc';
+    });
+  });
+});
+
+document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const user = firebase.auth().currentUser;
+  if (!user) { alert("You must be logged in to submit a review."); return; }
+
+  const name = document.getElementById('reviewName').value.trim();
+  const comment = document.getElementById('reviewComment').value.trim();
+  const msg = document.getElementById('reviewSubmitMsg');
+
+  if (!name || !comment || selectedRating === 0) {
+    msg.style.color = "red";
+    msg.textContent = "Please fill all fields and select a star rating.";
+    return;
+  }
+
+  try {
+    await db.collection('reviews').add({
+      name, comment, rating: selectedRating,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      uid: user.uid
+    });
+    msg.style.color = "green";
+    msg.textContent = "Thank you for your review!";
+    document.getElementById('reviewForm').reset();
+    selectedRating = 0;
+    document.querySelectorAll('#starRating span').forEach(s => s.style.color = '#ccc');
+    loadReviews(user);
+  } catch (error) {
+    console.error("Error submitting review:", error);
+    msg.style.color = "red";
+    msg.textContent = "Error submitting review.";
+  }
+});
+
+function loadReviews(user) {
+  const container = document.getElementById('reviewsContainer');
+  container.innerHTML = '';
+  db.collection('reviews').orderBy('timestamp', 'desc').get().then(snapshot => {
+    if (snapshot.empty) { container.innerHTML = '<p>No reviews yet.</p>'; return; }
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const canDelete = user && data.uid === user.uid;
+      const reviewDiv = document.createElement('div');
+      reviewDiv.style.borderBottom = '1px solid #ddd';
+      reviewDiv.style.padding = '10px 0';
+      const stars = '★'.repeat(data.rating) + '☆'.repeat(5 - data.rating);
+      reviewDiv.innerHTML = `<strong>${data.name}</strong> <span style="color:#f39c12;">${stars}</span><br/><p>${data.comment}</p>`;
+      if (canDelete) {
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Delete';
+        delBtn.style.backgroundColor = '#e74c3c';
+        delBtn.style.color = 'white';
+        delBtn.style.border = 'none';
+        delBtn.style.padding = '5px 10px';
+        delBtn.style.borderRadius = '4px';
+        delBtn.style.cursor = 'pointer';
+        delBtn.addEventListener('click', () => deleteReview(doc.id));
+        reviewDiv.appendChild(delBtn);
+      }
+      container.appendChild(reviewDiv);
+    });
+  }).catch(error => {
+    console.error('Error loading reviews:', error);
+    container.innerHTML = '<p>Error loading reviews.</p>';
+  });
+}
+
+function deleteReview(docId) {
+  const user = firebase.auth().currentUser;
+  if (!user) { alert('You must be logged in to delete reviews.'); return; }
+  if (confirm("Are you sure you want to delete this review?")) {
+    db.collection('reviews').doc(docId).get().then(doc => {
+      if (doc.exists && doc.data().uid === user.uid) {
+        db.collection('reviews').doc(docId).delete()
+          .then(() => { alert('Review deleted.'); loadReviews(user); })
+          .catch(error => { alert('Error deleting review: ' + error.message); });
+      } else {
+        alert("You can only delete your own reviews.");
+      }
+    });
+  }
+}
+
+/* ------------------ Misc ------------------ */
+function showToast(message="ADDED TO CART", type="success") {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.style.backgroundColor = type === "error" ? "#dc3545" : "#28a745";
+  toast.style.display = 'block';
+  toast.style.opacity = '1';
+  setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+  setTimeout(() => { toast.style.display = 'none'; }, 2500);
+}
+
+document.getElementById("closeCheckoutBtn").addEventListener("click", function () {
+  document.getElementById("cartModal").style.display = "none";
+});
+
 document.addEventListener("DOMContentLoaded", function () {
+  loadGalleryByCategory('EVENT ITEMS');
+  updateCartCount();
+  fetchBookedDatesAndInitCalendar();
+
   const btn = document.getElementById("placeOrderBtn");
   if (btn) {
     btn.addEventListener("click", () => {
@@ -882,741 +1353,8 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 });
-
-
-  function isBookingAvailable(newStart, newEnd, bookings) {
-  // 1 hour buffer in milliseconds
-  const buffer = 60 * 60 * 1000;
-
-  for (let booking of bookings) {
-    // Add 1hr buffer to the end of existing booking
-    const bookingEndWithBuffer = new Date(booking.end.getTime() + buffer);
-
-    // Check for overlap
-    if (
-      (newStart < bookingEndWithBuffer && newEnd > booking.start)
-    ) {
-      // Overlap detected
-      return false;
-    }
-  }
-  return true; // No overlap
-  }
-    
-    function login() {
-  const email = prompt('Enter admin email:');
-  const password = prompt('Enter admin password:');
-
-  firebase.auth().signInWithEmailAndPassword(email, password)
-    .then(() => {
-      window.location.href = 'dashboard.html';
-    })
-    .catch((error) => {
-      let errorMessage = 'Authentication failed: ' + error.message;
-      if (error.code === 'auth/wrong-password') {
-        errorMessage = 'Incorrect password. Please try again.';
-      } else if (error.code === 'auth/user-not-found') {
-        errorMessage = 'No user found with this email. Please check and try again.';
-      }
-      alert(errorMessage);
-    });
-}
-
-function toggleMenu() {
-  const menu = document.getElementById('menu');
-  menu.classList.toggle('show');
-}
-
-function closeMenu() {
-  const menu = document.getElementById('menu');
-  menu.classList.remove('show');
-}
-
-function loadGallery(containerId) {
-  const galleryContainer = document.getElementById(containerId);
-  galleryContainer.innerHTML = '';
-
-  db.collection('gallery').onSnapshot((querySnapshot) => {
-    const categories = {};
-
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const imageUrl = data.url;
-      const name = data.name || 'Unnamed';
-      const price = data.price || 0;
-      const category = data.category || 'Uncategorized';
-
-      if (!categories[category]) {
-        categories[category] = [];
-      }
-      categories[category].push({ imageUrl, name, price });
-    });
-
-    let galleryHTML = '';
-
-    for (const category in categories) {
-      galleryHTML += `
-        <div class="gallery-category">
-          <h3>${category}</h3>
-          <div class="gallery-wrapper">
-            <div class="gallery-grid" id="gallery-${category}"></div>
-          </div>
-        </div>
-      `;
-
-      const categoryContainer = document.getElementById(`gallery-${category}`);
-      categories[category].forEach((item) => {
-        categoryContainer.innerHTML += `
-          <div class="product-card">
-            <img src="${item.imageUrl}" alt="${item.name}">
-            <div class="product-info">
-              <div class="product-name">${item.name}</div>
-              <div class="product-price">$${item.price.toFixed(2)}</div>
-              <button onclick="addToCart('${item.name}', ${item.price}, '${item.imageUrl}')">Add to Cart</button>
-            </div>
-          </div>
-        `;
-      });
-    }
-
-    galleryContainer.innerHTML = galleryHTML;  // Efficiently inject the full HTML after building it
-  });
-}
-
-window.onload = function() {
-  loadGalleryByCategory('EVENT ITEMS');
-  updateCartCount();
-
-  // ✅ Instead of initializing flatpickr directly,
-  // we now fetch booked dates and initialize it after
-  fetchBookedDatesAndInitCalendar();
-};
-
-// Handle star rating UI
-document.querySelectorAll('#starRating span').forEach(star => {
-  star.addEventListener('click', () => {
-    selectedRating = parseInt(star.getAttribute('data-value'));  // Set rating value on click
-    // Update star colors based on selection
-    document.querySelectorAll('#starRating span').forEach(s => {
-      s.style.color = parseInt(s.getAttribute('data-value')) <= selectedRating ? '#f39c12' : '#ccc';
-    });
-  });
-});
-
-// Handle review form submission
-document.getElementById('reviewForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const user = firebase.auth().currentUser;
-  if (!user) {
-    alert("You must be logged in to submit a review.");
-    return;
-  }
-
-  const name = document.getElementById('reviewName').value.trim();
-  const comment = document.getElementById('reviewComment').value.trim();
-  const msg = document.getElementById('reviewSubmitMsg');
-
-  // Check for required fields and star rating
-  if (!name || !comment || selectedRating === 0) {
-    msg.style.color = "red";
-    msg.textContent = "Please fill all fields and select a star rating.";
-    return;
-  }
-
-  try {
-    // Add the review to Firestore
-    await db.collection('reviews').add({
-      name,
-      comment,
-      rating: selectedRating,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      uid: user.uid
-    });
-
-    // Update UI message and reset fields
-    msg.style.color = "green";
-    msg.textContent = "Thank you for your review!";
-    document.getElementById('reviewForm').reset();
-    selectedRating = 0;
-    document.querySelectorAll('#starRating span').forEach(s => s.style.color = '#ccc');
-
-    // Refresh reviews immediately after submission
-    loadReviews(user);
-
-  } catch (error) {
-    console.error("Error submitting review:", error);
-    msg.style.color = "red";
-    msg.textContent = "Error submitting review.";
-  }
-});
-
-// Function to load and display reviews
-function loadReviews(user) {
-  const container = document.getElementById('reviewsContainer');
-  container.innerHTML = ''; // Clear any existing reviews
-
-  db.collection('reviews').orderBy('timestamp', 'desc').get().then(snapshot => {
-    if (snapshot.empty) {
-      container.innerHTML = '<p>No reviews yet.</p>';
-      return;
-    }
-
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const canDelete = user && data.uid === user.uid; // Check if the logged-in user can delete the review
-
-      const reviewDiv = document.createElement('div');
-      reviewDiv.style.borderBottom = '1px solid #ddd';
-      reviewDiv.style.padding = '10px 0';
-
-      // Display stars based on the rating
-      const stars = '★'.repeat(data.rating) + '☆'.repeat(5 - data.rating);
-
-      reviewDiv.innerHTML = `
-        <strong>${data.name}</strong> <span style="color: #f39c12;">${stars}</span><br/>
-        <p>${data.comment}</p>
-      `;
-
-      // Add delete button if the user can delete the review
-      if (canDelete) {
-        const delBtn = document.createElement('button');
-        delBtn.textContent = 'Delete';
-        delBtn.style.backgroundColor = '#e74c3c';
-        delBtn.style.color = 'white';
-        delBtn.style.border = 'none';
-        delBtn.style.padding = '5px 10px';
-        delBtn.style.borderRadius = '4px';
-        delBtn.style.cursor = 'pointer';
-
-        delBtn.addEventListener('click', () => deleteReview(doc.id)); // Add delete logic
-
-        reviewDiv.appendChild(delBtn); // Append the delete button
-      }
-
-      container.appendChild(reviewDiv);
-    });
-  }).catch(error => {
-    console.error('Error loading reviews:', error);
-    container.innerHTML = '<p>Error loading reviews.</p>';
-  });
-}
-
-// Function to delete review
-function deleteReview(docId) {
-  const user = firebase.auth().currentUser;
-  if (!user) {
-    alert('You must be logged in to delete reviews.');
-    return;
-  }
-
-  if (confirm("Are you sure you want to delete this review?")) {
-    db.collection('reviews').doc(docId).get().then(doc => {
-      if (doc.exists && doc.data().uid === user.uid) {
-        db.collection('reviews').doc(docId).delete()
-          .then(() => {
-            alert('Review deleted.');
-            loadReviews(user); // Reload reviews after deletion
-          })
-          .catch(error => {
-            alert('Error deleting review: ' + error.message);
-          });
-      } else {
-        alert("You can only delete your own reviews.");
-      }
-    });
-  }
-}
-
-    function loadGalleryByCategory(categoryFilter) {
-  const galleryContainer = document.getElementById('galleryDisplay');
-  galleryContainer.innerHTML = '';
-
-  const qtyMap = {
-    "CHAIRS": {
-      options: [10, 20, 50, 100, 200],
-      prices: { 10: 30, 20: 55, 50: 120, 100: 200, 200: 300 }
-    },
-    "PLASTIC TABLE": {
-      options: [1, 2, 4, 6],
-      prices: { 1: 10, 2: 20, 4: 35, 6: 50 }
-    },
-    "Podium": {
-      options: [1, 2, 3],
-      prices: { 1: 15, 2: 28, 3: 40 }
-    },
-    "Plates": {
-      options: [10, 20, 30, 50],
-      prices: { 10: 10, 20: 18, 30: 25, 50: 35 }
-    },
-    "Lights": {
-      options: [1, 5, 10],
-      prices: { 1: 10, 5: 45, 10: 80 }
-    },
-    "Beach Umbrella": {
-      options: [1, 2, 4],
-      prices: { 1: 12, 2: 20, 4: 35 }
-    },
-    "Bluetooth Speaker": {
-      options: [1, 2],
-      prices: { 1: 30, 2: 55 }
-    },
-    "Tents": {
-      options: [1, 2, 3],
-      prices: { 1: 100, 2: 180, 3: 250 }
-    },
-    "Portable Bar": {
-      options: [1, 2],
-      prices: { 1: 50, 2: 90 }
-    },
-    "Outdoor Fan": {
-      options: [1, 2, 4],
-      prices: { 1: 15, 2: 25, 4: 40 }
-    },
-    "Warm Pan": {
-      options: [2, 4, 6],
-      prices: { 2: 10, 4: 18, 6: 25 }
-    }
-  };
-
-  db.collection('gallery')
-    .where('category', '==', categoryFilter)
-    .get()
-    .then((querySnapshot) => {
-      if (querySnapshot.empty) {
-        galleryContainer.innerHTML = `<p style="text-align:center;">No items found in "${categoryFilter}".</p>`;
-        return;
-      }
-
-      galleryContainer.innerHTML = `
-        <div class="gallery-category">
-          <h3>${categoryFilter}</h3>
-          ${categoryFilter === 'EVENT ITEMS' ? `
-            <p style="margin-top: 3px; font-size: 18px; font-weight: bold; color: #6A0DAD; text-align: center;">
-              DELIVERY ONLY. SETUP NOT INCLUDED!!
-            </p>` : ''}
-          <div class="gallery-wrapper">
-            <div class="gallery-grid" id="gallery-${categoryFilter}"></div>
-          </div>
-        </div>
-      `;
-
-      const categoryContainer = document.getElementById(`gallery-${categoryFilter}`);
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const imageUrl = data.url;
-        const name = data.name || 'Unnamed';
-        const itemId = name.replace(/\s+/g, '-');
-        const firebasePrice = data.price || 0;
-
-        if (!imageUrl || !name) return;
-
-        let html = `
-          <div class="product-card">
-            <img src="${imageUrl}" alt="${name}">
-            <div class="product-info">
-              <div class="product-name">${name}</div>`;
-
-        // Check if item is in qtyMap
-        if (qtyMap[name]) {
-          const quantityOptions = qtyMap[name].options;
-          const quantityPrices = qtyMap[name].prices;
-          const defaultQty = quantityOptions[0];
-          const defaultPrice = quantityPrices[defaultQty] || 0;
-
-          html += `
-              <div class="product-price">
-                Total: $<span id="price-${itemId}">${defaultPrice.toFixed(2)}</span>
-              </div>
-              <select id="qty-${itemId}" onchange="updateManualPrice('${itemId}', ${JSON.stringify(quantityPrices).replace(/"/g, '&quot;')})">
-                ${quantityOptions.map(qty => `<option value="${qty}">${qty}</option>`).join('')}
-              </select>`;
-        } else {
-          // Not in qtyMap — treat as fixed-price item
-          html += `
-              <div class="product-price">
-                Price: $<span id="price-${itemId}">${firebasePrice.toFixed(2)}</span>
-              </div>`;
-        }
-
-        if (qtyMap[name]) {
-  html += `
-    <button onclick="addToCartWithQty('${name}', 0, '${imageUrl}')">Add to Cart</button>
-  `;
-} else {
-  html += `
-    <button onclick="addToCart('${name}', ${firebasePrice}, '${imageUrl}')">Add to Cart</button>
-  `;
-}
-
-html += `
-  </div>
-</div>`;
-
-        categoryContainer.innerHTML += html;
-      });
-    })
-    .catch((error) => {
-      console.error("Error loading gallery:", error);
-      galleryContainer.innerHTML = `<p style="text-align:center; color:red;">Error loading items. Please try again later.</p>`;
-    });
-
-  showSection('gallerySection');
-}
-
-  const restrictedCategories = ['BATHROOM', 'THRILL RIDES', 'CARS'];
-
-        // Add fixed-price item to cart (used by Bathroom, Cars, Thrill Rides)
-function addToCartWithQty(name, _, imageUrl) {
-  const itemId = name.replace(/\s+/g, '-');
-  const qtyElement = document.getElementById(`qty-${itemId}`);
-  const priceElement = document.getElementById(`price-${itemId}`);
-
-  if (!qtyElement || !priceElement) return;
-
-  const qty = parseInt(qtyElement.value) || 1;
-  const totalPriceDisplayed = parseFloat(priceElement.textContent.replace(/,/g, ''));
-  const unitPrice = totalPriceDisplayed / qty;
-  const days = 1;
-
-  let cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-  db.collection('gallery')
-    .where('name', '==', name)
-    .limit(1)
-    .get()
-    .then(snapshot => {
-      if (snapshot.empty) return;
-
-      const item = snapshot.docs[0].data();
-      const category = item.category || '';
-      const isRestricted = restrictedCategories.includes(category.toUpperCase());
-
-      const exists = cart.find(i => i.name === name);
-
-      if (exists && isRestricted) {
-        showToast("YOU CAN ONLY ADD THIS ITEM ONCE", "error");
-        return;
-      }
-
-      if (exists) {
-        exists.quantity = qty;
-        exists.price = unitPrice;
-        exists.days = days;
-        exists.totalPrice = unitPrice * qty * days;
-      } else {
-        cart.push({
-          name,
-          price: unitPrice,
-          imageUrl,
-          quantity: qty,
-          totalPrice: unitPrice * qty * days,
-          days,
-          category
-        });
-      }
-
-      localStorage.setItem('cart', JSON.stringify(cart));
-      updateCartCount();
-      showToast("ADDED TO CART", "success");
-    });
-}
-
-
-
-// Update price when quantity is selected
-function updateManualPrice(itemId, priceMap) {
-  const qty = document.getElementById(`qty-${itemId}`).value;
-  const price = priceMap[qty] || 0;
-  document.getElementById(`price-${itemId}`).textContent = price.toFixed(2);
-}
-
-// Update price for multi-quantity items
-function updatePrice(itemId, basePrice) {
-  const qty = parseInt(document.getElementById(`qty-${itemId}`).value) || 1;
-  const total = qty * basePrice;
-  document.getElementById(`price-${itemId}`).textContent = total.toFixed(2);
-}
-
-// Show section (Switch active sections)
-function showSection(sectionId) {
-  document.querySelectorAll('.content-section').forEach(section => {
-    section.classList.remove('active');
-  });
-  document.getElementById(sectionId).classList.add('active');
-}
-
-// Logout user
-function logoutUser() {
-  firebase.auth().signOut().then(() => {
-    window.location.href = 'login.html';
-  });
-}
-
-// Add item to the cart
-function addToCart(name, price, imageUrl) {
-  let cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-  db.collection('gallery')
-    .where('name', '==', name)
-    .limit(1)
-    .get()
-    .then(snapshot => {
-      if (snapshot.empty) return;
-
-      const item = snapshot.docs[0].data();
-      const category = item.category || '';
-      const isRestricted = restrictedCategories.includes(category.toUpperCase());
-
-      const exists = cart.find(i => i.name === name);
-
-      // ❌ Block if item exists and it's from a restricted category
-      if (exists && isRestricted) {
-        showToast("YOU CAN ONLY ADD THIS ITEM ONCE", "error");
-        return;
-      }
-
-      // ✅ Add new item
-      if (!exists) {
-        cart.push({ name, price, imageUrl, quantity: 1, category });
-        localStorage.setItem('cart', JSON.stringify(cart));
-        updateCartCount();
-        showToast('ADDED TO CART', 'success');
-      } else {
-        // ✅ If not restricted, allow quantity to increase
-        exists.quantity += 1;
-        localStorage.setItem('cart', JSON.stringify(cart));
-        updateCartCount();
-        showToast("ADDED TO CART", "success");
-      }
-    });
-}
-
-
-// Update cart item count
-function updateCartCount() {
-  let cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const count = cart.reduce((total, item) => total + item.quantity, 0);
-  document.getElementById('cart-count').textContent = count;
-}
-
-// Update rental duration and prices
-function updateRentalDuration() {
-  const rangeInput = document.getElementById('rentalDateRange');
-  const dates = rangeInput.value.split(' to ');
-
-  // If only one date is selected, treat it as a 1-day rental
-  if (dates.length === 1 && dates[0]) {
-    dates[1] = dates[0]; // Duplicate it as both start and end
-  }
-
-  if (dates.length !== 2 || !dates[0] || !dates[1]) return;
-
-  const start = new Date(dates[0]);
-  const end = new Date(dates[1]);
-  const msPerDay = 1000 * 60 * 60 * 24;
-
-  start.setHours(0, 0, 0, 0);
-  end.setHours(0, 0, 0, 0);
-
-  const days = Math.round((end - start) / msPerDay) + 1;
-
-  if (isNaN(days) || days < 1) {
-    alert("Please select a valid rental date range.");
-    return;
-  }
-
-  console.log(`Rental Days: ${days}`);
-
-  let cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-  cart.forEach(item => {
-    item.days = days;
-    item.totalPrice = item.price * item.quantity * days;
-  });
-
-  localStorage.setItem('cart', JSON.stringify(cart));
-  viewCart();
-}
-
-  function initializeDatepicker() {
-  flatpickr("#rentalDateRange", {
-    mode: "range",
-    dateFormat: "Y-m-d",
-    minDate: "today",
-    disable: bookedDates,
-    onClose: function(selectedDates, dateStr, instance) {
-      const input = document.getElementById("rentalDateRange");
-
-      if (selectedDates.length === 1) {
-        const onlyDate = selectedDates[0];
-        const formatted = instance.formatDate(onlyDate, "Y-m-d");
-        input.value = `${formatted} to ${formatted}`;
-        updateRentalDuration();
-      } else if (selectedDates.length === 2) {
-        updateRentalDuration();
-      }
-    }
-  });
-}
-
-function viewCart() {
-  const modal = document.getElementById('cartModal');
-  const container = document.getElementById('cartItemsContainer');
-  const totalElem = document.getElementById('cartTotal');
-  container.innerHTML = ''; // Clear the cart container
-
-  let cart = JSON.parse(localStorage.getItem('cart')) || [];
-  if (cart.length === 0) {
-    container.innerHTML = '<p>Your cart is empty.</p>';
-    totalElem.textContent = '';
-  } else {
-    let total = 0;
-
-    cart.forEach((item, index) => {
-  const days = item.days || 1;
-  const quantity = item.quantity || 1;
-  const unitPrice = item.price || 0;
-
-  const itemTotal = unitPrice * quantity * days;
-  total += itemTotal;
-
-  const itemDiv = document.createElement('div');
-  itemDiv.style.display = 'flex';
-  itemDiv.style.alignItems = 'center';
-  itemDiv.style.justifyContent = 'space-between';
-  itemDiv.style.padding = '8px 0';
-  itemDiv.style.borderBottom = '1px solid #eee';
-
-  const img = document.createElement('img');
-  img.src = item.imageUrl;
-  img.alt = item.name;
-  img.style.width = '50px';
-  img.style.height = '50px';
-  img.style.objectFit = 'cover';
-  img.style.borderRadius = '6px';
-  img.style.marginRight = '8px';
-
-  const infoDiv = document.createElement('div');
-  infoDiv.style.flexGrow = '1';
-  infoDiv.style.display = 'flex';
-  infoDiv.style.alignItems = 'center';
-  infoDiv.style.justifyContent = 'space-between';
-
-  const nameSpan = document.createElement('span');
-  nameSpan.textContent = item.name;
-
-  const quantityText = document.createElement('span');
-  quantityText.textContent = `Qty: ${quantity}`;
-  quantityText.style.marginLeft = '10px';
-
-  const priceSpan = document.createElement('span');
-  priceSpan.textContent = `$${itemTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })} (${days} day${days > 1 ? 's' : ''})`;
-  priceSpan.style.marginLeft = '10px';
-  priceSpan.style.fontWeight = 'bold';
-
-  const controlsDiv = document.createElement('div');
-  controlsDiv.style.display = 'flex';
-  controlsDiv.style.alignItems = 'center';
-
-  const removeBtn = document.createElement('button');
-  removeBtn.textContent = '✖';
-  removeBtn.style.color = 'red';
-  removeBtn.style.marginLeft = '8px';
-  removeBtn.onclick = () => removeItem(index);
-
-  controlsDiv.appendChild(quantityText);
-  controlsDiv.appendChild(removeBtn);
-
-  infoDiv.appendChild(nameSpan);
-  infoDiv.appendChild(priceSpan);
-
-  itemDiv.appendChild(img);
-  itemDiv.appendChild(infoDiv);
-  itemDiv.appendChild(controlsDiv);
-
-  container.appendChild(itemDiv);
-});
-
-    totalElem.textContent = `Total: $${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-  }
-
-  modal.style.display = 'block'; // Show the cart modal
-
-// ⬇️ Initialize or re-initialize flatpickr when modal becomes visible
-setTimeout(() => {
-  flatpickr("#rentalDateRange", {
-    mode: "range",
-    dateFormat: "Y-m-d",
-    minDate: "today",
-    disable: bookedDates,
-    onClose: function(selectedDates, dateStr, instance) {
-      const input = document.getElementById("rentalDateRange");
-
-      if (selectedDates.length === 1) {
-        const onlyDate = selectedDates[0];
-        const formatted = instance.formatDate(onlyDate, "Y-m-d");
-        input.value = `${formatted} to ${formatted}`;
-        updateRentalDuration();
-      } else if (selectedDates.length === 2) {
-        updateRentalDuration();
-      }
-    }
-  });
-}, 100); // Short delay ensures modal is visible before attaching
-
-}
-
-function removeItem(index) {
-  let cart = JSON.parse(localStorage.getItem('cart')) || [];
-  if (cart[index]) {
-    cart.splice(index, 1);
-    localStorage.setItem('cart', JSON.stringify(cart));
-    updateCartCount();
-    viewCart();
-  }
-}
-
-    function showToast(message = "ADDED TO CART", type = "success") {
-  const toast = document.getElementById('toast');
-  toast.textContent = message;
-
-  // Color by type
-  toast.style.backgroundColor = type === "error" ? "#dc3545" : "#28a745"; // red or green
-
-  toast.style.display = 'block';
-  toast.style.opacity = '1';
-
-  setTimeout(() => {
-    toast.style.opacity = '0';
-  }, 2000);
-
-  setTimeout(() => {
-    toast.style.display = 'none';
-  }, 2500);
-}
-
-  document.getElementById("closeCheckoutBtn").addEventListener("click", function () {
-    document.getElementById("cartModal").style.display = "none";
-  });
-
-      document.getElementById("placeOrderBtn").addEventListener("click", function () {
-  // validate required fields
-  const name = document.getElementById("customerName").value.trim();
-  const phone = document.getElementById("customerPhone").value.trim();
-  const location = document.getElementById("customerLocation").value.trim();
-  const rentalDates = document.getElementById("rentalDateRange").value.trim();
-
-  if (!name || !phone || !location || !rentalDates) {
-    alert("Please fill in all required fields.");
-    return;
-  }
-
-  completeBooking(); // directly call booking
-});
-
-
-  </script>
-  </body>
+</script>
+</body>
 </html>
+
+                                       
