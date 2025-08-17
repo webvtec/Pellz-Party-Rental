@@ -914,10 +914,11 @@ function loadReviews() {
   const container = document.getElementById("reviewsContainer");
   if (!container) return;
 
-  // Use real-time listener instead of .get()
-  db.collection("reviews").orderBy("createdAt", "desc")
+  // Listen in real-time instead of stacking duplicate fetches
+  db.collection("reviews")
+    .orderBy("createdAt", "desc")
     .onSnapshot(snapshot => {
-      container.innerHTML = ""; // clear before re-render
+      container.innerHTML = ""; // clear before rendering
       snapshot.forEach(doc => {
         const r = doc.data();
         const reviewId = doc.id;
@@ -929,6 +930,7 @@ function loadReviews() {
           dateStr = timeAgo(r.createdAt.toDate());
         }
 
+        // Only show delete if this user owns it
         const isOwner = currentUser && r.userId === currentUser.uid;
 
         const div = document.createElement("div");
@@ -944,10 +946,7 @@ function loadReviews() {
         container.appendChild(div);
       });
     }, err => {
-      console.error("Error loading reviews:", err);
-    });
-}
-
+      console.error("Error loading reviews:",
 
   
 function timeAgo(date) {
