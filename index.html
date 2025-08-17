@@ -1479,7 +1479,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
 
   function showBankInfo() {
   Swal.fire({
-    title: "BANK TRANSFER INFO",
+    title: "🏦 Bank Transfer Info",
     html: `
       <div style="text-align:left; font-size:16px; line-height:1.6; color:white;">
         <p><b>Bank Name:</b> First Caribbean Bank</p>
@@ -1489,14 +1489,14 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
         <p><b>Note:</b> Please use your Order # as the payment reference.</p>
       </div>
     `,
-    width: 500,
-    confirmButtonText: "CLOSE",
+    width: 600,   // ✅ make modal a bit wider
+    confirmButtonText: "Close",
     background: "#1a73e8",
     color: "white",
     confirmButtonColor: "#0d47a1",
     customClass: {
       popup: "swal2-rounded",
-      title: "swal2-no-wrap" // ✅ prevent wrapping
+      title: "swal2-title-nowrap"
     }
   });
 }
