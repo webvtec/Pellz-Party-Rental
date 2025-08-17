@@ -1345,16 +1345,15 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
       text: "You must be logged in to view recent orders.",
       confirmButtonText: "OK"
     }).then(() => {
-      window.location.href = "login.html"; // redirect if not logged in
+      window.location.href = "login.html";
     });
     return;
   }
 
   try {
     const snapshot = await db.collection("reservations")
-      .where("userId", "==", currentUser.uid)  // make sure you store userId when saving orders!
-      .orderBy("createdAt", "desc")
-      .limit(10)
+      .where("userId", "==", currentUser.uid)
+      .limit(10) // ✅ only filter, no orderBy
       .get();
 
     if (snapshot.empty) {
@@ -1363,9 +1362,19 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     }
 
     let html = "<div style='text-align:left; max-height:300px; overflow-y:auto;'>";
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const orderNum = data.orderNumber || doc.id;
+
+    // ✅ sort by createdAt manually in JS (newest first)
+    const orders = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => {
+        const aTime = a.createdAt?.toDate?.() || new Date(0);
+        const bTime = b.createdAt?.toDate?.() || new Date(0);
+        return bTime - aTime;
+      })
+      .slice(0, 10);
+
+    orders.forEach(data => {
+      const orderNum = data.orderNumber || data.id;
       const total = formatJMD(data.totalAmount || 0);
       const date = data.createdAt?.toDate().toLocaleString() || "N/A";
 
@@ -1381,6 +1390,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
           <span style="color:#6A0DAD; font-weight:bold;">${total}</span>
         </div>`;
     });
+
     html += "</div>";
 
     Swal.fire({
@@ -1388,9 +1398,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
       html,
       width: 500,
       confirmButtonText: "Close",
-      customClass: {
-        popup: "swal2-rounded"
-      }
+      customClass: { popup: "swal2-rounded" }
     });
 
   } catch (err) {
@@ -1398,7 +1406,6 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     Swal.fire("Error", "Could not load your orders. Try again later.", "error");
   }
 }
-
 
 
 </script>
