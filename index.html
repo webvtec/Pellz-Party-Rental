@@ -381,7 +381,6 @@ async function completeBooking() {
       return;
     }
 
-    // Calculate total price
     const days = getRentalDayCount();
     let totalAmount = 0;
     for (const item of cart) {
@@ -440,27 +439,43 @@ async function completeBooking() {
     }
 
     /* ===================== Save to Firestore ===================== */
-    await db.collection("reservations").add({
-      name, phone, location,
-      rentalDates, startTime, endTime,
-      paymentType,
-      cartItems: cart,
-      totalAmount,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    let firestoreError = null;
+    try {
+      await db.collection("reservations").add({
+        name, phone, location,
+        rentalDates, startTime, endTime,
+        paymentType,
+        cartItems: cart,
+        totalAmount,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (err) {
+      console.error("Firestore save failed:", err);
+      firestoreError = err;
+    }
 
-    /* ===================== Send to Telegram ===================== */
-    sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount);
+    /* ===================== Always Send Telegram ===================== */
+    try {
+      await sendTelegramMessage(
+        name, phone, location, rentalDates,
+        startTime, endTime, paymentType,
+        cart, totalAmount
+      );
+    } catch (tgErr) {
+      console.error("Telegram send failed:", tgErr);
+      Swal.fire({ icon: "error", title: "Telegram Failed", text: "Order saved, but Telegram message didn’t send." });
+      return;
+    }
 
     // Cleanup + success UI
     localStorage.removeItem("cart");
-    updateCartCount && updateCartCount();
+    updateCartCount();
     if (document.getElementById("cartModal")) {
       document.getElementById("cartModal").style.display = "none";
     }
 
     Swal.fire({
-      title: 'ORDER MADE',
+      title: firestoreError ? "ORDER MADE (Firestore Failed)" : "ORDER MADE",
       html: `
         <div style="font-size:18px; font-weight:500; color:#333; text-align:center;">
           WE WILL DELIVER THE ITEMS TO<br>
@@ -477,10 +492,11 @@ async function completeBooking() {
     });
 
   } catch (err) {
-    console.error('completeBooking error:', err);
-    Swal.fire({ icon: 'error', title: 'Oops', text: 'Something went wrong placing the order.' });
+    console.error("completeBooking error:", err);
+    Swal.fire({ icon: "error", title: "Oops", text: "Something went wrong placing the order." });
   }
 }
+
 
 
 
