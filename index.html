@@ -671,3 +671,118 @@ function viewCart() {
       itemDiv.style.display = 'flex';
       itemDiv.style.alignItems = 'center';
       itemDiv.style.justifyContent = 'space-between';
+            itemDiv.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px; flex:1;">
+          <img src="${item.imageUrl}" alt="${item.name}">
+          <div>
+            <div style="font-weight:bold;">${item.name}</div>
+            <div>${quantity} × ${formatJMD(unitPrice)} × ${days} day(s)</div>
+          </div>
+        </div>
+        <div style="font-weight:bold;">${formatJMD(itemTotal)}</div>
+        <button onclick="removeFromCart(${index})" 
+                style="background:red; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">
+          ✖
+        </button>
+      `;
+      container.appendChild(itemDiv);
+    });
+
+    totalElem.textContent = "TOTAL: " + formatJMD(total);
+  }
+
+  modal.style.display = 'block';
+}
+
+/* ===================== Cart Helpers ===================== */
+function removeFromCart(index) {
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  cart.splice(index, 1);
+  localStorage.setItem('cart', JSON.stringify(cart));
+  updateCartCount();
+  viewCart();
+}
+
+/* ===================== Toast Notifications ===================== */
+function showToast(message, type) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.style.backgroundColor = type === "error" ? "#dc3545" : "#28a745";
+  toast.style.display = "block";
+  setTimeout(() => { toast.style.display = "none"; }, 2500);
+}
+
+/* ===================== Reviews ===================== */
+function initReviews() {
+  const starContainer = document.getElementById("starRating");
+  if (starContainer) {
+    starContainer.querySelectorAll("span").forEach(star => {
+      star.addEventListener("click", () => {
+        selectedRating = Number(star.getAttribute("data-value"));
+        starContainer.querySelectorAll("span").forEach((s, i) => {
+          s.style.color = i < selectedRating ? "#ffd700" : "#ccc";
+        });
+      });
+    });
+  }
+
+  const form = document.getElementById("reviewForm");
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("reviewName").value.trim();
+      const comment = document.getElementById("reviewComment").value.trim();
+      if (!name || !comment || !selectedRating) {
+        Swal.fire({ icon: "error", title: "Missing fields", text: "Please fill everything and pick a rating." });
+        return;
+      }
+      await db.collection("reviews").add({
+        name, comment, rating: selectedRating,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      document.getElementById("reviewForm").reset();
+      selectedRating = 0;
+      document.getElementById("reviewSubmitMsg").textContent = "✅ Review submitted!";
+      loadReviews();
+    });
+  }
+
+  loadReviews();
+}
+
+function loadReviews() {
+  const container = document.getElementById("reviewsContainer");
+  if (!container) return;
+  container.innerHTML = "";
+  db.collection("reviews").orderBy("createdAt", "desc").get().then(snapshot => {
+    snapshot.forEach(doc => {
+      const r = doc.data();
+      const stars = "★".repeat(r.rating || 0) + "☆".repeat(5 - (r.rating || 0));
+      const div = document.createElement("div");
+      div.style.marginBottom = "10px";
+      div.innerHTML = `
+        <div style="font-weight:bold; color:#9b59b6;">${r.name}</div>
+        <div style="color:gold;">${stars}</div>
+        <div>${r.comment}</div>
+        <hr style="border:0; border-top:1px solid #555; margin:8px 0;">
+      `;
+      container.appendChild(div);
+    });
+  });
+}
+
+/* ===================== Event Listeners ===================== */
+document.getElementById("closeCheckoutBtn").addEventListener("click", () => {
+  document.getElementById("cartModal").style.display = "none";
+});
+
+document.getElementById("placeOrderBtn").addEventListener("click", completeBooking);
+
+/* ===================== Init ===================== */
+window.addEventListener("load", () => {
+  updateCartCount();
+  fetchBookedDatesAndInitCalendar();
+  initReviews();
+});
+</script>
+
