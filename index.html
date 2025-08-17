@@ -221,15 +221,12 @@ let currentUser = null;
 
 firebase.auth().onAuthStateChanged(user => {
   currentUser = user || null;
+  // Don’t call loadReviews() again here if using onSnapshot
+});
 
-  const reviewFormContainer = document.getElementById("reviewFormContainer");
-  if (reviewFormContainer) {
-    if (currentUser) {
-      reviewFormContainer.style.display = "block";  // show form
-    } else {
-      reviewFormContainer.style.display = "none";   // hide form
-    }
-  }
+// Run once when DOM ready
+document.addEventListener("DOMContentLoaded", () => {
+  loadReviews();
 });
 
 
