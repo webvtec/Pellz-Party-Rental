@@ -214,6 +214,7 @@ const firebaseConfig = {
   messagingSenderId: "201998621677",
   appId: "1:201998621677:web:b51c3aeb2debe18b4aa5e4"
 };
+  
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
@@ -221,7 +222,12 @@ let currentUser = null;
 
   firebase.auth().onAuthStateChanged(user => {
   currentUser = user || null;
-  initReviews(); // <-- Only call after auth state is determined
+  // Don’t call loadReviews() again here if using onSnapshot
+});
+
+// Run once when DOM ready
+document.addEventListener("DOMContentLoaded", () => {
+  loadReviews();
 });
 
 
@@ -904,46 +910,43 @@ function initReviews() {
 });
   }
 
-  loadReviews();
-}
-
 function loadReviews() {
   const container = document.getElementById("reviewsContainer");
   if (!container) return;
-  container.innerHTML = "";
 
-  db.collection("reviews").orderBy("createdAt", "desc").get().then(snapshot => {
-    snapshot.forEach(doc => {
-      const r = doc.data();
-      const reviewId = doc.id;
-      const stars = "★".repeat(r.rating || 0) + "☆".repeat(5 - (r.rating || 0));
+  // Use real-time listener instead of .get()
+  db.collection("reviews").orderBy("createdAt", "desc")
+    .onSnapshot(snapshot => {
+      container.innerHTML = ""; // clear before re-render
+      snapshot.forEach(doc => {
+        const r = doc.data();
+        const reviewId = doc.id;
+        const stars = "★".repeat(r.rating || 0) + "☆".repeat(5 - (r.rating || 0));
 
-      // Format date as "time ago"
-      let dateStr = "";
-      if (r.createdAt && r.createdAt.toDate) {
-        dateStr = timeAgo(r.createdAt.toDate());
-      }
+        // Format "time ago"
+        let dateStr = "";
+        if (r.createdAt && r.createdAt.toDate) {
+          dateStr = timeAgo(r.createdAt.toDate());
+        }
 
-      // ✅ Only show delete if this user owns it
-      const isOwner = currentUser && r.userId === currentUser.uid;
+        const isOwner = currentUser && r.userId === currentUser.uid;
 
-      const div = document.createElement("div");
-      div.style.marginBottom = "10px";
-      div.innerHTML = `
-        <div style="font-weight:bold; color:#9b59b6;">${r.name || "Anonymous"}</div>
-        <div style="color:gold;">${stars}</div>
-        <div>${r.comment || ""}</div>
-        <div style="font-size:12px; color:#888;">${dateStr}</div>
-        ${isOwner ? `<button onclick="deleteReview('${reviewId}')">Delete</button>` : ""}
-        <hr style="border:0; border-top:1px solid #555; margin:8px 0;">
-      `;
-      container.appendChild(div);
+        const div = document.createElement("div");
+        div.style.marginBottom = "10px";
+        div.innerHTML = `
+          <div style="font-weight:bold; color:#9b59b6;">${r.name || "Anonymous"}</div>
+          <div style="color:gold;">${stars}</div>
+          <div>${r.comment || ""}</div>
+          <div style="font-size:12px; color:#888;">${dateStr}</div>
+          ${isOwner ? `<button onclick="deleteReview('${reviewId}')">Delete</button>` : ""}
+          <hr style="border:0; border-top:1px solid #555; margin:8px 0;">
+        `;
+        container.appendChild(div);
+      });
+    }, err => {
+      console.error("Error loading reviews:", err);
     });
-  }).catch(err => {
-    console.error("Error loading reviews:", err);
-  });
 }
-
 
 
   
