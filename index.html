@@ -914,19 +914,26 @@ function loadReviews() {
   const container = document.getElementById("reviewsContainer");
   if (!container) return;
 
+  // Use real-time listener instead of .get()
   db.collection("reviews")
     .orderBy("createdAt", "desc")
     .onSnapshot(snapshot => {
-      container.innerHTML = "";
+      container.innerHTML = ""; // clear existing reviews each time
+
       snapshot.forEach(doc => {
         const r = doc.data();
         const reviewId = doc.id;
         const stars = "★".repeat(r.rating || 0) + "☆".repeat(5 - (r.rating || 0));
+
+        // Format "time ago"
         let dateStr = "";
         if (r.createdAt && r.createdAt.toDate) {
           dateStr = timeAgo(r.createdAt.toDate());
         }
+
+        // Only show delete button if this user owns it
         const isOwner = currentUser && r.userId === currentUser.uid;
+
         const div = document.createElement("div");
         div.style.marginBottom = "10px";
         div.innerHTML = `
@@ -942,7 +949,7 @@ function loadReviews() {
     }, err => {
       console.error("Error loading reviews:", err);
     });
-} // <-- Make sure function ends here
+}
 
 function timeAgo(date) {
   const seconds = Math.floor((new Date() - date) / 1000);
