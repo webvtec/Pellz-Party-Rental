@@ -288,13 +288,7 @@ function login() {
     });
 }
 
-function logoutUser() {
-  firebase.auth().signOut()
-    .then(() => alert('Logged out.'))
-    .catch(err => alert('Logout error: ' + err.message));
-}
-
-  function logout() {
+  function logoutUser() {
   firebase.auth().signOut().then(() => {
     // ✅ user signed out → send to login page
     window.location.href = "/login.html"; // 👈 change to your login page path
