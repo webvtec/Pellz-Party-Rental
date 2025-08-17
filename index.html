@@ -638,46 +638,38 @@ async function addToCart(item) {
   try {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-    // ✅ Build a complete cart item object
-    const cartItem = {
-      id: item.id || Date.now(),        // fallback unique ID if missing
-      name: item.name || "Unnamed Item",
-      price: item.price || 0,
-      image: item.image || "placeholder.jpg", // fallback image if missing
-      quantity: item.quantity || 1
+    // ✅ Make sure quantity is set, but keep the rest of the item data
+    const cartItem = { 
+      ...item, 
+      quantity: (item.quantity || 1) 
     };
 
-    // ✅ If item already exists in cart, increase its quantity
-    const existing = cart.find(i => i.id === cartItem.id);
+    // ✅ If item already exists, just increase quantity
+    const existing = cart.find(i => i.id === cartItem.id || i.name === cartItem.name);
     if (existing) {
       existing.quantity += cartItem.quantity;
     } else {
       cart.push(cartItem);
     }
 
-    // ✅ Save updated cart to localStorage
     localStorage.setItem("cart", JSON.stringify(cart));
-
-    // ✅ Update cart count badge in UI
     updateCartCount();
 
-    // ✅ Confirmation alert
-    Swal.fire({ 
-      icon: "success", 
-      title: "Added", 
-      text: `${cartItem.name} added to cart.` 
+    Swal.fire({
+      icon: "success",
+      title: "Added",
+      text: `${cartItem.name} added to cart.`
     });
 
   } catch (err) {
     console.error("addToCart error:", err);
-    Swal.fire({ 
-      icon: "error", 
-      title: "Error", 
-      text: "Could not add item to cart. Try again." 
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Could not add item to cart. Try again."
     });
   }
 }
-
 
 
 function addToCartWithQty(name, imageUrl) {
