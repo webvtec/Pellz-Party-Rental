@@ -1002,7 +1002,6 @@ window.addEventListener("load", () => {
     const cartQty = cartItem.quantity || 1;
     const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
 
-    // 📌 Count bookings for this item (excluding current cart)
     const bookedQtyPerDate = {};
     snapshot.forEach(doc => {
       const data = doc.data();
@@ -1026,7 +1025,6 @@ window.addEventListener("load", () => {
       }
     });
 
-    // 📌 Now check each day with cart quantity included
     let d = new Date(start);
     while (d <= end) {
       const key = d.toISOString().split("T")[0];
