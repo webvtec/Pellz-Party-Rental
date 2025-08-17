@@ -377,6 +377,27 @@ function getCartTotal() {
 }
 
 /* ===================== Order: Firestore + Telegram ===================== */
+async function generateOrderNumber(name) {
+  if (!name) return "XX0000"; 
+  const firstName = name.trim().split(" ")[0]; 
+  const initials = firstName.slice(0, 2).toUpperCase();
+  const randomNum = Math.floor(1000 + Math.random() * 9000); 
+  return initials + randomNum;
+}
+
+async function generateUniqueOrderNumber(name) {
+  let unique = false;
+  let orderNumber = "";
+  while (!unique) {
+    orderNumber = await generateOrderNumber(name);
+    const snapshot = await db.collection("reservations")
+      .where("orderNumber", "==", orderNumber)
+      .get();
+    if (snapshot.empty) unique = true; // ✅ number not used yet
+  }
+  return orderNumber;
+}
+
 async function completeBooking() {
   try {
     const name = (document.getElementById("customerName")?.value || "").trim();
@@ -425,11 +446,14 @@ async function completeBooking() {
     }
     totalAmount = Number(totalAmount.toFixed(2));
 
-    
+    // --- generate unique order number ---
+    const orderNumber = await generateUniqueOrderNumber(name);
+
     /* ===================== Save to Firestore ===================== */
     let firestoreError = null;
     try {
       await db.collection("reservations").add({
+        orderNumber,  // ✅ save unique order number
         name, phone, location,
         rentalDates, startTime, endTime,
         paymentType,
@@ -437,7 +461,7 @@ async function completeBooking() {
         totalAmount,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      console.log("✅ Saved to Firestore");
+      console.log("✅ Saved to Firestore with Order #", orderNumber);
     } catch (err) {
       console.error("❌ Firestore save failed:", err);
       firestoreError = err;
@@ -448,9 +472,9 @@ async function completeBooking() {
       await sendTelegramMessage(
         name, phone, location, rentalDates,
         startTime, endTime, paymentType,
-        cart, totalAmount
+        cart, totalAmount, orderNumber // ✅ include order number
       );
-      console.log("✅ Telegram sent");
+      console.log("✅ Telegram sent with Order #", orderNumber);
     } catch (tgErr) {
       console.error("❌ Telegram send failed:", tgErr);
       Swal.fire({ icon: "error", title: "Telegram Failed", text: "Order saved, but Telegram message didn’t send." });
@@ -465,7 +489,7 @@ async function completeBooking() {
     }
 
     Swal.fire({
-      title: firestoreError ? "ORDER MADE (Firestore Failed)" : "ORDER MADE",
+      title: firestoreError ? `ORDER MADE (#${orderNumber}, DB Failed)` : `ORDER MADE (#${orderNumber})`,
       text: firestoreError ? "Your order went through, but DB didn’t save." : "We got your booking!",
       icon: "success",
       confirmButtonColor: "#1a73e8"
@@ -479,9 +503,9 @@ async function completeBooking() {
 
 
 /* Telegram: simple form POST to avoid CORS preflight */
-function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount) {
-  const telegramBotToken = '7638261664:AAGm0MNVQxN0hlW1bhXBRf-kSRuMgRkCLC8'; // keep secret server-side in production
-  const chatId = '-1002734216867'; // ensure the bot is an admin/member of this chat
+function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount, orderNumber) {
+  const telegramBotToken = 'YOUR_BOT_TOKEN';
+  const chatId = 'YOUR_CHAT_ID';
 
   const days = getRentalDayCount();
   const itemsSummary = cart.map(item => {
@@ -492,7 +516,7 @@ function sendTelegramMessage(name, phone, location, rentalDates, startTime, endT
   }).join('\n');
 
   const message =
-`🛒 New Reservation
+`🆕 New Order #${orderNumber}
 
 👤 Name: ${name}
 📞 Phone: ${phone}
@@ -513,7 +537,7 @@ ${itemsSummary}`;
   body.append('disable_web_page_preview', 'true');
 
   fetch(url, { method: 'POST', body })
-    .then(() => console.log('Telegram message: sent (request dispatched)'))
+    .then(() => console.log('Telegram message: sent (Order #', orderNumber, ')'))
     .catch(err => console.error('Telegram fetch error:', err));
 }
 
@@ -1209,7 +1233,6 @@ window.addEventListener("load", () => {
 
   togglePlaceOrderButton();
 }
-
 
 
 </script>
