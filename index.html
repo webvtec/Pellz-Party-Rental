@@ -702,8 +702,19 @@ function updateManualPrice(itemName, itemId) {
 
 async function addToCart(item) {
   try {
-    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+    if (!currentUser) {
+      Swal.fire({
+        icon: "warning",
+        title: "Login Required",
+        text: "You must be logged in to add items to your cart.",
+        confirmButtonText: "Login"
+      }).then(() => {
+        window.location.href = "login.html"; // 👈 redirect to login
+      });
+      return;
+    }
 
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
     const quantity = item.quantity || 1;
     const stockAvailable = (qtyMap?.[item.name]?.options?.slice(-1)?.[0]) || 1;
 
@@ -736,6 +747,18 @@ async function addToCart(item) {
 
 
 function addToCartWithQty(name, imageUrl) {
+  if (!currentUser) {
+    Swal.fire({
+      icon: "warning",
+      title: "Login Required",
+      text: "You must be logged in to add items to your cart.",
+      confirmButtonText: "Login"
+    }).then(() => {
+      window.location.href = "login.html"; // 👈 redirect to login
+    });
+    return;
+  }
+
   const itemId = name.replace(/\s+/g, '-');
   const qtyEl = document.getElementById(`qty-${itemId}`);
   if (!qtyEl) return;
@@ -771,13 +794,11 @@ function addToCartWithQty(name, imageUrl) {
     localStorage.setItem('cart', JSON.stringify(cart));
     updateCartCount();
 
-    // 🔔 NEW: Validate after adding
     validateCartStock(document.getElementById("rentalDateRange").value.trim());
 
     showToast("ADDED TO CART", "success");
   });
 }
-
 
 
 function updateCartCount() {
