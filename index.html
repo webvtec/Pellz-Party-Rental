@@ -295,6 +295,14 @@ function login() {
     });
 }
 
+  let validateCartStockTimeout;
+function debounceValidateCartStock(rentalDates) {
+  clearTimeout(validateCartStockTimeout);
+  validateCartStockTimeout = setTimeout(() => {
+    validateCartStock(rentalDates);
+  }, 200); // waits 200ms, prevents double-trigger
+}
+
 
   function listenForReservations() {
   db.collection("reservations").onSnapshot(snapshot => {
@@ -1178,7 +1186,17 @@ async function checkStock(cart, start, end) {
   return true; // ✅ all items available
 }
 
-/* ===================== CART VALIDATION ===================== */
+// 👇 Global to prevent duplicates across multiple calls
+const shownKeysGlobal = new Set();
+let validateCartStockTimeout;
+
+function debounceValidateCartStock(rentalDates) {
+  clearTimeout(validateCartStockTimeout);
+  validateCartStockTimeout = setTimeout(() => {
+    validateCartStock(rentalDates);
+  }, 200); // wait 200ms so duplicates don’t pile up
+}
+
 async function validateCartStock(rentalDates) {
   const locationInput = document.getElementById("customerLocation");
   let errorEl = document.getElementById("stockErrorMsg");
@@ -1193,6 +1211,7 @@ async function validateCartStock(rentalDates) {
   }
 
   errorEl.innerHTML = ""; 
+  shownKeysGlobal.clear(); // reset global keys each run
   cartHasWarnings = false;
 
   // Bail if dates not valid yet
@@ -1221,14 +1240,12 @@ async function validateCartStock(rentalDates) {
   }
 
   const snapshot = await db.collection("reservations").get();
-  const shownKeys = new Set(); // prevent duplicate messages
 
   for (const [itemName, cartQty] of Object.entries(cartGrouped)) {
     const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
 
     // ✅ Aggregate booked quantities per date across ALL reservations
     const bookedQtyPerDate = {};
-
     snapshot.forEach(doc => {
       const data = doc.data();
       if (!data.rentalDates || !data.cartItems) return;
@@ -1263,9 +1280,9 @@ async function validateCartStock(rentalDates) {
         const left = Math.max(0, stockAvailable - alreadyBooked);
         const uniqueKey = `${itemName}-${key}`;
 
-        if (!shownKeys.has(uniqueKey)) {
+        if (!shownKeysGlobal.has(uniqueKey)) {
           errorEl.innerHTML += `<div>❌ Only ${left} ${itemName}(s) available for ${key}. You requested ${cartQty}.</div>`;
-          shownKeys.add(uniqueKey);
+          shownKeysGlobal.add(uniqueKey); // ✅ prevent duplicates
         }
 
         cartHasWarnings = true;
@@ -1278,9 +1295,10 @@ async function validateCartStock(rentalDates) {
   togglePlaceOrderButton();
 }
 
+
 /* ===================== HOOK VALIDATION ON DATE CHANGE ===================== */
-document.getElementById("rentalDateRange")?.addEventListener("change", async (e) => {
-  await validateCartStock(e.target.value);
+document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
+  debounceValidateCartStock(e.target.value);
 });
 
 
