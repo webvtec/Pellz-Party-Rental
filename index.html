@@ -748,14 +748,11 @@ async function addToCart(item) {
     }
 
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const stockAvailable = (qtyMap?.[item.name]?.options?.slice(-1)?.[0]) || 1;
-
-    // ✅ Only check by name
     const existing = cart.find(i => i.name === item.name);
 
     if (existing) {
-      // 🚫 Don’t update quantity — just block duplicates
-      showToast(`${item.name} is already in your cart.`, "info");
+      // 🚫 Duplicate → red toast
+      showToast(`${item.name} is already in your cart.`, "error");
     } else {
       cart.push({
         ...item,
@@ -772,7 +769,6 @@ async function addToCart(item) {
     showToast("❌ Could not add item. Try again.", "error");
   }
 }
-
 
 
 function addToCartWithQty(name, imageUrl) {
