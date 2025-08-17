@@ -177,14 +177,24 @@
           <input type="text" id="customerLocation" placeholder="Enter delivery location" required />
         </div>
 
-        <div id="cartWarnings" style="color:red; font-weight:bold; margin:10px 0;"></div>
+        <!-- 🔔 Availability warnings appear here -->
+<div id="cartWarnings" style="color:red; font-weight:bold; margin:10px 0;"></div>
 
-        <div id="cartItemsContainer"></div>
-        <div id="cartTotal" style="text-align:right; font-weight:bold; margin-top:10px;"></div>
+<!-- Cart items -->
+<div id="cartItemsContainer"></div>
 
-        <div id="cartButtons">
-          <button id="placeOrderBtn" style="background-color:#6A0DAD; color:white; border:none; padding:10px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer;">PLACE ORDER</button>
-        </div>
+<!-- Cart total -->
+<div id="cartTotal" style="text-align:right; font-weight:bold; margin-top:10px;"></div>
+
+<!-- Place order button -->
+<div id="cartButtons">
+  <button 
+    id="placeOrderBtn" 
+    onclick="completeBooking()" 
+    style="background-color:#6A0DAD; color:white; border:none; padding:10px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer;">
+    PLACE ORDER
+  </button>
+</div>
       </div>
     </div>
   </div>
@@ -781,6 +791,26 @@ function updateRentalDuration() {
   viewCart();
 }
 
+  /* ===================== Global flag ===================== */
+let cartHasWarnings = false;
+
+/* ===================== Toggle Place Order button ===================== */
+function togglePlaceOrderButton() {
+  const btn = document.getElementById("placeOrderBtn");
+  if (!btn) return;
+
+  if (cartHasWarnings) {
+    btn.disabled = true;
+    btn.style.backgroundColor = "#999";   // greyed out
+    btn.style.cursor = "not-allowed";
+  } else {
+    btn.disabled = false;
+    btn.style.backgroundColor = "#6A0DAD"; // restore purple (or your theme color)
+    btn.style.cursor = "pointer";
+  }
+}
+
+
 function viewCart() {
   const modal = document.getElementById('cartModal');
   const container = document.getElementById('cartItemsContainer');
@@ -791,6 +821,8 @@ function viewCart() {
   if (cart.length === 0) {
     container.innerHTML = '<p>Your cart is empty.</p>';
     totalElem.textContent = '';
+    cartHasWarnings = false;
+    togglePlaceOrderButton(); // ✅ reset button state
   } else {
     let total = 0;
     cart.forEach((item, index) => {
@@ -821,11 +853,17 @@ function viewCart() {
 
     // 🔎 Check stock for the currently selected dates
     const rentalDates = (document.getElementById("rentalDateRange")?.value || "").trim();
-    if (rentalDates) validateCartStock(rentalDates);
+    if (rentalDates) {
+      validateCartStock(rentalDates);
+    } else {
+      cartHasWarnings = false;
+      togglePlaceOrderButton(); // ✅ ensure button resets when no dates
+    }
   }
 
   modal.style.display = 'block';
 }
+
 
 
 /* ===================== Cart Helpers ===================== */
@@ -976,15 +1014,24 @@ window.addEventListener("load", () => {
   warningsDiv.innerHTML = ""; // clear old messages
   cartHasWarnings = false; // reset
 
-  if (!rentalDates.includes(" to ")) return;
+  if (!rentalDates.includes(" to ")) {
+    togglePlaceOrderButton();
+    return;
+  }
 
   const [startStr, endStr] = rentalDates.split(" to ");
   const start = new Date(startStr);
   const end = new Date(endStr);
-  if (isNaN(start) || isNaN(end)) return;
+  if (isNaN(start) || isNaN(end)) {
+    togglePlaceOrderButton();
+    return;
+  }
 
   const cart = JSON.parse(localStorage.getItem("cart")) || [];
-  if (cart.length === 0) return;
+  if (cart.length === 0) {
+    togglePlaceOrderButton();
+    return;
+  }
 
   const snapshot = await db.collection("reservations").get();
 
@@ -1022,14 +1069,16 @@ window.addEventListener("load", () => {
       const alreadyBooked = bookedQtyPerDate[key] || 0;
       if (alreadyBooked + qtyRequested > stockAvailable) {
         const left = Math.max(0, stockAvailable - alreadyBooked);
-        warningsDiv.innerHTML += `<div>⚠️ ${itemName} is overbooked on ${key}. Only ${left} available.</div>`;
+        warningsDiv.innerHTML += `<div>⚠️ ${itemName} is overbooked on ${key}. Only ${left} available. Checkout disabled until fixed.</div>`;
         cartHasWarnings = true;
       }
       d.setDate(d.getDate() + 1);
     }
   }
-}
 
+  // ✅ Update the button state every time
+  togglePlaceOrderButton();
+}
 
 
 </script>
