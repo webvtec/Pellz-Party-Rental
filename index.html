@@ -295,6 +295,34 @@ function login() {
     });
 }
 
+
+  function listenForReservations() {
+  db.collection("reservations").onSnapshot(snapshot => {
+    bookedDates = []; // reset global booked dates
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (!data.rentalDates) return;
+
+      const range = String(data.rentalDates).split(" to ");
+      if (range.length === 2) {
+        const start = new Date(range[0]);
+        const end = new Date(range[1]);
+        if (isNaN(start) || isNaN(end)) return;
+
+        let current = new Date(start);
+        while (current <= end) {
+          bookedDates.push(current.toISOString().split("T")[0]);
+          current.setDate(current.getDate() + 1);
+        }
+      }
+    });
+
+    // 🔄 Re-run validation immediately if cart & rental dates exist
+    const rentalDates = (document.getElementById("rentalDateRange")?.value || "").trim();
+    if (rentalDates) validateCartStock(rentalDates);
+  });
+}
+
   function logoutUser() {
   firebase.auth().signOut().then(() => {
     // ✅ user signed out → send to login page
@@ -453,7 +481,6 @@ async function completeBooking() {
         const resStart = new Date(resStartStr);
         const resEnd = new Date(resEndStr);
 
-        // Date overlap?
         if ((start <= resEnd) && (end >= resStart)) {
           for (const bookedItem of r.cartItems) {
             if (bookedItem.name === cartItem.name) {
@@ -507,12 +534,18 @@ async function completeBooking() {
       confirmButtonColor: "#1a73e8"
     });
 
+    // 🔄 IMPORTANT: Refresh reservations so stock validation updates immediately
+    fetchBookedDatesAndInitCalendar(); // updates datepicker + bookedDates
+    const rentalDatesNow = (document.getElementById("rentalDateRange")?.value || "").trim();
+    if (rentalDatesNow) {
+      validateCartStock(rentalDatesNow); // re-check cart stock instantly
+    }
+
   } catch (err) {
     console.error("completeBooking crashed:", err);
     Swal.fire({ icon: "error", title: "Stock Issue", text: err.message || "Unexpected error placing the order." });
   }
 }
-
 
 
 /* Telegram: simple form POST to avoid CORS preflight */
@@ -1076,13 +1109,15 @@ document.getElementById("placeOrderBtn").addEventListener("click", completeBooki
 /* ===================== Init ===================== */
 window.addEventListener("load", () => {
   updateCartCount();
-  fetchBookedDatesAndInitCalendar();
+  fetchBookedDatesAndInitCalendar(); // keeps calendar working
+  listenForReservations();           // 👈 add this line
   initReviews();
 
   // 👇 Show Event Items page immediately
   loadGalleryByCategory('EVENT ITEMS');
 });
 
+  
   /* ===================== STOCK VALIDATION ===================== */
 async function checkStock(cart, start, end) {
   const snapshot = await db.collection("reservations").get();
