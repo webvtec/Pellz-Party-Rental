@@ -224,12 +224,12 @@ let currentUser = null;
 firebase.auth().onAuthStateChanged(user => {
   currentUser = user || null;
 
-  const form = document.getElementById("reviewForm");
-  if (form) {
+  const reviewFormContainer = document.getElementById("reviewFormContainer");
+  if (reviewFormContainer) {
     if (currentUser) {
-      form.style.display = "block"; // show form if logged in
+      reviewFormContainer.style.display = "block";  // show form
     } else {
-      form.style.display = "none";  // hide form if not logged in
+      reviewFormContainer.style.display = "none";   // hide form
     }
   }
 });
