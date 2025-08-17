@@ -116,6 +116,11 @@
     <a onclick="loadGalleryByCategory('CARS'); closeMenu();" href="javascript:void(0);">🚘 MOTORCARS</a>
     <a onclick="loadGalleryByCategory('BATHROOM'); closeMenu();" href="javascript:void(0);">🚻 BATHROOM</a>
     <a onclick="showSection('reviewsSection'); closeMenu();" href="javascript:void(0);">⭐️ REVIEWS</a>
+    <a onclick="showRecentOrders(); closeMenu();" 
+   style="display:block; text-align:center; margin:10px auto; padding:10px 20px; background-color:#2e7d32; color:white; border-radius:6px; cursor:pointer; text-decoration:none; width:80%; font-weight:bold;" 
+   href="javascript:void(0);">
+   RECENT ORDERS
+</a>
     <a onclick="logoutUser(); closeMenu();" style="display:block; text-align:center; margin:10px auto; padding:10px 20px; background-color:red; color:white; border-radius:6px; cursor:pointer; text-decoration:none; width:80%; font-weight:bold;" href="javascript:void(0);">LOGOUT</a>
     <a onclick="login(); closeMenu();" class="admin-button" style="display:block; text-align:center; margin:10px auto; padding:10px 20px; background-color:#6200ea; color:white; border-radius:6px; text-decoration:none; width:80%; font-weight:bold;" href="javascript:void(0);">ADMIN</a>
   </div>
@@ -501,6 +506,7 @@ async function completeBooking() {
       const docRef = db.collection("reservations").doc();
       transaction.set(docRef, {
         orderNumber,
+        userId: currentUser ? currentUser.uid : null, // ✅ added so we can filter later
         name, phone, location,
         rentalDates, startTime, endTime,
         paymentType,
@@ -558,6 +564,7 @@ async function completeBooking() {
     Swal.fire({ icon: "error", title: "Stock Issue", text: err.message || "Unexpected error placing the order." });
   }
 }
+
 
 /* Telegram: simple form POST to avoid CORS preflight */
 async function sendTelegramMessage(
@@ -1306,6 +1313,69 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
   const item = { id: productId, name, price, image, quantity: 1 };
 
   addToCart(item);
+}
+
+
+  async function showRecentOrders() {
+  if (!currentUser) {
+    Swal.fire({
+      icon: "warning",
+      title: "Login Required",
+      text: "You must be logged in to view recent orders.",
+      confirmButtonText: "OK"
+    }).then(() => {
+      window.location.href = "login.html"; // redirect if not logged in
+    });
+    return;
+  }
+
+  try {
+    const snapshot = await db.collection("reservations")
+      .where("userId", "==", currentUser.uid)  // make sure you store userId when saving orders!
+      .orderBy("createdAt", "desc")
+      .limit(10)
+      .get();
+
+    if (snapshot.empty) {
+      Swal.fire("No Orders", "You don’t have any recent orders yet.", "info");
+      return;
+    }
+
+    let html = "<div style='text-align:left; max-height:300px; overflow-y:auto;'>";
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const orderNum = data.orderNumber || doc.id;
+      const total = formatJMD(data.totalAmount || 0);
+      const date = data.createdAt?.toDate().toLocaleString() || "N/A";
+
+      const items = (data.cartItems || [])
+        .map(i => `${i.name} x${i.quantity}`)
+        .join(", ");
+
+      html += `
+        <div style="margin-bottom:10px; padding:8px; border-bottom:1px solid #ccc;">
+          <strong>Order #${orderNum}</strong><br>
+          <span>${date}</span><br>
+          <span>${items}</span><br>
+          <span style="color:#6A0DAD; font-weight:bold;">${total}</span>
+        </div>`;
+    });
+    html += "</div>";
+
+    Swal.fire({
+      title: "📦 Recent Orders",
+      html,
+      width: 500,
+      confirmButtonText: "Close",
+      customClass: {
+        popup: "swal2-rounded"
+      }
+    });
+
+  } catch (err) {
+    console.error("Error fetching recent orders:", err);
+    Swal.fire("Error", "Could not load your orders. Try again later.", "error");
+  }
 }
 
 
