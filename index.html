@@ -925,7 +925,6 @@ function loadReviews() {
   
 function timeAgo(date) {
   const seconds = Math.floor((new Date() - date) / 1000);
-
   if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
@@ -946,7 +945,9 @@ function timeAgo(date) {
 
   const user = firebase.auth().currentUser;
   if (!user) {
-    alert("You must be logged in to submit a review.");
+    if (confirm("You must be logged in to leave a review. Click OK to go to login.")) {
+      window.location.href = "/login.html"; // 👈 change this
+    }
     return;
   }
 
@@ -964,12 +965,13 @@ function timeAgo(date) {
   }).then(() => {
     console.log("Review added!");
     document.getElementById("reviewText").value = "";
-    document.getElementById("reviewRating").value = "5"; // reset to default
-    loadReviews(); // refresh list
+    document.getElementById("reviewRating").value = "5";
+    loadReviews();
   }).catch(err => {
     console.error("Error adding review:", err);
   });
 }
+
 
 
   function deleteReview(reviewId) {
@@ -979,11 +981,11 @@ function timeAgo(date) {
   db.collection("reviews").doc(reviewId).get().then(doc => {
     if (!doc.exists) return;
 
-    const review = doc.data();
-    if (review.userId === user.uid) {
-      // ✅ user owns it → allow delete
+    const r = doc.data();
+    if (r.userId === user.uid) {
       db.collection("reviews").doc(reviewId).delete().then(() => {
         console.log("Review deleted");
+        loadReviews(); // refresh
       }).catch(err => {
         console.error("Delete failed", err);
       });
