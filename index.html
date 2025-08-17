@@ -352,7 +352,6 @@ function getCartTotal() {
   return Number(total.toFixed(2));
 }
 
-
 /* ===================== Order: Firestore + Telegram ===================== */
 async function completeBooking() {
   try {
@@ -382,6 +381,7 @@ async function completeBooking() {
       return;
     }
 
+    // Calculate total price
     const days = getRentalDayCount();
     let totalAmount = 0;
     for (const item of cart) {
@@ -391,16 +391,63 @@ async function completeBooking() {
     }
     totalAmount = Number(totalAmount.toFixed(2));
 
-    /* ===================== Stock Check (Firestore READ ONLY) ===================== */
-    const stockCheck = await checkStock(cart, start, end);
-    if (!stockCheck.ok) {
-      Swal.fire({
-        icon: "error",
-        title: "Item Overbooked",
-        text: `${stockCheck.item} is overbooked on ${stockCheck.date}. Only ${stockCheck.left} left.`
-      });
-      return;
+    /* ===================== Stock Check ===================== */
+    const snapshot = await db.collection("reservations").get();
+    for (const cartItem of cart) {
+      const itemName = cartItem.name;
+      const qtyRequested = cartItem.quantity || 1;
+      const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
+      const bookedQtyPerDate = {};
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        if (!data.rentalDates || !data.cartItems) continue;
+
+        const [bookedStartStr, bookedEndStr] = String(data.rentalDates).split(" to ");
+        const bookedStart = new Date(bookedStartStr);
+        const bookedEnd = new Date(bookedEndStr);
+        if (isNaN(bookedStart) || isNaN(bookedEnd)) continue;
+        if (start > bookedEnd || end < bookedStart) continue;
+
+        for (const bookedItem of data.cartItems) {
+          if (bookedItem.name !== itemName) continue;
+          const bookedQty = bookedItem.quantity || 1;
+          let d = new Date(bookedStart);
+          while (d <= bookedEnd) {
+            const key = d.toISOString().split("T")[0];
+            bookedQtyPerDate[key] = (bookedQtyPerDate[key] || 0) + bookedQty;
+            d.setDate(d.getDate() + 1);
+          }
+        }
+      }
+
+      // Check per-day availability
+      let d = new Date(start);
+      while (d <= end) {
+        const key = d.toISOString().split("T")[0];
+        const alreadyBooked = bookedQtyPerDate[key] || 0;
+        if (alreadyBooked + qtyRequested > stockAvailable) {
+          const left = Math.max(0, stockAvailable - alreadyBooked);
+          Swal.fire({
+            icon: "error",
+            title: "Item Overbooked",
+            text: `${itemName} is overbooked on ${key}. Only ${left} left.`
+          });
+          return;
+        }
+        d.setDate(d.getDate() + 1);
+      }
     }
+
+    /* ===================== Save to Firestore ===================== */
+    await db.collection("reservations").add({
+      name, phone, location,
+      rentalDates, startTime, endTime,
+      paymentType,
+      cartItems: cart,
+      totalAmount,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
 
     /* ===================== Send to Telegram ===================== */
     sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount);
@@ -408,7 +455,9 @@ async function completeBooking() {
     // Cleanup + success UI
     localStorage.removeItem("cart");
     updateCartCount && updateCartCount();
-    document.getElementById("cartModal").style.display = "none";
+    if (document.getElementById("cartModal")) {
+      document.getElementById("cartModal").style.display = "none";
+    }
 
     Swal.fire({
       title: 'ORDER MADE',
