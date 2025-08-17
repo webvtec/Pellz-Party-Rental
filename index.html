@@ -995,7 +995,7 @@ window.addEventListener("load", () => {
   }
 
   const snapshot = await db.collection("reservations").get();
-  const shownKeys = new Set(); // 🆕 track per item+date
+  const shownKeys = new Set(); // track per item+date
 
   for (const cartItem of cart) {
     const itemName = cartItem.name;
@@ -1029,26 +1029,25 @@ window.addEventListener("load", () => {
     while (d <= end) {
       const key = d.toISOString().split("T")[0];
       const alreadyBooked = bookedQtyPerDate[key] || 0;
-      // 🆕 FIX: Use cart quantity as total requested, not added twice
-if (alreadyBooked >= stockAvailable) {
-  // Nothing left at all
-  warningsDiv.innerHTML += `<div>⚠️ ${itemName} is fully booked on ${key}. Checkout disabled until fixed.</div>`;
-  cartHasWarnings = true;
-} else if (alreadyBooked + qtyRequested > stockAvailable) {
-  const left = stockAvailable - alreadyBooked;
-  const uniqueKey = `${itemName}-${key}`;
-  if (!shownKeys.has(uniqueKey)) {
-    warningsDiv.innerHTML += `<div>⚠️ ${itemName} is overbooked on ${key}. Only ${left} available. Checkout disabled until fixed.</div>`;
-    shownKeys.add(uniqueKey);
-  }
-  cartHasWarnings = true;
-}
+      const totalDemand = alreadyBooked + qtyRequested;
+
+      if (totalDemand > stockAvailable) {
+        const left = Math.max(0, stockAvailable - alreadyBooked);
+        const uniqueKey = `${itemName}-${key}`;
+        if (!shownKeys.has(uniqueKey)) {
+          warningsDiv.innerHTML += `<div>⚠️ ${itemName} is overbooked on ${key}. Only ${left} available. Checkout disabled until fixed.</div>`;
+          shownKeys.add(uniqueKey);
+        }
+        cartHasWarnings = true;
+      }
+
       d.setDate(d.getDate() + 1);
     }
   }
 
   togglePlaceOrderButton();
 }
+
 
 
 
