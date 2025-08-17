@@ -868,22 +868,39 @@ function initReviews() {
   const form = document.getElementById("reviewForm");
   if (form) {
     form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const name = document.getElementById("reviewName").value.trim();
-      const comment = document.getElementById("reviewComment").value.trim();
-      if (!name || !comment || !selectedRating) {
-        Swal.fire({ icon: "error", title: "Missing fields", text: "Please fill everything and pick a rating." });
-        return;
-      }
-      await db.collection("reviews").add({
-        name, comment, rating: selectedRating,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      document.getElementById("reviewForm").reset();
-      selectedRating = 0;
-      document.getElementById("reviewSubmitMsg").textContent = "✅ Review submitted!";
-      loadReviews();
+  e.preventDefault();
+
+  // Only allow logged-in users to submit
+  if (!currentUser) {
+    Swal.fire({
+      icon: "error",
+      title: "Login Required",
+      text: "You must be logged in to submit a review."
     });
+    return;
+  }
+
+  const name = document.getElementById("reviewName").value.trim();
+  const comment = document.getElementById("reviewComment").value.trim();
+  if (!name || !comment || !selectedRating) {
+    Swal.fire({ icon: "error", title: "Missing fields", text: "Please fill everything and pick a rating." });
+    return;
+  }
+
+  // Save userId in review
+  await db.collection("reviews").add({
+    userId: currentUser.uid,
+    name,
+    comment,
+    rating: selectedRating,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  document.getElementById("reviewForm").reset();
+  selectedRating = 0;
+  document.getElementById("reviewSubmitMsg").textContent = "✅ Review submitted!";
+  loadReviews();
+});
   }
 
   loadReviews();
