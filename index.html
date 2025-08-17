@@ -959,7 +959,7 @@ window.addEventListener("load", () => {
 
   async function validateCartStock(rentalDates) {
   const warningsDiv = document.getElementById("cartWarnings");
-  warningsDiv.innerHTML = ""; // clear old messages
+  warningsDiv.innerHTML = ""; 
   cartHasWarnings = false;
 
   if (!rentalDates.includes(" to ")) {
@@ -982,7 +982,7 @@ window.addEventListener("load", () => {
   }
 
   const snapshot = await db.collection("reservations").get();
-  const shownWarnings = new Set(); // 🆕 prevents duplicates
+  const shownKeys = new Set(); // 🆕 track per item+date
 
   for (const cartItem of cart) {
     const itemName = cartItem.name;
@@ -1018,10 +1018,10 @@ window.addEventListener("load", () => {
       const alreadyBooked = bookedQtyPerDate[key] || 0;
       if (alreadyBooked + qtyRequested > stockAvailable) {
         const left = Math.max(0, stockAvailable - alreadyBooked);
-        const msg = `⚠️ ${itemName} is overbooked on ${key}. Only ${left} available. Checkout disabled until fixed.`;
-        if (!shownWarnings.has(msg)) {
-          warningsDiv.innerHTML += `<div>${msg}</div>`;
-          shownWarnings.add(msg);
+        const uniqueKey = `${itemName}-${key}`; // 🆕 unique per item + date
+        if (!shownKeys.has(uniqueKey)) {
+          warningsDiv.innerHTML += `<div>⚠️ ${itemName} is overbooked on ${key}. Only ${left} available. Checkout disabled until fixed.</div>`;
+          shownKeys.add(uniqueKey);
         }
         cartHasWarnings = true;
       }
