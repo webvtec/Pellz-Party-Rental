@@ -295,15 +295,7 @@ function login() {
     });
 }
 
-  let validateCartStockTimeout;
-function debounceValidateCartStock(rentalDates) {
-  clearTimeout(validateCartStockTimeout);
-  validateCartStockTimeout = setTimeout(() => {
-    validateCartStock(rentalDates);
-  }, 200); // waits 200ms, prevents double-trigger
-}
-
-
+  
   function listenForReservations() {
   db.collection("reservations").onSnapshot(snapshot => {
     bookedDates = []; // reset global booked dates
@@ -1198,8 +1190,20 @@ function debounceValidateCartStock(rentalDates) {
 }
 
 async function validateCartStock(rentalDates) {
-  let errorEl = document.getElementById("cartWarnings"); // ✅ use existing element
+  const locationInput = document.getElementById("customerLocation");
+  let errorEl = document.getElementById("stockErrorMsg");
+
+  // Create inline error element if missing
+  if (!errorEl) {
+    errorEl = document.createElement("div");
+    errorEl.id = "stockErrorMsg";
+    errorEl.style.color = "red";
+    errorEl.style.marginTop = "5px";
+    locationInput.insertAdjacentElement("afterend", errorEl);
+  }
+
   errorEl.innerHTML = ""; 
+  shownKeysGlobal.clear(); // reset global keys each run
   cartHasWarnings = false;
 
   // Bail if dates not valid yet
@@ -1207,7 +1211,6 @@ async function validateCartStock(rentalDates) {
     togglePlaceOrderButton();
     return;
   }
-
   const [startStr, endStr] = rentalDates.split(" to ");
   const start = new Date(startStr);
   const end = new Date(endStr);
@@ -1229,13 +1232,12 @@ async function validateCartStock(rentalDates) {
   }
 
   const snapshot = await db.collection("reservations").get();
-  const shownKeys = new Set();
 
   for (const [itemName, cartQty] of Object.entries(cartGrouped)) {
     const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
 
+    // ✅ Aggregate booked quantities per date across ALL reservations
     const bookedQtyPerDate = {};
-
     snapshot.forEach(doc => {
       const data = doc.data();
       if (!data.rentalDates || !data.cartItems) return;
@@ -1259,7 +1261,7 @@ async function validateCartStock(rentalDates) {
       }
     });
 
-    // Compare demand vs stock per date
+    // ✅ Now only check once per date
     let d = new Date(start);
     while (d <= end) {
       const key = d.toISOString().split("T")[0];
@@ -1270,9 +1272,9 @@ async function validateCartStock(rentalDates) {
         const left = Math.max(0, stockAvailable - alreadyBooked);
         const uniqueKey = `${itemName}-${key}`;
 
-        if (!shownKeys.has(uniqueKey)) {
+        if (!shownKeysGlobal.has(uniqueKey)) {
           errorEl.innerHTML += `<div>❌ Only ${left} ${itemName}(s) available for ${key}. You requested ${cartQty}.</div>`;
-          shownKeys.add(uniqueKey);
+          shownKeysGlobal.add(uniqueKey); // ✅ prevent duplicates
         }
 
         cartHasWarnings = true;
@@ -1286,44 +1288,19 @@ async function validateCartStock(rentalDates) {
 }
 
 
-
 /* ===================== HOOK VALIDATION ON DATE CHANGE ===================== */
 document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
   debounceValidateCartStock(e.target.value);
 });
 
 
-  async function getAvailableStock(itemId, start, end) {
-  const baseStock = await getItemStock(itemId); // 🔎 You must have stock count stored somewhere (e.g., items collection)
-  let reserved = 0;
-
-  const snapshot = await db.collection("reservations").get();
-
-  snapshot.forEach(doc => {
-    const r = doc.data();
-    if (!r.cartItems) return;
-
-    // Check overlap
-    const [resStartStr, resEndStr] = r.rentalDates.split(" to ");
-    const resStart = new Date(resStartStr);
-    const resEnd = new Date(resEndStr);
-
-    if ((start <= resEnd) && (end >= resStart)) {
-      const match = r.cartItems.find(ci => ci.id === itemId);
-      if (match) reserved += (match.quantity || 0);
-    }
-  });
-
-  return Math.max(0, baseStock - reserved);
-}
-
-  function addToCartFromPage(productId) {
+    function addToCartFromPage(productId) {
   const productEl = document.getElementById(productId);
   if (!productEl) return;
 
   const name = productEl.querySelector(".product-name")?.textContent.trim() || "Unnamed Item";
   const price = parseFloat(productEl.querySelector(".product-price")?.textContent.trim() || "0");
-  const image = productEl.querySelector(".product-image")?.getAttribute("src") || "placeholder.jpg";
+  const image = productEl.querySelector("img")?.getAttribute("src") || "placeholder.jpg";
 
   // Build item object
   const item = { id: productId, name, price, image, quantity: 1 };
