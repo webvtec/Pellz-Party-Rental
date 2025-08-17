@@ -995,13 +995,14 @@ window.addEventListener("load", () => {
   }
 
   const snapshot = await db.collection("reservations").get();
-  const shownKeys = new Set(); // track per item+date
+  const shownKeys = new Set();
 
   for (const cartItem of cart) {
     const itemName = cartItem.name;
-    const qtyRequested = cartItem.quantity || 1;
+    const cartQty = cartItem.quantity || 1;
     const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
 
+    // 📌 Count bookings for this item (excluding current cart)
     const bookedQtyPerDate = {};
     snapshot.forEach(doc => {
       const data = doc.data();
@@ -1025,11 +1026,12 @@ window.addEventListener("load", () => {
       }
     });
 
+    // 📌 Now check each day with cart quantity included
     let d = new Date(start);
     while (d <= end) {
       const key = d.toISOString().split("T")[0];
       const alreadyBooked = bookedQtyPerDate[key] || 0;
-      const totalDemand = alreadyBooked + qtyRequested;
+      const totalDemand = alreadyBooked + cartQty;
 
       if (totalDemand > stockAvailable) {
         const left = Math.max(0, stockAvailable - alreadyBooked);
