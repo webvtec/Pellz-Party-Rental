@@ -177,6 +177,8 @@
           <input type="text" id="customerLocation" placeholder="Enter delivery location" required />
         </div>
 
+        <div id="cartWarnings" style="color:red; font-weight:bold; margin:10px 0;"></div>
+
         <div id="cartItemsContainer"></div>
         <div id="cartTotal" style="text-align:right; font-weight:bold; margin-top:10px;"></div>
 
@@ -382,6 +384,16 @@ async function completeBooking() {
       return;
     }
 
+    // 🚫 Block if warnings exist
+    if (cartHasWarnings) {
+      Swal.fire({
+        icon: "error",
+        title: "Stock Issue",
+        text: "Some items in your cart are overbooked. Please adjust your cart before placing the order."
+      });
+      return;
+    }
+
     // --- calculate total ---
     const days = getRentalDayCount();
     let totalAmount = 0;
@@ -392,59 +404,57 @@ async function completeBooking() {
     }
     totalAmount = Number(totalAmount.toFixed(2));
 
-    /* ===================== Stock Check ===================== */
+    /* ===================== Save to Firestore ===================== */
+    let firestoreError = null;
     try {
-      const snapshot = await db.collection("reservations").get();
-      for (const cartItem of cart) {
-        const itemName = cartItem.name;
-        const qtyRequested = cartItem.quantity || 1;
-        const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
-        const bookedQtyPerDate = {};
+      await db.collection("reservations").add({
+        name, phone, location,
+        rentalDates, startTime, endTime,
+        paymentType,
+        cartItems: cart,
+        totalAmount,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      console.log("✅ Saved to Firestore");
+    } catch (err) {
+      console.error("❌ Firestore save failed:", err);
+      firestoreError = err;
+    }
 
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          if (!data.rentalDates || !data.cartItems) return;
-
-          const [bookedStartStr, bookedEndStr] = String(data.rentalDates).split(" to ");
-          const bookedStart = new Date(bookedStartStr);
-          const bookedEnd = new Date(bookedEndStr);
-          if (isNaN(bookedStart) || isNaN(bookedEnd)) return;
-          if (start > bookedEnd || end < bookedStart) return;
-
-          for (const bookedItem of data.cartItems) {
-            if (bookedItem.name !== itemName) continue;
-            const bookedQty = bookedItem.quantity || 1;
-            let d = new Date(bookedStart);
-            while (d <= bookedEnd) {
-              const key = d.toISOString().split("T")[0];
-              bookedQtyPerDate[key] = (bookedQtyPerDate[key] || 0) + bookedQty;
-              d.setDate(d.getDate() + 1);
-            }
-          }
-        });
-
-        // per-day availability check
-        let d = new Date(start);
-        while (d <= end) {
-          const key = d.toISOString().split("T")[0];
-          const alreadyBooked = bookedQtyPerDate[key] || 0;
-          if (alreadyBooked + qtyRequested > stockAvailable) {
-            const left = Math.max(0, stockAvailable - alreadyBooked);
-            Swal.fire({
-              icon: "error",
-              title: "Item Overbooked",
-              text: `${itemName} is overbooked on ${key}. Only ${left} left.`
-            });
-            return;
-          }
-          d.setDate(d.getDate() + 1);
-        }
-      }
-    } catch (e) {
-      console.error("❌ Stock check failed:", e);
-      Swal.fire({ icon: "error", title: "Stock check failed", text: e.message || "Cannot check availability." });
+    /* ===================== Always Send Telegram ===================== */
+    try {
+      await sendTelegramMessage(
+        name, phone, location, rentalDates,
+        startTime, endTime, paymentType,
+        cart, totalAmount
+      );
+      console.log("✅ Telegram sent");
+    } catch (tgErr) {
+      console.error("❌ Telegram send failed:", tgErr);
+      Swal.fire({ icon: "error", title: "Telegram Failed", text: "Order saved, but Telegram message didn’t send." });
       return;
     }
+
+    // --- Success ---
+    localStorage.removeItem("cart");
+    updateCartCount();
+    if (document.getElementById("cartModal")) {
+      document.getElementById("cartModal").style.display = "none";
+    }
+
+    Swal.fire({
+      title: firestoreError ? "ORDER MADE (Firestore Failed)" : "ORDER MADE",
+      text: firestoreError ? "Your order went through, but DB didn’t save." : "We got your booking!",
+      icon: "success",
+      confirmButtonColor: "#1a73e8"
+    });
+
+  } catch (err) {
+    console.error("❌ completeBooking crashed:", err);
+    Swal.fire({ icon: "error", title: "Oops", text: "Unexpected error placing the order." });
+  }
+}
+
 
     /* ===================== Save to Firestore ===================== */
     let firestoreError = null;
@@ -791,10 +801,7 @@ function viewCart() {
       total += itemTotal;
 
       const itemDiv = document.createElement('div');
-      itemDiv.style.display = 'flex';
-      itemDiv.style.alignItems = 'center';
-      itemDiv.style.justifyContent = 'space-between';
-            itemDiv.innerHTML = `
+      itemDiv.innerHTML = `
         <div style="display:flex; align-items:center; gap:8px; flex:1;">
           <img src="${item.imageUrl}" alt="${item.name}">
           <div>
@@ -803,19 +810,23 @@ function viewCart() {
           </div>
         </div>
         <div style="font-weight:bold;">${formatJMD(itemTotal)}</div>
-        <button onclick="removeFromCart(${index})" 
-                style="background:red; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">
+        <button onclick="removeFromCart(${index})"
+          style="background:red; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">
           ✖
-        </button>
-      `;
+        </button>`;
       container.appendChild(itemDiv);
     });
 
     totalElem.textContent = "TOTAL: " + formatJMD(total);
+
+    // 🔎 Check stock for the currently selected dates
+    const rentalDates = (document.getElementById("rentalDateRange")?.value || "").trim();
+    if (rentalDates) validateCartStock(rentalDates);
   }
 
   modal.style.display = 'block';
 }
+
 
 /* ===================== Cart Helpers ===================== */
 function removeFromCart(index) {
@@ -959,6 +970,66 @@ window.addEventListener("load", () => {
   }
   return { ok: true };
 }
+
+  async function validateCartStock(rentalDates) {
+  const warningsDiv = document.getElementById("cartWarnings");
+  warningsDiv.innerHTML = ""; // clear old messages
+  cartHasWarnings = false; // reset
+
+  if (!rentalDates.includes(" to ")) return;
+
+  const [startStr, endStr] = rentalDates.split(" to ");
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  if (isNaN(start) || isNaN(end)) return;
+
+  const cart = JSON.parse(localStorage.getItem("cart")) || [];
+  if (cart.length === 0) return;
+
+  const snapshot = await db.collection("reservations").get();
+
+  for (const cartItem of cart) {
+    const itemName = cartItem.name;
+    const qtyRequested = cartItem.quantity || 1;
+    const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
+
+    const bookedQtyPerDate = {};
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (!data.rentalDates || !data.cartItems) return;
+
+      const [bookedStartStr, bookedEndStr] = String(data.rentalDates).split(" to ");
+      const bookedStart = new Date(bookedStartStr);
+      const bookedEnd = new Date(bookedEndStr);
+      if (isNaN(bookedStart) || isNaN(bookedEnd)) return;
+      if (start > bookedEnd || end < bookedStart) return;
+
+      for (const bookedItem of data.cartItems) {
+        if (bookedItem.name !== itemName) continue;
+        const bookedQty = bookedItem.quantity || 1;
+        let d = new Date(bookedStart);
+        while (d <= bookedEnd) {
+          const key = d.toISOString().split("T")[0];
+          bookedQtyPerDate[key] = (bookedQtyPerDate[key] || 0) + bookedQty;
+          d.setDate(d.getDate() + 1);
+        }
+      }
+    });
+
+    let d = new Date(start);
+    while (d <= end) {
+      const key = d.toISOString().split("T")[0];
+      const alreadyBooked = bookedQtyPerDate[key] || 0;
+      if (alreadyBooked + qtyRequested > stockAvailable) {
+        const left = Math.max(0, stockAvailable - alreadyBooked);
+        warningsDiv.innerHTML += `<div>⚠️ ${itemName} is overbooked on ${key}. Only ${left} available.</div>`;
+        cartHasWarnings = true;
+      }
+      d.setDate(d.getDate() + 1);
+    }
+  }
+}
+
 
 
 </script>
