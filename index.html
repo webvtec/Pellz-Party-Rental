@@ -994,54 +994,65 @@ function submitReview(event) {
 }
 
   function deleteReview(reviewId) {
-    const user = firebase.auth().currentUser;
-    if (!user) {
-      alert("You must be logged in to delete reviews.");
-      return;
-    }
-
-    db.collection("reviews").doc(reviewId).get()
-      .then(doc => {
-        if (!doc.exists) {
-          alert("Review no longer exists.");
-          return;
-        }
-
-        const r = doc.data();
-        // Check userId is present in review, fall back to name matching if not
-        if (r.userId && r.userId === user.uid) {
-          db.collection("reviews").doc(reviewId).delete()
-            .then(() => {
-              console.log("Review deleted");
-              loadReviews(); // refresh
-              Swal.fire({ icon: "success", title: "Review deleted", timer: 1200, showConfirmButton: false });
-            })
-            .catch(err => {
-              console.error("Delete failed", err);
-              Swal.fire({ icon: "error", title: "Delete failed", text: err.message });
-            });
-        } else if (!r.userId && r.name && user.displayName === r.name) {
-          // If review has no userId, fall back to matching displayName
-          db.collection("reviews").doc(reviewId).delete()
-            .then(() => {
-              console.log("Review deleted by name match");
-              loadReviews();
-              Swal.fire({ icon: "success", title: "Review deleted", timer: 1200, showConfirmButton: false });
-            })
-            .catch(err => {
-              console.error("Delete failed", err);
-              Swal.fire({ icon: "error", title: "Delete failed", text: err.message });
-            });
-        } else {
-          Swal.fire({ icon: "error", title: "Access denied", text: "You can only delete your own review." });
-        }
-      })
-      .catch(err => {
-        console.error("Could not get review doc:", err);
-        Swal.fire({ icon: "error", title: "Error", text: "Could not access review." });
-      });
+  const user = firebase.auth().currentUser;
+  if (!user) {
+    alert("You must be logged in to delete reviews.");
+    return;
   }
 
+  db.collection("reviews").doc(reviewId).get()
+    .then(doc => {
+      if (!doc.exists) {
+        alert("Review no longer exists.");
+        return;
+      }
+
+      const r = doc.data();
+      // Check userId is present in review
+      if (r.userId && r.userId === user.uid) {
+        db.collection("reviews").doc(reviewId).delete()
+          .then(() => {
+            console.log("Review deleted");
+            Swal.fire({
+              icon: "success",
+              title: "Review deleted",
+              timer: 1200,
+              showConfirmButton: false
+            });
+          })
+          .catch(err => {
+            console.error("Delete failed", err);
+            Swal.fire({ icon: "error", title: "Delete failed", text: err.message });
+          });
+      } else if (!r.userId && r.name && user.displayName === r.name) {
+        // Fallback if review has no userId
+        db.collection("reviews").doc(reviewId).delete()
+          .then(() => {
+            console.log("Review deleted by name match");
+            Swal.fire({
+              icon: "success",
+              title: "Review deleted",
+              timer: 1200,
+              showConfirmButton: false
+            });
+          })
+          .catch(err => {
+            console.error("Delete failed", err);
+            Swal.fire({ icon: "error", title: "Delete failed", text: err.message });
+          });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Access denied",
+          text: "You can only delete your own review."
+        });
+      }
+    })
+    .catch(err => {
+      console.error("Could not get review doc:", err);
+      Swal.fire({ icon: "error", title: "Error", text: "Could not access review." });
+    });
+}
 
 
 /* ===================== Event Listeners ===================== */
