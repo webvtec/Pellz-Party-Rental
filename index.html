@@ -88,14 +88,12 @@
     .swal2-title-custom { font-size: 28px; font-family: 'Poppins', sans-serif; font-weight: 700; color: #2e7d32; text-align: center; }
     .swal2-confirm-custom { background-color: #1a73e8 !important; color: white !important; font-size: 16px; border-radius: 8px !important; padding: 10px 20px; }
 
-    .swal2-title-shrink {
-  display: inline-block;
+    .swal2-title-nowrap {
   white-space: nowrap;
-  max-width: 100%;
-  font-size: clamp(14px, 4vw, 22px); /* shrink if too wide */
-  overflow: hidden;
-  text-overflow: clip; /* no ... just shrink */
+  text-align: center;
+  font-size: 20px;   /* fixed, readable size */
 }
+
 
   </style>
 </head>
@@ -1481,7 +1479,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
 
   function showBankInfo() {
   Swal.fire({
-    title: "<span class='swal2-title-shrink'>🏦 Bank Transfer Info</span>",
+    title: "<div class='swal2-title-nowrap'>🏦 Bank Transfer Info</div>",
     html: `
       <div style="text-align:left; font-size:16px; line-height:1.6; color:white;">
         <p><b>Bank Name:</b> First Caribbean Bank</p>
@@ -1491,7 +1489,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
         <p><b>Note:</b> Please use your Order # as the payment reference.</p>
       </div>
     `,
-    width: 500,
+    width: 600,  // ✅ slightly wider modal
     confirmButtonText: "Close",
     background: "#1a73e8",
     color: "white",
@@ -1501,6 +1499,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     }
   });
 }
+
 
 
 
