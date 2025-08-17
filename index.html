@@ -219,9 +219,21 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+let currentUser = null;
+
 firebase.auth().onAuthStateChanged(user => {
   currentUser = user || null;
-}); // ✅ CLOSE the listener properly
+
+  const form = document.getElementById("reviewForm");
+  if (form) {
+    if (currentUser) {
+      form.style.display = "block"; // show form if logged in
+    } else {
+      form.style.display = "none";  // hide form if not logged in
+    }
+  }
+});
+
 
   /* ===================== Inventory Settings ===================== */
 const qtyMap = {
@@ -944,28 +956,24 @@ function timeAgo(date) {
 
 
 function submitReview() {
-  const reviewText = document.getElementById("reviewText").value.trim();
-  const selectedRating = parseInt(document.getElementById("reviewRating").value);
-
-  const user = firebase.auth().currentUser;
-
-  // 🚨 Not logged in → prompt + redirect
-  if (!user) {
+  if (!currentUser) {
     if (confirm("You must be logged in to leave a review. Click OK to go to login.")) {
-      window.location.href = "/login.html"; // 👈 change this to your actual login page path
+      window.location.href = "login.html"; // 👈 your login page path
     }
     return;
   }
+
+  const reviewText = document.getElementById("reviewText").value.trim();
+  const selectedRating = parseInt(document.getElementById("reviewRating").value);
 
   if (!reviewText) {
     alert("Please write something before submitting.");
     return;
   }
 
-  // ✅ Logged in → save review
   db.collection("reviews").add({
-    userId: user.uid,
-    name: user.displayName || "Anonymous",
+    userId: currentUser.uid,
+    name: currentUser.displayName || "Anonymous",
     rating: selectedRating,
     comment: reviewText,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -973,12 +981,11 @@ function submitReview() {
     console.log("Review added!");
     document.getElementById("reviewText").value = "";
     document.getElementById("reviewRating").value = "5";
-    loadReviews(); // refresh list
+    loadReviews();
   }).catch(err => {
     console.error("Error adding review:", err);
   });
 }
-
 
 
   function deleteReview(reviewId) {
