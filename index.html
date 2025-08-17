@@ -742,29 +742,24 @@ async function addToCart(item) {
         text: "You must be logged in to add items to your cart.",
         confirmButtonText: "Login"
       }).then(() => {
-        window.location.href = "login.html"; // 👈 redirect to login
+        window.location.href = "login.html";
       });
       return;
     }
 
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const quantity = item.quantity || 1;
     const stockAvailable = (qtyMap?.[item.name]?.options?.slice(-1)?.[0]) || 1;
 
-    const existing = cart.find(i => i.id === item.id || i.name === item.name);
+    // ✅ Only check by name
+    const existing = cart.find(i => i.name === item.name);
 
     if (existing) {
-      if (stockAvailable === 1) {
-        existing.quantity = 1;
-        showToast(`Only 1 ${item.name} is available.`, "info");
-      } else {
-        existing.quantity = Math.min(existing.quantity + quantity, stockAvailable);
-        showToast(`${item.name} quantity updated.`, "success");
-      }
+      // 🚫 Don’t update quantity — just block duplicates
+      showToast(`${item.name} is already in your cart.`, "info");
     } else {
       cart.push({
         ...item,
-        quantity: Math.min(quantity, stockAvailable)
+        quantity: 1 // always 1 for non-qtyMap items
       });
       showToast("ADDED TO CART", "success");
     }
@@ -777,6 +772,7 @@ async function addToCart(item) {
     showToast("❌ Could not add item. Try again.", "error");
   }
 }
+
 
 
 function addToCartWithQty(name, imageUrl) {
