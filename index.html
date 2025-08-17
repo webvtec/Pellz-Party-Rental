@@ -414,58 +414,7 @@ async function completeBooking() {
     }
     totalAmount = Number(totalAmount.toFixed(2));
 
-    /* ===================== Save to Firestore ===================== */
-    let firestoreError = null;
-    try {
-      await db.collection("reservations").add({
-        name, phone, location,
-        rentalDates, startTime, endTime,
-        paymentType,
-        cartItems: cart,
-        totalAmount,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      console.log("✅ Saved to Firestore");
-    } catch (err) {
-      console.error("❌ Firestore save failed:", err);
-      firestoreError = err;
-    }
-
-    /* ===================== Always Send Telegram ===================== */
-    try {
-      await sendTelegramMessage(
-        name, phone, location, rentalDates,
-        startTime, endTime, paymentType,
-        cart, totalAmount
-      );
-      console.log("✅ Telegram sent");
-    } catch (tgErr) {
-      console.error("❌ Telegram send failed:", tgErr);
-      Swal.fire({ icon: "error", title: "Telegram Failed", text: "Order saved, but Telegram message didn’t send." });
-      return;
-    }
-
-    // --- Success ---
-    localStorage.removeItem("cart");
-    updateCartCount();
-    if (document.getElementById("cartModal")) {
-      document.getElementById("cartModal").style.display = "none";
-    }
-
-    Swal.fire({
-      title: firestoreError ? "ORDER MADE (Firestore Failed)" : "ORDER MADE",
-      text: firestoreError ? "Your order went through, but DB didn’t save." : "We got your booking!",
-      icon: "success",
-      confirmButtonColor: "#1a73e8"
-    });
-
-  } catch (err) {
-    console.error("❌ completeBooking crashed:", err);
-    Swal.fire({ icon: "error", title: "Oops", text: "Unexpected error placing the order." });
-  }
-}
-
-
+    
     /* ===================== Save to Firestore ===================== */
     let firestoreError = null;
     try {
