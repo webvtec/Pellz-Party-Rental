@@ -1361,9 +1361,9 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
       return;
     }
 
-    let html = "<div style='text-align:left; max-height:300px; overflow-y:auto;'>";
+    let html = "<div style='text-align:left; max-height:400px; overflow-y:auto;'>";
 
-    // ✅ sort by createdAt manually in JS (newest first)
+    // ✅ sort newest first
     const orders = snapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
       .sort((a, b) => {
@@ -1376,18 +1376,28 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     orders.forEach(data => {
       const orderNum = data.orderNumber || data.id;
       const total = formatJMD(data.totalAmount || 0);
-      const date = data.createdAt?.toDate().toLocaleString() || "N/A";
+      const bookedOn = data.createdAt?.toDate().toLocaleString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+      }) || "N/A";
+      const rentalDates = data.rentalDates || "N/A";
+      const location = data.location || "N/A";
 
       const items = (data.cartItems || [])
         .map(i => `${i.name} x${i.quantity}`)
         .join(", ");
 
       html += `
-        <div style="margin-bottom:10px; padding:8px; border-bottom:1px solid #ccc;">
+        <div style="margin-bottom:12px; padding:10px; border-bottom:1px solid #ccc;">
           <strong>Order #${orderNum}</strong><br>
-          <span>${date}</span><br>
-          <span>${items}</span><br>
-          <span style="color:#6A0DAD; font-weight:bold;">${total}</span>
+          <span><b>Items:</b> ${items}</span><br>
+          <span><b>Booked For:</b> ${rentalDates}</span><br>
+          <span><b>Total:</b> <span style="color:#6A0DAD; font-weight:bold;">${total}</span></span><br>
+          <span><b>Delivery Location:</b> ${location}</span><br>
+          <span><b>Booked On:</b> ${bookedOn}</span>
         </div>`;
     });
 
@@ -1396,7 +1406,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     Swal.fire({
       title: "📦 Recent Orders",
       html,
-      width: 500,
+      width: 550,
       confirmButtonText: "Close",
       customClass: { popup: "swal2-rounded" }
     });
