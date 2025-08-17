@@ -221,15 +221,6 @@ let currentUser = null;
 
 firebase.auth().onAuthStateChanged(user => {
   currentUser = user || null;
-
-  const reviewFormContainer = document.getElementById("reviewFormContainer");
-  if (reviewFormContainer) {
-    if (currentUser) {
-      reviewFormContainer.style.display = "block";  // show form
-    } else {
-      reviewFormContainer.style.display = "none";   // hide form
-    }
-  }
 });
 
 
@@ -915,7 +906,7 @@ function loadReviews() {
         dateStr = timeAgo(r.createdAt.toDate());
       }
 
-      // ✅ Only show delete button if current user owns this review
+      // ✅ Only show delete if this user owns it
       const isOwner = currentUser && r.userId === currentUser.uid;
 
       const div = document.createElement("div");
@@ -934,6 +925,7 @@ function loadReviews() {
     console.error("Error loading reviews:", err);
   });
 }
+
 
 
   
