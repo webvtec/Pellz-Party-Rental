@@ -651,50 +651,35 @@ async function addToCart(item) {
   try {
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-    // Default quantity
     const quantity = item.quantity || 1;
-
-    // Check available stock from qtyMap (or fallback 1)
     const stockAvailable = (qtyMap?.[item.name]?.options?.slice(-1)?.[0]) || 1;
 
     const existing = cart.find(i => i.id === item.id || i.name === item.name);
 
     if (existing) {
-      // If stock is only 1 → force it to stay 1
       if (stockAvailable === 1) {
         existing.quantity = 1;
         showToast(`Only 1 ${item.name} is available.`, "info");
       } else {
-        // Otherwise, add but cap at max stock
         existing.quantity = Math.min(existing.quantity + quantity, stockAvailable);
+        showToast(`${item.name} quantity updated.`, "success");
       }
     } else {
-      // New item → cap quantity at stockAvailable
       cart.push({
         ...item,
         quantity: Math.min(quantity, stockAvailable)
       });
+      showToast("ADDED TO CART", "success");
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));
     updateCartCount();
 
-    Swal.fire({
-      icon: "success",
-      title: "Added",
-      text: `${item.name} added to cart.`
-    });
-
   } catch (err) {
     console.error("addToCart error:", err);
-    Swal.fire({
-      icon: "error",
-      title: "Error",
-      text: "Could not add item to cart. Try again."
-    });
+    showToast("❌ Could not add item. Try again.", "error");
   }
 }
-
 
 
 function addToCartWithQty(name, imageUrl) {
