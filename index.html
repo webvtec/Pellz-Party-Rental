@@ -1210,7 +1210,7 @@ async function validateCartStock(rentalDates) {
   }
 
   const snapshot = await db.collection("reservations").get();
-  const shownKeys = new Set();
+  const shownKeys = new Set(); // ✅ prevent duplicate messages
 
   for (const [itemName, cartQty] of Object.entries(cartGrouped)) {
     const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
@@ -1249,11 +1249,13 @@ async function validateCartStock(rentalDates) {
 
       if (totalDemand > stockAvailable) {
         const left = Math.max(0, stockAvailable - alreadyBooked);
-        const uniqueKey = `${itemName}-${key}`;
+        const uniqueKey = `${itemName}-${key}`; // unique per item/date
+
         if (!shownKeys.has(uniqueKey)) {
           errorEl.innerHTML += `<div>❌ Only ${left} ${itemName}(s) available for ${key}. You requested ${cartQty}.</div>`;
-          shownKeys.add(uniqueKey);
+          shownKeys.add(uniqueKey); // ✅ add once only
         }
+
         cartHasWarnings = true;
       }
 
