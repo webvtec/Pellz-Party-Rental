@@ -1,32 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VTEC RENTALS.CA</title>
-
   <!-- UI libs -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
   <!-- Firebase (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
-
   <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;700&display=swap" rel="stylesheet">
-
   <style>
     body { font-family: 'Zilla Slab', serif; margin: 0; padding: 0; background-color: #FFFF; }
     .header-bar { position: fixed; top: 0; left: 0; right: 0; height: 48px; background-color: #343a40; display: flex; align-items: center; justify-content: center; z-index: 1000; }
-    .header-title { font-family: 'Zilla Slab', serif; font-size: 28px; font-weight: bold; background: linear-gradient(90deg, #6A0DAD, #007BFF, #2E8B57, #6A0DAD); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 8px rgba(0,0,0,0.3); white-space: nowrap; text-align: center; }
-    .menu-button { position: absolute; left: 0; top: 50%; transform: translateY(-50%); background-color: #6A0DAD; color: #FFF8DC; border: none; border-radius: 0; cursor: pointer; height: 48px; width: 45px; display: flex; align-items: center; justify-content: center; font-size: 22px; padding: 0; }
-    .menu { position: fixed; top: 48px; left: 0; width: 150px; background-color: rgba(0, 0, 0, 0.8); color: #E6B422; padding: 20px; transform: translateX(-100%); transition: transform 0.3s ease; height: auto; min-height: 100px; z-index: 999; }
+    .header-title { font-family: 'Zilla Slab', serif; font-size: 28px; font-weight: bold; background: linear-gradient(90deg, #6A0DAD, #007BFF, #2E8B57, #6A0DAD); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .menu-button { position: absolute; left: 0; top: 50%; transform: translateY(-50%); background-color: #6A0DAD; color: #FFF8DC; border: none; cursor: pointer; height: 48px; width: 48px; font-size: 22px; border-radius: 0; }
+    .menu { position: fixed; top: 48px; left: 0; width: 180px; background-color: rgba(0, 0, 0, 0.88); color: #E6B422; padding: 20px; transform: translateX(-100%); transition: transform 0.3s ease; height: 100vh; z-index: 1100; }
     .menu.show { transform: translateX(0); }
     .menu a { display: block; color: white; margin-bottom: 15px; text-decoration: none; font-weight: bold; cursor: pointer; }
+    .admin-button { background-color: #6A0DAD !important; color: white !important; padding: 10px 20px; border-radius: 8px; font-weight: bold; display: block; margin: 50px auto 0; cursor: pointer; }
+    .admin-button:hover { background-color: #3700b3 !important; }
     h1 { text-align: center; color: #6c757d; margin-top: 80px; }
     form { max-width: 400px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
     form input, form select, form button { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
@@ -42,9 +39,7 @@
     .gallery-grid img { width: 100%; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); height: 230px; object-fit: cover; }
     .content-section { display: none; }
     .content-section.active { display: block; }
-    .menu a.admin-button { background-color: #6A0DAD; color: white; padding: 10px 20px; border-radius: 8px; font-weight: bold; display: block; margin: 50px auto 0; cursor: pointer; transition: background-color 0.3s ease; text-align: center; width: fit-content; }
-    .menu a.admin-button:hover { background-color: #3700b3; }
-    .add-to-cart-button { position: absolute; right: 0; top: 50%; transform: translateY(-50%); background-color: #6A0DAD; color: red; border: none; padding: 0; border-radius: 0; cursor: pointer; height: 48px; width: 45px; display: flex; align-items: center; justify-content: center; font-size: 22px; text-decoration: none; }
+    .add-to-cart-button { position: absolute; right: 0; top: 50%; transform: translateY(-50%); background-color: #6A0DAD; color: red; border: none; padding: 0; border-radius: 0; cursor: pointer; height: 48px; width: 48px; display: flex; flex-direction: column; align-items: center; }
     .separator-line { border-bottom: 2px solid purple; margin: 20px 0; }
     .product-card { background: #8c9b9f; border: 1px solid #eee; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); padding: 10px; text-align: center; }
     .product-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; }
@@ -52,115 +47,84 @@
     .product-name { font-weight: bold; margin-bottom: 4px; }
     .product-price { color: #6200ea; margin-bottom: 6px; }
     .product-card button { background-color: #6A0DAD; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-
-    /* Cart Modal */
     #cartModal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: none; z-index: 2000; }
-    #cartModal > div { background: #8c9b9f; max-width: 320px; margin: 80px auto; border-radius: 12px; padding: 15px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: 'Zilla Slab', serif; max-height: 70vh; overflow-y: auto; }
+    #cartModal > div { background: #8c9b9f; max-width: 320px; margin: 80px auto; border-radius: 12px; padding: 15px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: 'Zilla Slab', serif; }
     input, textarea { width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
-
     #cartModal h2 { margin-top: 0; text-align: center; color: #6A0DAD; }
     #cartItemsContainer > div { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
     #cartItemsContainer img { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; margin-right: 10px; }
     #cartItemsContainer span { font-weight: normal; }
     #cartItemsContainer div > div { display: flex; justify-content: space-between; align-items: center; flex-grow: 1; }
-
     #cartButtons { display: flex; justify-content: space-between; margin-top: 15px; }
     #cartButtons button { flex: 1; padding: 10px 0; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; margin: 0 5px; transition: background-color 0.3s ease; }
     #checkoutBtn { background-color: #6200ea; color: white; }
     #checkoutBtn:hover { background-color: #3700b3; }
     #closeCartBtn { background-color: #ccc; color: black; }
     #closeCartBtn:hover { background-color: #999; }
-
     input.error { border: 2px solid red; background-color: #fff4f4; }
-
     .close-btn { padding: 8px 16px; font-size: 14px; cursor: pointer; border: none; background-color: #bbb; color: white; border-radius: 8px; margin-top: 20px; margin: 10px auto; width: fit-content; }
     .close-btn:hover { background-color: #999; }
-
     @media (max-width: 600px) {
       .payment-modal { padding: 20px; }
       .payment-button { padding: 10px 15px; font-size: 14px; }
     }
-
-    /* Toast */
-    #toast { display: none; position: fixed; bottom: 30px; right: 30px; background-color: #28a745; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 9999; font-weight: bold; transition: opacity 0.3s ease; }
-
-    .swal2-popup.swal2-rounded { border-radius: 20px; padding: 30px; text-align: center; }
-    .swal2-title-custom { font-size: 28px; font-family: 'Poppins', sans-serif; font-weight: 700; color: #2e7d32; text-align: center; }
-    .swal2-confirm-custom { background-color: #1a73e8 !important; color: white !important; font-size: 16px; border-radius: 8px !important; padding: 10px 20px; }
-
+    #toast { display: none; position: fixed; bottom: 30px; right: 30px; background-color: #28a745; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 10000; }
   </style>
 </head>
-
 <body>
-
   <div class="header-bar">
     <button class="menu-button" onclick="toggleMenu()">☰</button>
     <div class="header-title">VTEC RENTALS.CA</div>
-
-    <div class="add-to-cart-button" onclick="viewCart()" style="display:flex; flex-direction:column; align-items:center; background:#6A0DAD; border:none; cursor:pointer;">
+    <div class="add-to-cart-button" onclick="viewCart()">
       <span style="font-size:20px;">🛒</span>
       <span id="cart-count" style="font-size:15px; color:red; margin-top:2px;">0</span>
     </div>
   </div>
-
-  <!-- Gallery Section -->
   <div id="gallerySection" class="content-section active">
-    <h2 style="text-align:center; margin-top:60px;"></h2>
+    <h2 style="text-align:center; margin-top:60px;">Choose a Category</h2>
     <div id="galleryDisplay"></div>
   </div>
-
-  <!-- Menu -->
   <div class="menu" id="menu">
     <a onclick="loadGalleryByCategory('EVENT ITEMS'); closeMenu();" href="javascript:void(0);">🎉 EVENT ITEMS</a>
     <a onclick="loadGalleryByCategory('THRILL RIDES'); closeMenu();" href="javascript:void(0);">🏁 THRILL RIDES</a>
     <a onclick="loadGalleryByCategory('CARS'); closeMenu();" href="javascript:void(0);">🚘 MOTORCARS</a>
     <a onclick="loadGalleryByCategory('BATHROOM'); closeMenu();" href="javascript:void(0);">🚻 BATHROOM</a>
     <a onclick="showSection('reviewsSection'); closeMenu();" href="javascript:void(0);">⭐️ REVIEWS</a>
-    <a onclick="logoutUser(); closeMenu();" style="display:block; text-align:center; margin:10px auto; padding:10px 20px; background-color:red; color:white; border-radius:6px; cursor:pointer; text-decoration:none; width:80%; font-weight:bold;" href="javascript:void(0);">LOGOUT</a>
-    <a onclick="login(); closeMenu();" class="admin-button" style="display:block; text-align:center; margin:10px auto; padding:10px 20px; background-color:#6200ea; color:white; border-radius:6px; text-decoration:none; width:80%; font-weight:bold;" href="javascript:void(0);">ADMIN</a>
+    <a onclick="logoutUser(); closeMenu();" style="background-color:red; color:white; border-radius:6px;">Log Out</a>
+    <a onclick="login(); closeMenu();" class="admin-button">Admin Login</a>
   </div>
-
-  <!-- Reviews -->
   <div id="reviewsSection" class="content-section" style="padding-top: 34px; background-color: black; color: white;">
     <div id="reviewFormContainer" style="max-width:500px; margin:10px auto 20px; background-color:#6A0DAD; padding:5px; border-radius:10px; color:black;">
       <form id="reviewForm" style="text-align:center;">
-        <input type="text" id="reviewName" placeholder="Your Name" required style="width:100%; padding:8px; margin-bottom:6px; border-radius:6px; border:1px solid #555; background-color:#fff; color:black; box-sizing:border-box;" />
-        <textarea id="reviewComment" placeholder="Write your review..." required style="width:100%; height:60px; padding:8px; margin-bottom:6px; border-radius:6px; border:1px solid #555; background-color:#fff; color:black; box-sizing:border-box;"></textarea>
+        <input type="text" id="reviewName" placeholder="Your Name" required />
+        <textarea id="reviewComment" placeholder="Write your review..." required></textarea>
         <div id="starRating" style="font-size:22px; margin-bottom:6px; cursor:pointer; color:#ccc; letter-spacing:-2px;">
           <span data-value="1">★</span><span data-value="2">★</span><span data-value="3">★</span><span data-value="4">★</span><span data-value="5">★</span>
         </div>
-        <button type="submit" style="background-color:#6200ea; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;">Submit Review</button>
+        <button type="submit">Submit Review</button>
       </form>
     </div>
-
     <h1 style="text-align:center; color:#9b59b6; margin-top:5px; margin-bottom:10px;">REVIEWS</h1>
     <p id="reviewSubmitMsg" style="text-align:center; color:#7fff7f; margin-top:0;"></p>
     <div id="reviewsContainer" style="max-width:600px; margin:0 auto; color:white;"></div>
   </div>
-
-  <!-- Cart Modal -->
-  <div id="cartModal" style="display:none;">
+  <div id="cartModal">
     <div style="position:relative;">
-      <button id="closeCheckoutBtn" style="position:absolute; top:10px; right:15px; font-size:20px; background:none; border:none; color:#6A0DAD; cursor:pointer;">✖</button>
-
+      <button id="closeCheckoutBtn" style="position:absolute; top:10px; right:15px; font-size:20px; background:none; border:none; color:#6A0DAD; cursor:pointer;" onclick="document.getElementById('cartModal').style.display='none';">✖</button>
       <div>
         <h2>YOUR CART</h2>
-
         <div style="margin-bottom:10px;">
           <label for="customerName"><strong>Your Name:</strong></label>
           <input type="text" id="customerName" placeholder="Enter your name" required />
         </div>
-
         <div style="margin-bottom:15px;">
           <label for="customerPhone"><strong>Phone Number:</strong></label>
           <input type="tel" id="customerPhone" placeholder="Enter phone number" required />
         </div>
-
         <div style="margin-bottom:15px;">
           <label for="rentalDateRange"><strong>Select Rental Dates:</strong></label>
           <input id="rentalDateRange" placeholder="Select start and end date" />
         </div>
-
         <div style="display:flex; gap:10px; margin-bottom:10px;">
           <div style="flex:1;">
             <label for="startTime">Start Time:</label>
@@ -171,112 +135,57 @@
             <input type="time" id="endTime" />
           </div>
         </div>
-
         <div style="margin-bottom:15px;">
           <label for="customerLocation"><strong>Location:</strong></label>
           <input type="text" id="customerLocation" placeholder="Enter delivery location" required />
         </div>
-
-        <!-- 🔔 Availability warnings appear here -->
-<div id="cartWarnings" style="color:red; font-weight:bold; margin:10px 0;"></div>
-
-<!-- Cart items -->
-<div id="cartItemsContainer"></div>
-
-<!-- Cart total -->
-<div id="cartTotal" style="text-align:right; font-weight:bold; margin-top:10px;"></div>
-
-<!-- Place order button -->
-<div id="cartButtons">
-  <button 
-    id="placeOrderBtn" 
-    onclick="completeBooking()" 
-    style="background-color:#6A0DAD; color:white; border:none; padding:10px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer;">
-    PLACE ORDER
-  </button>
-</div>
+        <div id="cartWarnings" style="color:red; font-weight:bold; margin:10px 0;"></div>
+        <div id="cartItemsContainer"></div>
+        <div id="cartTotal" style="text-align:right; font-weight:bold; margin-top:10px;"></div>
+        <div id="cartButtons">
+          <button id="placeOrderBtn" onclick="completeBooking()" style="background-color:#6A0DAD; color:white; border:none; padding:10px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer;">PLACE ORDER</button>
+        </div>
       </div>
     </div>
   </div>
-
-  <!-- Toast -->
-  <div id="toast" style="display:none; position:fixed; bottom:30px; right:30px; background-color:#28a745; color:white; padding:12px 20px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.1); z-index:9999; font-weight:bold; transition:opacity 0.3s ease;">Added to cart</div>
-
+  <div id="toast"></div>
 <script>
 'use strict';
-
-/* ===================== Firebase ===================== */
+// ===================== Firebase =====================
 const firebaseConfig = {
   apiKey: "AIzaSyDccI-TdbCXAJr6CD77X4yOUOfezef7Oks",
   authDomain: "delivery-login-3a084.firebaseapp.com",
   projectId: "delivery-login-3a084",
-  storageBucket: "delivery-login-3a084.firebasestorage.app",
+  storageBucket: "delivery-login-3a084.appspot.com",
   messagingSenderId: "201998621677",
   appId: "1:201998621677:web:b51c3aeb2debe18b4aa5e4"
 };
-  
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-
 let currentUser = null;
-
-  document.addEventListener("DOMContentLoaded", loadReviews);
-firebase.auth().onAuthStateChanged(user => {
-  currentUser = user || null;
+document.addEventListener("DOMContentLoaded", function() {
+  loadReviews();
+  fetchBookedDatesAndInitCalendar();
+  initReviews();
+  updateCartCount();
 });
-
-
-  /* ===================== Inventory Settings ===================== */
+firebase.auth().onAuthStateChanged(user => { currentUser = user || null; });
+// ===================== Inventory Settings =====================
 const qtyMap = {
-  "CHAIRS": {
-    options: [1, 2, 5, 10, 20],  // bundles you rent out
-    prices: {
-      1: 500,     // price if they take 1
-      2: 900,     // price if they take 2
-      5: 2000,
-      10: 3500,
-      20: 6000
-    }
-  },
-  "Table": {
-    options: [1, 2, 4],
-    prices: {
-      1: 800,
-      2: 1500,
-      4: 2800
-    }
-  },
-  "Portable Toilet": {
-    options: [1, 2, 3],
-    prices: {
-      1: 3000,
-      2: 5800,
-      3: 8000
-    }
-  }
+  "CHAIRS": { options: [1, 2, 5, 10, 20], prices: { 1: 500, 2: 900, 5: 2000, 10: 3500, 20: 6000 } },
+  "Table": { options: [1, 2, 4], prices: { 1: 800, 2: 1500, 4: 2800 } },
+  "Portable Toilet": { options: [1, 2, 3], prices: { 1: 3000, 2: 5800, 3: 8000 } }
 };
-
-/* Items that can only be booked once per order (optional) */
 const restrictedCategories = ["BATHROOM"];
-
-
-/* ===================== Globals / Helpers ===================== */
-let bookedDates = [];       // for disabling already-booked dates
-let selectedRating = 0;     // review stars
-// Use the qtyMap and restrictedCategories defined above. Do NOT redeclare them here.
-
-function formatJMD(amount) {
-  return 'JMD $' + Number(amount).toLocaleString('en-JM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
+let bookedDates = [];
+let selectedRating = 0;
+function formatJMD(amount) { return 'JMD $' + Number(amount).toLocaleString('en-JM', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function toggleMenu(){ document.getElementById('menu').classList.toggle('show'); }
 function closeMenu(){ document.getElementById('menu').classList.remove('show'); }
-
 function showSection(sectionId) {
   document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
   document.getElementById(sectionId).classList.add('active');
 }
-
 function login() {
   const email = prompt('Enter admin email:');
   const password = prompt('Enter admin password:');
@@ -290,18 +199,14 @@ function login() {
       alert(msg);
     });
 }
-
-  function logoutUser() {
+function logoutUser() {
   firebase.auth().signOut().then(() => {
-    // ✅ user signed out → send to login page
-    window.location.href = "login.html"; // 👈 change to your login page path
+    window.location.href = "login.html";
   }).catch((error) => {
     console.error("Logout failed:", error);
   });
 }
-
-
-/* ===================== Calendar (Booked Dates) ===================== */
+// ===================== Calendar (Booked Dates) =====================
 function fetchBookedDatesAndInitCalendar() {
   bookedDates = [];
   db.collection("reservations").get().then(snapshot => {
@@ -323,15 +228,14 @@ function fetchBookedDatesAndInitCalendar() {
     });
   })
   .catch(err => console.error('Error loading booked dates:', err))
-  .finally(() => initializeDatepicker()); // ✅ always run
+  .finally(() => initializeDatepicker());
 }
-
 function initializeDatepicker() {
   flatpickr("#rentalDateRange", {
     mode: "range",
     dateFormat: "Y-m-d",
     minDate: "today",
-    disable: [], // allow all dates
+    disable: bookedDates,
     onClose: function(selectedDates, dateStr, instance) {
       const input = document.getElementById("rentalDateRange");
       if (selectedDates.length === 1) {
@@ -344,6 +248,7 @@ function initializeDatepicker() {
         input.value = `${formattedStart} to ${formattedEnd}`;
       }
       updateRentalDuration();
+      validateCartStock(input.value.trim());
     }
   });
 }
