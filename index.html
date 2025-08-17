@@ -210,6 +210,40 @@ firebase.auth().onAuthStateChanged(user => {
   currentUser = user || null;
 }); // ✅ CLOSE the listener properly
 
+  /* ===================== Inventory Settings ===================== */
+const qtyMap = {
+  "CHAIRS": {
+    options: [1, 2, 5, 10, 20],  // bundles you rent out
+    prices: {
+      1: 500,     // price if they take 1
+      2: 900,     // price if they take 2
+      5: 2000,
+      10: 3500,
+      20: 6000
+    }
+  },
+  "Table": {
+    options: [1, 2, 4],
+    prices: {
+      1: 800,
+      2: 1500,
+      4: 2800
+    }
+  },
+  "Portable Toilet": {
+    options: [1, 2, 3],
+    prices: {
+      1: 3000,
+      2: 5800,
+      3: 8000
+    }
+  }
+};
+
+/* Items that can only be booked once per order (optional) */
+const restrictedCategories = ["BATHROOM"];
+
+
 /* ===================== Globals / Helpers ===================== */
 let bookedDates = [];                 // for disabling already-booked dates
 let selectedRating = 0;               // review stars
