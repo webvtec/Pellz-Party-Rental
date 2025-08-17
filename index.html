@@ -504,8 +504,8 @@ async function completeBooking() {
 
 /* Telegram: simple form POST to avoid CORS preflight */
 function sendTelegramMessage(name, phone, location, rentalDates, startTime, endTime, paymentType, cart, totalAmount, orderNumber) {
-  const telegramBotToken = 'YOUR_BOT_TOKEN';
-  const chatId = 'YOUR_CHAT_ID';
+  const telegramBotToken = '7638261664:AAGm0MNVQxN0hlW1bhXBRf-kSRuMgRkCLC8';
+  const chatId = '1002734216867';
 
   const days = getRentalDayCount();
   const itemsSummary = cart.map(item => {
