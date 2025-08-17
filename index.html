@@ -1460,7 +1460,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
       title: "RECENT ORDERS",
       html,
       width: 550,
-      confirmButtonText: "Close",
+      confirmButtonText: "CLOSE",
       customClass: { popup: "swal2-rounded" }
     });
 
@@ -1472,7 +1472,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
 
   function showBankInfo() {
   Swal.fire({
-    title: "🏦 Bank Transfer Info",
+    title: "BANK TRANSFER INFO",
     html: `
       <div style="text-align:left; font-size:16px; line-height:1.6; color:white;">
         <p><b>Bank Name:</b> First Caribbean Bank</p>
@@ -1484,11 +1484,12 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     `,
     width: 500,
     confirmButtonText: "CLOSE",
-    background: "#1a73e8",   // ✅ blue background
-    color: "white",          // ✅ white text
-    confirmButtonColor: "#0d47a1", // ✅ dark blue button
+    background: "#1a73e8",
+    color: "white",
+    confirmButtonColor: "#0d47a1",
     customClass: {
-      popup: "swal2-rounded"
+      popup: "swal2-rounded",
+      title: "swal2-no-wrap" // ✅ prevent wrapping
     }
   });
 }
