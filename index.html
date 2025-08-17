@@ -439,39 +439,40 @@ async function completeBooking() {
     // --- generate unique order number ---
     const orderNumber = await generateUniqueOrderNumber(name);
 
-    /* ===================== TRANSACTION ===================== */
-    await db.runTransaction(async (transaction) => {
-      const snapshot = await transaction.get(db.collection("reservations"));
+    /* ===================== CONFLICT CHECK ===================== */
+    const reservationsSnap = await db.collection("reservations").get();
 
-      // Check for conflicts
-      for (const cartItem of cart) {
-        let alreadyBooked = 0;
-        snapshot.forEach(doc => {
-          const r = doc.data();
-          if (!r.rentalDates || !r.cartItems) return;
+    for (const cartItem of cart) {
+      let alreadyBooked = 0;
 
-          const [resStartStr, resEndStr] = r.rentalDates.split(" to ");
-          const resStart = new Date(resStartStr);
-          const resEnd = new Date(resEndStr);
+      reservationsSnap.forEach(doc => {
+        const r = doc.data();
+        if (!r.rentalDates || !r.cartItems) return;
 
-          // Check date overlap
-          if ((start <= resEnd) && (end >= resStart)) {
-            for (const bookedItem of r.cartItems) {
-              if (bookedItem.name === cartItem.name) {
-                alreadyBooked += bookedItem.quantity || 1;
-              }
+        const [resStartStr, resEndStr] = r.rentalDates.split(" to ");
+        const resStart = new Date(resStartStr);
+        const resEnd = new Date(resEndStr);
+
+        // Date overlap?
+        if ((start <= resEnd) && (end >= resStart)) {
+          for (const bookedItem of r.cartItems) {
+            if (bookedItem.name === cartItem.name) {
+              alreadyBooked += bookedItem.quantity || 1;
             }
           }
-        });
-
-        const stockAvailable = (qtyMap?.[cartItem.name]?.options?.slice(-1)?.[0]) || 1;
-        if (alreadyBooked + (cartItem.quantity || 1) > stockAvailable) {
-          throw new Error(`❌ ${cartItem.name} is already fully booked.`);
         }
-      }
+      });
 
-      // ✅ If we reach here, stock is safe → write reservation
-      transaction.set(db.collection("reservations").doc(), {
+      const stockAvailable = (qtyMap?.[cartItem.name]?.options?.slice(-1)?.[0]) || 1;
+      if (alreadyBooked + (cartItem.quantity || 1) > stockAvailable) {
+        throw new Error(`❌ ${cartItem.name} is already fully booked.`);
+      }
+    }
+
+    /* ===================== TRANSACTION (WRITE ONLY) ===================== */
+    await db.runTransaction(async (transaction) => {
+      const docRef = db.collection("reservations").doc();
+      transaction.set(docRef, {
         orderNumber,
         name, phone, location,
         rentalDates, startTime, endTime,
@@ -507,10 +508,11 @@ async function completeBooking() {
     });
 
   } catch (err) {
-    console.error(" completeBooking crashed:", err);
+    console.error("completeBooking crashed:", err);
     Swal.fire({ icon: "error", title: "Stock Issue", text: err.message || "Unexpected error placing the order." });
   }
 }
+
 
 
 /* Telegram: simple form POST to avoid CORS preflight */
