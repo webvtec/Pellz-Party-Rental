@@ -291,7 +291,7 @@ function login() {
   function logoutUser() {
   firebase.auth().signOut().then(() => {
     // ✅ user signed out → send to login page
-    window.location.href = "/login.html"; // 👈 change to your login page path
+    window.location.href = "login.html"; // 👈 change to your login page path
   }).catch((error) => {
     console.error("Logout failed:", error);
   });
