@@ -1221,13 +1221,14 @@ async function validateCartStock(rentalDates) {
   }
 
   const snapshot = await db.collection("reservations").get();
-  const shownKeys = new Set(); // ✅ prevent duplicate messages
+  const shownKeys = new Set(); // prevent duplicate messages
 
   for (const [itemName, cartQty] of Object.entries(cartGrouped)) {
     const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
 
-    // Build bookedQtyPerDate for this item
+    // ✅ Aggregate booked quantities per date across ALL reservations
     const bookedQtyPerDate = {};
+
     snapshot.forEach(doc => {
       const data = doc.data();
       if (!data.rentalDates || !data.cartItems) return;
@@ -1251,7 +1252,7 @@ async function validateCartStock(rentalDates) {
       }
     });
 
-    // Compare demand vs stock per date
+    // ✅ Now only check once per date
     let d = new Date(start);
     while (d <= end) {
       const key = d.toISOString().split("T")[0];
@@ -1260,11 +1261,11 @@ async function validateCartStock(rentalDates) {
 
       if (totalDemand > stockAvailable) {
         const left = Math.max(0, stockAvailable - alreadyBooked);
-        const uniqueKey = `${itemName}-${key}`; // unique per item/date
+        const uniqueKey = `${itemName}-${key}`;
 
         if (!shownKeys.has(uniqueKey)) {
           errorEl.innerHTML += `<div>❌ Only ${left} ${itemName}(s) available for ${key}. You requested ${cartQty}.</div>`;
-          shownKeys.add(uniqueKey); // ✅ add once only
+          shownKeys.add(uniqueKey);
         }
 
         cartHasWarnings = true;
