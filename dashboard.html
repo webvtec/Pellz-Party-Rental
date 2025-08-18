@@ -443,7 +443,7 @@
 }
 
 function loadGallery() {
-  const galleryContainer = document.getElementById("galleryContainer");
+  const galleryContainer = document.getElementById("adminGallery"); // ✅ correct ID
 
   db.collection("gallery").onSnapshot(snapshot => {
     galleryContainer.innerHTML = "";
