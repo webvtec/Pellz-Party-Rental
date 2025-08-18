@@ -417,60 +417,68 @@
 }
 
     function loadGallery() {
-      const galleryContainer = document.getElementById('adminGallery');
-      galleryContainer.innerHTML = '';
+  const galleryContainer = document.getElementById('adminGallery');
+  galleryContainer.innerHTML = '';
 
-      db.collection('gallery').onSnapshot((querySnapshot) => {
-        galleryContainer.innerHTML = '';
+  db.collection('gallery').onSnapshot((querySnapshot) => {
+    galleryContainer.innerHTML = '';
 
-        const categories = {};
+    const categories = {};
 
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          const imageUrl = data.url;
-          const category = data.category || 'Uncategorized';
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const category = data.category || 'Uncategorized';
 
-          if (!categories[category]) {
-            categories[category] = [];
-          }
-          categories[category].push({ imageUrl: imageUrl, docId: doc.id });
-        });
+      if (!categories[category]) {
+        categories[category] = [];
+      }
 
-        for (const category in categories) {
-          galleryContainer.innerHTML += `
-            <div class="gallery-category">
-              <h3>${category}</h3>
-              <div class="gallery-wrapper">
-                <div class="gallery-grid" id="gallery-${category}"></div>
-              </div>
+      // ✅ Save name, price, and category along with imageUrl
+      categories[category].push({
+        imageUrl: data.url,
+        name: data.name || "",
+        price: data.price || 0,
+        category: category,
+        docId: doc.id
+      });
+    });
+
+    for (const category in categories) {
+      galleryContainer.innerHTML += `
+        <div class="gallery-category">
+          <h3>${category}</h3>
+          <div class="gallery-wrapper">
+            <div class="gallery-grid" id="gallery-${category}"></div>
+          </div>
+        </div>
+      `;
+
+      const categoryContainer = document.getElementById(`gallery-${category}`);
+
+      categories[category].forEach(item => {
+        categoryContainer.innerHTML += `
+          <div class="product-slot" id="${item.docId}">
+            <img src="${item.imageUrl}" alt="Product">
+            <input type="text" id="name-${item.docId}" value="${item.name}" placeholder="Item Name">
+            <input type="number" id="price-${item.docId}" value="${item.price}" placeholder="Price">
+            <input type="text" id="url-${item.docId}" value="${item.imageUrl}" placeholder="Image URL">
+            <select id="category-${item.docId}">
+              <option value="EVENT ITEMS" ${item.category==="EVENT ITEMS"?"selected":""}>EVENT ITEMS</option>
+              <option value="THRILL RIDES" ${item.category==="THRILL RIDES"?"selected":""}>THRILL RIDES</option>
+              <option value="CARS" ${item.category==="CARS"?"selected":""}>CARS</option>
+              <option value="BATHROOM" ${item.category==="BATHROOM"?"selected":""}>BATHROOM</option>
+            </select>
+            <div style="margin-top:8px; display:flex; gap:6px; justify-content:space-between;">
+              <button class="delete-btn" onclick="removePhoto('${item.docId}')">🗑 Delete</button>
+              <button class="save-btn" onclick="updateProduct('${item.docId}')">💾 Save</button>
             </div>
-          `;
-
-          const categoryContainer = document.getElementById(`gallery-${category}`);
-
-          categories[category].forEach(item => {
-            categoryContainer.innerHTML += `
-              <div class="product-slot">
-                <img src="${item.imageUrl}" alt="Product">
-                <input type="text" id="name-${item.docId}" value="${item.name || ''}" placeholder="Item Name">
-                <input type="number" id="price-${item.docId}" value="${item.price || 0}" placeholder="Price">
-                <input type="text" id="url-${item.docId}" value="${item.imageUrl}" placeholder="Image URL">
-                <select id="category-${item.docId}">
-                  <option value="EVENT ITEMS" ${item.category==="EVENT ITEMS"?"selected":""}>EVENT ITEMS</option>
-                  <option value="THRILL RIDES" ${item.category==="THRILL RIDES"?"selected":""}>THRILL RIDES</option>
-                  <option value="CARS" ${item.category==="CARS"?"selected":""}>CARS</option>
-                  <option value="BATHROOM" ${item.category==="BATHROOM"?"selected":""}>BATHROOM</option>
-                </select>
-                <div style="margin-top:8px; display:flex; gap:6px; justify-content:space-between;">
-  <button class="delete-btn" onclick="removePhoto('${item.docId}')">🗑 Delete</button>
-  <button class="save-btn" onclick="updateProduct('${item.docId}')">💾 Save</button>
-</div>
-              </div>
-            `;
-          });
-        }
+          </div>
+        `;
       });
     }
+  });
+}
+
 
     function removePhoto(docId) {
       db.collection('gallery').doc(docId).delete().catch((error) => {
