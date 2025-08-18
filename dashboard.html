@@ -608,28 +608,34 @@ function loadReservations() {
     reservationsContainer.innerHTML = '';
     const now = new Date();
 
+    // normalize to local midnight
     function normalizeDate(d) {
       return new Date(d.getFullYear(), d.getMonth(), d.getDate());
     }
     const today = normalizeDate(now);
 
+    // parse YYYY-MM-DD as local date
     function parseLocalDate(dateStr) {
       if (!dateStr) return new Date(0);
       const [year, month, day] = dateStr.split('-').map(Number);
-      return new Date(year, month - 1, day, 0, 0, 0);
+      return new Date(year, month - 1, day, 0, 0, 0); 
     }
 
+    // check if today falls in the booking range
     function isTodayBooking(startDate, endDate, today) {
       return today >= startDate && today <= endDate;
     }
 
+    // format helpers
     function formatDate(d) {
       return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     }
 
     function formatDateRange(start, end) {
       if (!start || !end) return "";
-      if (start.getTime() === end.getTime()) return formatDate(start);
+      if (start.getTime() === end.getTime()) {
+        return formatDate(start);
+      }
       return `${formatDate(start)} to ${formatDate(end)}`;
     }
 
@@ -669,60 +675,69 @@ function loadReservations() {
       });
     });
 
-    // sort: Today first, then upcoming, then past
-    const todayBookings = reservations.filter(r =>
+    // ✅ split groups
+    const todayBookings = reservations.filter(r => 
       r.bookingStart && r.bookingEnd && isTodayBooking(r.bookingStart, r.bookingEnd, today)
     );
-    const upcoming = reservations.filter(r =>
+
+    const upcoming = reservations.filter(r => 
       r.bookingStart && r.bookingStart > today
     ).sort((a, b) => a.bookingStart - b.bookingStart);
-    const past = reservations.filter(r =>
+
+    const past = reservations.filter(r => 
       r.bookingEnd && r.bookingEnd < today
     ).sort((a, b) => b.bookingEnd - a.bookingEnd);
 
-    const orderedReservations = [...todayBookings, ...upcoming, ...past];
+    // helper: render a group
+    function renderGroup(title, list) {
+      if (!list.length) return;
+      reservationsContainer.innerHTML += `<h2 class="reservation-group">${title}</h2>`;
+      list.forEach(booking => {
+        const dateStr = formatDateRange(booking.bookingStart, booking.bookingEnd);
+        const timeStr = formatTimeRange(booking.startTime, booking.endTime);
 
-    orderedReservations.forEach(booking => {
-      const dateStr = formatDateRange(booking.bookingStart, booking.bookingEnd);
-      const timeStr = formatTimeRange(booking.startTime, booking.endTime);
+        let badgeClass = 'upcoming';
+        let badgeText = 'Upcoming';
 
-      let badgeClass = 'upcoming';
-      let badgeText = 'Upcoming';
+        if (isTodayBooking(booking.bookingStart, booking.bookingEnd, today)) {
+          badgeClass = 'today';
+          badgeText = 'Today';
+        } else if (booking.bookingStart > today) {
+          badgeClass = 'upcoming';
+          badgeText = 'Upcoming';
+        } else {
+          badgeClass = 'past';
+          badgeText = 'Past';
+        }
 
-      if (isTodayBooking(booking.bookingStart, booking.bookingEnd, today)) {
-        badgeClass = 'today';
-        badgeText = 'Today';
-      } else if (booking.bookingStart > today) {
-        badgeClass = 'upcoming';
-        badgeText = 'Upcoming';
-      } else {
-        badgeClass = 'past';
-        badgeText = 'Past';
-      }
+        const itemsList = (booking.cartItems || [])
+          .map(i => `<li>${i.name} x${i.quantity}</li>`)
+          .join('');
 
-      const itemsList = (booking.cartItems || [])
-        .map(i => `<li>${i.name} x${i.quantity}</li>`)
-        .join('');
+        reservationsContainer.innerHTML += `
+          <div class="reservation-card">
+            <div class="reservation-header">
+              <h3>${booking.name} (Order #${booking.orderNumber || booking.id})</h3>
+              <span class="badge ${badgeClass}">${badgeText}</span>
+            </div>
+            <p>📞 ${booking.phone}</p>
+            <p><strong>Location:</strong> ${booking.location || 'N/A'}</p>
+            <p><strong>Date:</strong> ${dateStr}</p>
+            ${timeStr ? `<p><strong>Time:</strong> ${timeStr}</p>` : ''}
+            <p><strong>Payment:</strong> ${booking.paymentType || ''}</p>
+            <p><strong>Total:</strong> JMD $${(booking.totalAmount || 0).toLocaleString()}</p>
+            <div><strong>Items:</strong><ul>${itemsList}</ul></div>
+            ${booking.notes ? `<p><em>Notes: ${booking.notes}</em></p>` : ''}
+          </div>`;
+      });
+    }
 
-      reservationsContainer.innerHTML += `
-        <div class="reservation-card">
-          <div class="reservation-header">
-            <h3>${booking.name} (Order #${booking.orderNumber || booking.id})</h3>
-            <span class="badge ${badgeClass}">${badgeText}</span>
-          </div>
-          <p>📞 ${booking.phone}</p>
-          <p><strong>Location:</strong> ${booking.location || 'N/A'}</p>
-          <p><strong>Date:</strong> ${dateStr}</p>
-          ${timeStr ? `<p><strong>Time:</strong> ${timeStr}</p>` : ''}
-          <p><strong>Payment:</strong> ${booking.paymentType || ''}</p>
-          <p><strong>Total:</strong> JMD $${(booking.totalAmount || 0).toLocaleString()}</p>
-          <div><strong>Items:</strong><ul>${itemsList}</ul></div>
-          ${booking.notes ? `<p><em>Notes: ${booking.notes}</em></p>` : ''}
-        </div>`;
-    });
+    // ✅ render groups in order
+    renderGroup("Today", todayBookings);
+    renderGroup("Upcoming", upcoming);
+    renderGroup("Past", past);
   });
 }
-
 
 
 function clearReservations() {
