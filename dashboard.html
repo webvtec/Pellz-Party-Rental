@@ -100,6 +100,30 @@
       gap: 15px;
       margin-bottom: 30px;
     }
+.product-slot {
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .product-slot input, .product-slot select {
+      margin-bottom: 8px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .product-slot button {
+      flex: 1;
+      padding: 6px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .product-slot button:first-child { background: #28a745; color:white; }
+    .product-slot button:last-child { background: #dc3545; color:white; }
+
     .gallery-grid div {
       position: relative;
     }
@@ -320,14 +344,51 @@
 
           categories[category].forEach(item => {
             categoryContainer.innerHTML += `
-              <div>
-                <img src="${item.imageUrl}" alt="Design">
-                <button class="remove-btn" onclick="removePhoto('${item.docId}')">X</button>
+              <div class="product-slot">
+                <img src="${item.imageUrl}" alt="Product">
+                <input type="text" id="name-${item.docId}" value="${item.name || ''}" placeholder="Item Name">
+                <input type="number" id="price-${item.docId}" value="${item.price || 0}" placeholder="Price">
+                <input type="text" id="url-${item.docId}" value="${item.imageUrl}" placeholder="Image URL">
+                <select id="category-${item.docId}">
+                  <option value="EVENT ITEMS" ${item.category==="EVENT ITEMS"?"selected":""}>EVENT ITEMS</option>
+                  <option value="THRILL RIDES" ${item.category==="THRILL RIDES"?"selected":""}>THRILL RIDES</option>
+                  <option value="CARS" ${item.category==="CARS"?"selected":""}>CARS</option>
+                  <option value="BATHROOM" ${item.category==="BATHROOM"?"selected":""}>BATHROOM</option>
+                </select>
+                <div style="margin-top:8px; display:flex; gap:6px;">
+                  <button onclick="updateProduct('${item.docId}')">💾 Save</button>
+                  <button class="remove-btn" onclick="removePhoto('${item.docId}')">🗑 Delete</button>
+                </div>
               </div>
             `;
           });
         }
       });
+    }
+
+    function removePhoto(docId) {
+      db.collection('gallery').doc(docId).delete().catch((error) => {
+        console.error("Error removing document: ", error);
+        alert('Error removing photo: ' + error.message);
+      });
+    }
+
+    function updateProduct(docId) {
+      const name = document.getElementById(`name-${docId}`).value.trim();
+      const price = parseFloat(document.getElementById(`price-${docId}`).value) || 0;
+      const url = document.getElementById(`url-${docId}`).value.trim();
+      const category = document.getElementById(`category-${docId}`).value;
+
+      if (!name || !url || !category) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      db.collection("gallery").doc(docId).update({
+        name, price, url, category
+      })
+      .then(() => alert("Product updated successfully!"))
+      .catch(err => alert("Error updating product: " + err.message));
     }
 
     function removePhoto(docId) {
