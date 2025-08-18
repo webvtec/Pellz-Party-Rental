@@ -70,7 +70,7 @@
 
     }
     .admin-container {
-      max-width: 1000px;
+      max-width: 100%;
       margin: 20px auto;
       padding: 20px;
       background-color: white;
@@ -333,14 +333,12 @@
       <tbody id="reservationsTable"></tbody>
     </table>
   </div>
-</div>
 
-
-    <div class="clear-container">
-      <input type="text" id="clearInput" placeholder="Type CONFIRM to clear all">
-      <button onclick="clearReservations()">Clear Reservations</button>
-    </div>
+  <div class="clear-container">
+    <input type="text" id="clearInput" placeholder="Type CONFIRM to clear all">
+    <button onclick="clearReservations()">Clear Reservations</button>
   </div>
+</div>
 
   <!-- Unavailable Days Page -->
   <div id="unavailableDaysSection" class="admin-container content-section">
