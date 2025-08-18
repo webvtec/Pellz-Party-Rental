@@ -735,13 +735,20 @@ function saveNewProduct(tempId) {
 
     querySnapshot.forEach((doc) => {
       const booking = doc.data();
-      const bookingDate = new Date(booking.date || booking.rentalDates);
 
-      if (!isNaN(bookingDate.getTime())) {
+      // ✅ Normalize date string into valid JS Date
+      let bookingDate = null;
+      if (booking.rentalDates) {
+        bookingDate = new Date(booking.rentalDates + "T00:00:00");
+      } else if (booking.date) {
+        bookingDate = new Date(booking.date);
+      }
+
+      if (bookingDate && !isNaN(bookingDate.getTime())) {
         const diffHours = (now - bookingDate) / (1000 * 60 * 60);
 
         if (diffHours > 24) {
-          // ✅ Only delete reservations older than 24h
+          // ✅ Only delete reservations more than 24h old
           batch.delete(doc.ref);
         }
       }
