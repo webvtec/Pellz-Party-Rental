@@ -718,30 +718,6 @@ function saveNewProduct(tempId) {
   });
 }
 
-    
-    function loadReservations() {
-  const tableBody = document.getElementById('reservationsTable');
-  tableBody.innerHTML = '';
-
-  db.collection('reservations').onSnapshot((querySnapshot) => {
-    tableBody.innerHTML = ''; // reset
-    querySnapshot.forEach((doc) => {
-      const booking = doc.data();
-
-      // ✅ Just dump what’s in Firestore
-      tableBody.innerHTML += `
-        <tr>
-          <td>${booking.name || ''}</td>
-          <td>${booking.phone || ''}</td>
-          <td>${booking.rentalDates || ''}</td>
-          <td>${booking.startTime || ''} - ${booking.endTime || ''}</td>
-          <td>${booking.paymentType || ''}</td>
-        </tr>
-      `;
-    });
-  });
-}
-
 
     function loadUnavailableDates() {
       const list = document.getElementById('unavailableDatesList');
