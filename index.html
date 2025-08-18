@@ -663,79 +663,84 @@ ${cartText}
 
 /* ===================== Gallery / Cart ===================== */
 function loadGalleryByCategory(categoryFilter) {
-const galleryContainer = document.getElementById('galleryDisplay');
-galleryContainer.innerHTML = '';
+  const galleryContainer = document.getElementById('galleryDisplay');
+  galleryContainer.innerHTML = '';
 
-db.collection('gallery')
-  .where('category', '==', categoryFilter)
-  .get()
-  .then((querySnapshot) => {
-    if (querySnapshot.empty) {
-      galleryContainer.innerHTML = `<p style="text-align:center;">No items found in "${categoryFilter}".</p>`;
-      return;
-    }
-
-    galleryContainer.innerHTML = `
-      <div class="gallery-category">
-        <h3>${categoryFilter}</h3>
-        ${categoryFilter === 'EVENT ITEMS' ? `
-          <p style="margin-top:3px; font-size:18px; font-weight:bold; color:#6A0DAD; text-align:center;">
-            DELIVERY ONLY. SETUP NOT INCLUDED!!
-          </p>` : ''}
-        <div class="gallery-wrapper">
-          <div class="gallery-grid" id="gallery-${categoryFilter}"></div>
-        </div>
-      </div>`;
-
-    const categoryContainer = document.getElementById(`gallery-${categoryFilter}`);
-
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const imageUrl = data.url;
-      const name = data.name || 'Unnamed';
-      const description = data.description || '';   // ✅ grab description safely
-      const itemId = name.replace(/\s+/g, '-');
-      const firebasePrice = Number(data.price) || 0;
-      if (!imageUrl || !name) return;
-
-      let html = `
-        <div class="product-card">
-          <img src="${imageUrl}" alt="${name}">
-          <div class="product-info">
-            <div class="product-name">${name}</div>
-            ${description ? `<div class="product-description">${description}</div>` : ''}  <!-- ✅ only show if exists -->
-      `;
-
-      if (qtyMap[name]) {
-        const quantityOptions = qtyMap[name].options;
-        const quantityPrices = qtyMap[name].prices;
-        const defaultQty = quantityOptions[0];
-        const defaultPrice = quantityPrices[defaultQty] || 0;
-
-        html += `
-          <div class="product-price">Total: <span id="price-${itemId}">${formatJMD(defaultPrice)}</span></div>
-          <select id="qty-${itemId}" onchange="updateManualPrice('${name}', '${itemId}')">
-            ${quantityOptions.map(qty => `<option value="${qty}">${qty}</option>`).join('')}
-          </select>
-          <button onclick="addToCartWithQty('${name}', '${imageUrl}')">Add to Cart</button>`;
-      } else {
-        html += `
-          <div class="product-price">Price: <span id="price-${itemId}">${formatJMD(firebasePrice)}</span></div>
-          <button onclick="addToCart({ name: '${name}', price: ${firebasePrice}, imageUrl: '${imageUrl}' })">
-            Add to Cart
-          </button>`;
+  db.collection('gallery')
+    .where('category', '==', categoryFilter)
+    .get()
+    .then((querySnapshot) => {
+      if (querySnapshot.empty) {
+        galleryContainer.innerHTML = `<p style="text-align:center;">No items found in "${categoryFilter}".</p>`;
+        return;
       }
 
-      html += `</div></div>`;
-      categoryContainer.innerHTML += html;
-    });
-  })
-  .catch((error) => {
-    console.error("Error loading gallery:", error);
-    galleryContainer.innerHTML = `<p style="text-align:center; color:red;">Error loading items. Please try again later.</p>`;
-  });
+      galleryContainer.innerHTML = `
+        <div class="gallery-category">
+          <h3>${categoryFilter}</h3>
+          ${categoryFilter === 'EVENT ITEMS' ? `
+            <p style="margin-top:3px; font-size:18px; font-weight:bold; color:#6A0DAD; text-align:center;">
+              DELIVERY ONLY. SETUP NOT INCLUDED!!
+            </p>` : ''}
+          <div class="gallery-wrapper">
+            <div class="gallery-grid" id="gallery-${categoryFilter}"></div>
+          </div>
+        </div>`;
 
-showSection('gallerySection');
+      const categoryContainer = document.getElementById(`gallery-${categoryFilter}`);
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const imageUrl = data.url;
+        const name = data.name || 'Unnamed';
+        const description = data.description || "";   // ✅ safe fallback
+        const itemId = name.replace(/\s+/g, '-');
+        const firebasePrice = Number(data.price) || 0;
+        if (!imageUrl || !name) return;
+
+        let html = `
+          <div class="product-card">
+            <img src="${imageUrl}" alt="${name}">
+            <div class="product-info">
+              <div class="product-name">${name}</div>
+              ${description ? `<div class="product-description">${description}</div>` : ''}
+        `;
+
+        if (qtyMap[name]) {
+          const quantityOptions = qtyMap[name].options;
+          const quantityPrices = qtyMap[name].prices;
+          const defaultQty = quantityOptions[0];
+          const defaultPrice = quantityPrices[defaultQty] || 0;
+
+          html += `
+            <div class="product-price">Total: <span id="price-${itemId}">${formatJMD(defaultPrice)}</span></div>
+            <select id="qty-${itemId}" onchange="updateManualPrice('${name}', '${itemId}')">
+              ${quantityOptions.map(qty => `<option value="${qty}">${qty}</option>`).join('')}
+            </select>
+            <button onclick="addToCartWithQty('${name}', '${imageUrl}')">Add to Cart</button>`;
+        } else {
+          html += `
+            <div class="product-price">Price: <span id="price-${itemId}">${formatJMD(firebasePrice)}</span></div>
+            <button onclick="addToCart({ name: '${name}', price: ${firebasePrice}, imageUrl: '${imageUrl}' })">
+              Add to Cart
+            </button>`;
+        }
+
+        html += `
+            </div>
+          </div>`;
+
+        categoryContainer.innerHTML += html;
+      });
+    })
+    .catch((error) => {
+      console.error("Error loading gallery:", error);
+      galleryContainer.innerHTML = `<p style="text-align:center; color:red;">Error loading items. Please try again later.</p>`;
+    });
+
+  showSection('gallerySection');
+}
+
 
 
 function updateManualPrice(itemName, itemId) {
