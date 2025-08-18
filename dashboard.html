@@ -374,16 +374,16 @@
 </div>
 <!-- Reservations Page -->
 <div class="admin-container content-section" id="reservationsPage">
-<h2>Reservations</h2>
-<div class="reservations-container" style="max-height:500px; overflow-y:auto;">
-  <div id="reservationsTable"></div>
+  <h2>Reservations</h2>
+  <div class="reservations-container" id="reservationsList">
+    <!-- reservations will be injected here -->
+  </div>
+  <div class="clear-container">
+    <input id="clearInput" type="text" placeholder="Type CONFIRM to clear all">
+    <button onclick="clearReservations()">Clear Reservations</button>
+  </div>
 </div>
 
-<div class="clear-container">
-<input id="clearInput" placeholder="Type CONFIRM to clear all" type="text"/>
-<button onclick="clearReservations()">Clear Reservations</button>
-</div>
-</div>
 <!-- Unavailable Days Page -->
 <div class="admin-container content-section" id="unavailableDaysSection">
 <h2>Set Unavailable Days</h2>
