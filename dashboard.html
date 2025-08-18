@@ -613,6 +613,7 @@ function loadReservations() {
     reservationsContainer.innerHTML = '';
     const now = new Date();
 
+    // normalize to local midnight
     function normalizeDate(d) {
       return new Date(d.getFullYear(), d.getMonth(), d.getDate());
     }
@@ -622,18 +623,20 @@ function loadReservations() {
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
+    // parse YYYY-MM-DD as local date
     function parseLocalDate(dateStr) {
       if (!dateStr) return new Date(0);
       const [year, month, day] = dateStr.split('-').map(Number);
       return new Date(year, month - 1, day, 0, 0, 0);
     }
 
-    function isTodayBooking(startDate, endDate, refDay) {
-      return refDay >= startDate && refDay <= endDate;
-    }
-
+    // format helpers
     function formatDate(d) {
-      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      return d.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
     }
 
     function formatDateRange(start, end) {
@@ -649,7 +652,10 @@ function loadReservations() {
         const [h, m] = t.split(':').map(Number);
         const date = new Date();
         date.setHours(h, m);
-        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        return date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit'
+        });
       }
       return `${formatTime(startTime)} - ${formatTime(endTime)}`;
     }
@@ -680,11 +686,15 @@ function loadReservations() {
 
     // ✅ split into groups
     const todayBookings = reservations.filter(r =>
-      r.bookingStart && r.bookingEnd && isTodayBooking(r.bookingStart, r.bookingEnd, today)
+      r.bookingStart && r.bookingEnd && (
+        today >= r.bookingStart && today <= r.bookingEnd
+      )
     );
 
     const tomorrowBookings = reservations.filter(r =>
-      r.bookingStart && r.bookingEnd && isTodayBooking(r.bookingStart, r.bookingEnd, tomorrow)
+      r.bookingStart && r.bookingEnd && (
+        tomorrow >= r.bookingStart && tomorrow <= r.bookingEnd
+      )
     );
 
     const upcoming = reservations.filter(r =>
@@ -703,9 +713,6 @@ function loadReservations() {
         const dateStr = formatDateRange(booking.bookingStart, booking.bookingEnd);
         const timeStr = formatTimeRange(booking.startTime, booking.endTime);
 
-        let badgeClass = badgeType;
-        let badgeText = title;
-
         const itemsList = (booking.cartItems || [])
           .map(i => `<li>${i.name} x${i.quantity}</li>`)
           .join('');
@@ -714,7 +721,7 @@ function loadReservations() {
           <div class="reservation-card">
             <div class="reservation-header">
               <h3>${booking.name} (Order #${booking.orderNumber || booking.id})</h3>
-              <span class="badge ${badgeClass}">${badgeText}</span>
+              <span class="badge ${badgeType}">${title}</span>
             </div>
             <p>📞 ${booking.phone}</p>
             <p><strong>Location:</strong> ${booking.location || 'N/A'}</p>
