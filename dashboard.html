@@ -633,7 +633,7 @@ function loadReservations() {
       return new Date(year, month - 1, day, 0, 0, 0);
     }
 
-    function isTodayBooking(startDate, endDate, refDay) {
+    function isDayInRange(startDate, endDate, refDay) {
       return refDay >= startDate && refDay <= endDate;
     }
 
@@ -685,11 +685,13 @@ function loadReservations() {
 
     // ✅ split into groups
     const todayBookings = reservations.filter(r =>
-      r.bookingStart && r.bookingEnd && isTodayBooking(r.bookingStart, r.bookingEnd, today)
+      r.bookingStart && r.bookingEnd && isDayInRange(r.bookingStart, r.bookingEnd, today)
     );
 
     const tomorrowBookings = reservations.filter(r =>
-      r.bookingStart && r.bookingEnd && isTodayBooking(r.bookingStart, r.bookingEnd, tomorrow)
+      r.bookingStart && r.bookingEnd &&
+      isDayInRange(r.bookingStart, r.bookingEnd, tomorrow) &&
+      !isDayInRange(r.bookingStart, r.bookingEnd, today) // exclude ones already active today
     );
 
     const upcoming = reservations.filter(r =>
@@ -708,9 +710,6 @@ function loadReservations() {
         const dateStr = formatDateRange(booking.bookingStart, booking.bookingEnd);
         const timeStr = formatTimeRange(booking.startTime, booking.endTime);
 
-        let badgeClass = badgeType;
-        let badgeText = title;
-
         const itemsList = (booking.cartItems || [])
           .map(i => `<li>${i.name} x${i.quantity}</li>`)
           .join('');
@@ -719,7 +718,7 @@ function loadReservations() {
           <div class="reservation-card">
             <div class="reservation-header">
               <h3>${booking.name} (Order #${booking.orderNumber || booking.id})</h3>
-              <span class="badge ${badgeClass}">${badgeText}</span>
+              <span class="badge ${badgeType}">${title}</span>
             </div>
             <p>📞 ${booking.phone}</p>
             <p><strong>Location:</strong> ${booking.location || 'N/A'}</p>
