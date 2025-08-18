@@ -537,6 +537,7 @@
 
     function saveNewProduct(tempId) {
   const name = document.getElementById(`name-${tempId}`).value.trim();
+  const description = document.getElementById(`desc-${tempId}`).value.trim();   // ✅ grab description
   const price = parseFloat(document.getElementById(`price-${tempId}`).value) || 0;
   const url = document.getElementById(`url-${tempId}`).value.trim();
   const category = document.getElementById(`category-${tempId}`).value;
@@ -546,15 +547,16 @@
     return;
   }
 
-  db.collection("gallery").add({ name, price, url, category })
+  db.collection("gallery").add({ name, description, price, url, category })   // ✅ include description
     .then((docRef) => {
       alert("Product added successfully!");
 
-      // ✅ Keep values in place, but convert tempId to real Firestore docId
+      // ✅ Update tempId to real Firestore docId
       const slot = document.getElementById(tempId);
       if (slot) {
-        slot.id = docRef.id;  // replace tempId with real docId
+        slot.id = docRef.id;  
         document.getElementById(`name-${tempId}`).id = `name-${docRef.id}`;
+        document.getElementById(`desc-${tempId}`).id = `desc-${docRef.id}`;   // ✅ update textarea ID
         document.getElementById(`price-${tempId}`).id = `price-${docRef.id}`;
         document.getElementById(`url-${tempId}`).id = `url-${docRef.id}`;
         document.getElementById(`category-${tempId}`).id = `category-${docRef.id}`;
@@ -568,23 +570,26 @@
 }
 
 
+
     function updateProduct(docId) {
-      const name = document.getElementById(`name-${docId}`).value.trim();
-      const price = parseFloat(document.getElementById(`price-${docId}`).value) || 0;
-      const url = document.getElementById(`url-${docId}`).value.trim();
-      const category = document.getElementById(`category-${docId}`).value;
+  const name = document.getElementById(`name-${docId}`).value.trim();
+  const description = document.getElementById(`desc-${docId}`).value.trim();   // ✅ grab description
+  const price = parseFloat(document.getElementById(`price-${docId}`).value) || 0;
+  const url = document.getElementById(`url-${docId}`).value.trim();
+  const category = document.getElementById(`category-${docId}`).value;
 
-      if (!name || !url || !category) {
-        alert("Please fill in all fields.");
-        return;
-      }
+  if (!name || !url || !category) {
+    alert("Please fill in all fields.");
+    return;
+  }
 
-      db.collection("gallery").doc(docId).update({
-        name, price, url, category
-      })
-      .then(() => alert("Product updated successfully!"))
-      .catch(err => alert("Error updating product: " + err.message));
-    }
+  db.collection("gallery").doc(docId).update({
+    name, description, price, url, category   // ✅ include description
+  })
+  .then(() => alert("Product updated successfully!"))
+  .catch(err => alert("Error updating product: " + err.message));
+}
+
 
     function removePhoto(docId) {
       db.collection('gallery').doc(docId).delete().catch((error) => {
