@@ -690,7 +690,7 @@ function loadGalleryByCategory(categoryFilter) {
         const imageUrl = data.url;
         const name = data.name || 'Unnamed';
         const itemId = name.replace(/\s+/g, '-');
-        const firebasePrice = Number(data.price) || 0;
+        const firebasePrice = Number(data.price); // may be NaN if not set
         if (!imageUrl || !name) return;
 
         let html = `
@@ -712,9 +712,12 @@ function loadGalleryByCategory(categoryFilter) {
             </select>
             <button onclick="addToCartWithQty('${name}', '${imageUrl}')">Add to Cart</button>`;
         } else {
+          // ✅ ensure valid number (never NaN or undefined)
+          const safePrice = isNaN(firebasePrice) ? 0 : firebasePrice;
+
           html += `
-            <div class="product-price">Price: <span id="price-${itemId}">${formatJMD(firebasePrice)}</span></div>
-            <button onclick="addToCart({ name: '${name}', price: ${firebasePrice}, imageUrl: '${imageUrl}' })">
+            <div class="product-price">Price: <span id="price-${itemId}">${formatJMD(safePrice)}</span></div>
+            <button onclick="addToCart({ name: '${name}', price: ${safePrice}, imageUrl: '${imageUrl}' })">
               Add to Cart
             </button>`;
         }
@@ -740,8 +743,7 @@ function updateManualPrice(itemName, itemId) {
 
 async function addToCart(item) {
   try {
-    // ✅ use Firebase’s live auth state instead of your laggy variable
-    if (!firebase.auth().currentUser) {
+    if (!currentUser) {
       Swal.fire({
         icon: "warning",
         title: "Login Required",
@@ -757,6 +759,7 @@ async function addToCart(item) {
     const existing = cart.find(i => i.name === item.name);
 
     if (existing) {
+      // 🚫 Duplicate → red toast
       showToast(`${item.name} is already in your cart.`, "error");
     } else {
       cart.push({
@@ -775,10 +778,8 @@ async function addToCart(item) {
   }
 }
 
-
 function addToCartWithQty(name, imageUrl) {
-  // ✅ use Firebase’s live auth state
-  if (!firebase.auth().currentUser) {
+  if (!currentUser) {
     Swal.fire({
       icon: "warning",
       title: "Login Required",
@@ -830,7 +831,6 @@ function addToCartWithQty(name, imageUrl) {
     showToast("ADDED TO CART", "success");
   });
 }
-
 
 function updateCartCount() {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
