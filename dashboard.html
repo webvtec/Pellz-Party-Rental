@@ -635,7 +635,7 @@ function saveNewProduct(tempId) {
     }
 
     function loadReservations() {
-  const reservationsContainer = document.getElementById('reservationsTable');
+  const reservationsContainer = document.getElementById('reservationsList');
   reservationsContainer.innerHTML = '';
 
   db.collection('reservations').onSnapshot((querySnapshot) => {
