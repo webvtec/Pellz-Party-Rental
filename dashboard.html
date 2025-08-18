@@ -443,7 +443,7 @@
 }
 
 function loadGallery() {
-  const galleryContainer = document.getElementById("adminGallery"); // ✅ correct ID
+  const galleryContainer = document.getElementById("adminGallery"); // ✅ correct container
 
   db.collection("gallery").onSnapshot(snapshot => {
     galleryContainer.innerHTML = "";
@@ -456,13 +456,13 @@ function loadGallery() {
         name: data.name || "",
         description: data.description || "",
         price: data.price || 0,
-        imageUrl: data.url || data.imageUrl || "",
+        imageUrl: data.imageUrl || data.url || "", // ✅ fallback for old docs
         category: (data.category || "Uncategorized").toUpperCase(),
         timestamp: data.timestamp ? (data.timestamp.toMillis?.() || data.timestamp) : 0
       });
     });
 
-    // sort by newest first
+    // sort newest first
     items.sort((a, b) => b.timestamp - a.timestamp);
 
     // group by category
@@ -541,65 +541,43 @@ function loadGallery() {
       `;
     }
 
-function saveNewProduct(tempId) {
-  const name = document.getElementById(`name-${tempId}`).value.trim();
-  const description = document.getElementById(`desc-${tempId}`).value.trim();
-  const price = parseFloat(document.getElementById(`price-${tempId}`).value) || 0;
-  const url = document.getElementById(`url-${tempId}`).value.trim();
-  const category = document.getElementById(`category-${tempId}`).value;
-
-  if (!name || !url || !category) {
-    alert("Please fill in all fields.");
-    return;
-  }
-
-  db.collection("gallery").add({ 
-      name, 
-      description, 
-      price, 
-      url, 
-      category,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()   // ✅ added
-  })
-  .then((docRef) => {
-    alert("Product added successfully!");
-
-    // update slot IDs to new docId
-    const slot = document.getElementById(tempId);
-    if (slot) {
-      slot.id = docRef.id;
-      document.getElementById(`name-${tempId}`).id = `name-${docRef.id}`;
-      document.getElementById(`desc-${tempId}`).id = `desc-${docRef.id}`;
-      document.getElementById(`price-${tempId}`).id = `price-${docRef.id}`;
-      document.getElementById(`url-${tempId}`).id = `url-${docRef.id}`;
-      document.getElementById(`category-${tempId}`).id = `category-${docRef.id}`;
-
-      slot.querySelector(".save-btn").setAttribute("onclick", `updateProduct('${docRef.id}')`);
-      slot.querySelector(".delete-btn").setAttribute("onclick", `removePhoto('${docRef.id}')`);
-    }
-  })
-  .catch(err => alert("Error adding product: " + err.message));
+function saveNewProduct(name, description, price, url, category) {
+  db.collection("gallery").add({
+    name: name || "",
+    description: description || "",
+    price: price || 0,
+    imageUrl: url || "",  // ✅ consistent field name
+    category: category || "UNCATEGORIZED",
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => {
+    console.log("New product saved");
+  }).catch(error => {
+    console.error("Error saving new product: ", error);
+  });
 }
 
 
 
+
     function updateProduct(docId) {
-  const name = document.getElementById(`name-${docId}`).value.trim();
-  const description = document.getElementById(`desc-${docId}`).value.trim();   // ✅ grab description
+  const name = document.getElementById(`name-${docId}`).value;
+  const description = document.getElementById(`desc-${docId}`).value;
   const price = parseFloat(document.getElementById(`price-${docId}`).value) || 0;
-  const url = document.getElementById(`url-${docId}`).value.trim();
+  const url = document.getElementById(`url-${docId}`).value;
   const category = document.getElementById(`category-${docId}`).value;
 
-  if (!name || !url || !category) {
-    alert("Please fill in all fields.");
-    return;
-  }
-
   db.collection("gallery").doc(docId).update({
-    name, description, price, url, category   // ✅ include description
-  })
-  .then(() => alert("Product updated successfully!"))
-  .catch(err => alert("Error updating product: " + err.message));
+    name: name || "",
+    description: description || "",
+    price: price || 0,
+    imageUrl: url || "",   // ✅ consistent field name
+    category: category || "UNCATEGORIZED",
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => {
+    console.log("Product updated");
+  }).catch(error => {
+    console.error("Error updating product: ", error);
+  });
 }
 
 
