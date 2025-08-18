@@ -624,7 +624,6 @@ function saveNewProduct(tempId) {
 
   db.collection('reservations').onSnapshot((querySnapshot) => {
     let reservations = [];
-    const now = new Date();
 
     querySnapshot.forEach((doc) => {
       const booking = doc.data();
@@ -637,25 +636,22 @@ function saveNewProduct(tempId) {
         bookingDate = new Date(booking.date);
       }
 
+      // ✅ Always include valid reservations (no 24h filter)
       if (bookingDate && !isNaN(bookingDate.getTime())) {
-        const diffHours = (now - bookingDate) / (1000 * 60 * 60);
-
-        // ✅ Keep Today + Future + Past 24h
-        if (diffHours <= 24) {
-          reservations.push({
-            id: doc.id,
-            ...booking,
-            bookingDate
-          });
-        }
+        reservations.push({
+          id: doc.id,
+          ...booking,
+          bookingDate
+        });
       }
     });
 
     // ✅ Sort by soonest date
     reservations.sort((a, b) => a.bookingDate - b.bookingDate);
 
-    // ✅ Render as vertical cards
     reservationsContainer.innerHTML = '';
+    const today = new Date();
+
     reservations.forEach((booking) => {
       const dateStr = booking.rentalDates || booking.date || '';
       const timeStr = `${booking.startTime || ''} - ${booking.endTime || ''}`;
@@ -664,35 +660,25 @@ function saveNewProduct(tempId) {
       let badgeClass = "upcoming";
       let badgeText = "Upcoming";
 
-      const today = new Date();
       if (booking.bookingDate.toDateString() === today.toDateString()) {
         badgeClass = "today";
         badgeText = "Today";
+      } else if (booking.bookingDate < today) {
+        badgeClass = "past";
+        badgeText = "Past";
       }
 
       reservationsContainer.innerHTML += `
-        <div class="reservation-card" style="
-          background:#fff;
-          border-radius:10px;
-          box-shadow:0 2px 6px rgba(0,0,0,0.1);
-          padding:15px;
-          margin:10px 0;
-        ">
-          <div class="reservation-header" style="display:flex; justify-content:space-between; align-items:center;">
-            <h3 style="margin:0; color:#6200ea;">${booking.name}</h3>
-            <span class="badge ${badgeClass}" style="
-              padding:4px 8px;
-              border-radius:5px;
-              font-size:12px;
-              background:${badgeClass === 'today' ? '#28a745' : '#007bff'};
-              color:#fff;
-            ">${badgeText}</span>
+        <div class="reservation-card">
+          <div class="reservation-header">
+            <h3>${booking.name}</h3>
+            <span class="badge ${badgeClass}">${badgeText}</span>
           </div>
-          <p style="margin:5px 0; color:#555;">📞 ${booking.phone}</p>
-          <p style="margin:5px 0;"><strong>Date:</strong> ${dateStr}</p>
-          <p style="margin:5px 0;"><strong>Time:</strong> ${timeStr}</p>
-          <p style="margin:5px 0;"><strong>Service:</strong> ${booking.service || booking.paymentType || ''}</p>
-          ${booking.notes ? `<p style="margin:5px 0; color:#777;"><em>Notes: ${booking.notes}</em></p>` : ""}
+          <p>📞 ${booking.phone || ''}</p>
+          <p><strong>Date:</strong> ${dateStr}</p>
+          <p><strong>Time:</strong> ${timeStr}</p>
+          <p><strong>Service:</strong> ${booking.service || booking.paymentType || ''}</p>
+          ${booking.notes ? `<p><em>Notes: ${booking.notes}</em></p>` : ""}
         </div>
       `;
     });
