@@ -740,7 +740,8 @@ function updateManualPrice(itemName, itemId) {
 
 async function addToCart(item) {
   try {
-    if (!currentUser) {
+    // ✅ use Firebase’s live auth state instead of your laggy variable
+    if (!firebase.auth().currentUser) {
       Swal.fire({
         icon: "warning",
         title: "Login Required",
@@ -756,7 +757,6 @@ async function addToCart(item) {
     const existing = cart.find(i => i.name === item.name);
 
     if (existing) {
-      // 🚫 Duplicate → red toast
       showToast(`${item.name} is already in your cart.`, "error");
     } else {
       cart.push({
@@ -777,7 +777,8 @@ async function addToCart(item) {
 
 
 function addToCartWithQty(name, imageUrl) {
-  if (!currentUser) {
+  // ✅ use Firebase’s live auth state
+  if (!firebase.auth().currentUser) {
     Swal.fire({
       icon: "warning",
       title: "Login Required",
