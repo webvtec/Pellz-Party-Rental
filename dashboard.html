@@ -443,77 +443,71 @@
 }
 
 function loadGallery() {
-  const galleryContainer = document.getElementById('adminGallery');
-  galleryContainer.innerHTML = '';
+  const galleryContainer = document.getElementById("galleryContainer");
 
-  db.collection('gallery')
-    .onSnapshot((querySnapshot) => {
-      galleryContainer.innerHTML = '';
-      const categories = {};
+  db.collection("gallery").onSnapshot(snapshot => {
+    galleryContainer.innerHTML = "";
+    const items = [];
 
-      const items = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const category = data.category || 'Uncategorized';
-
-        items.push({
-          imageUrl: data.url,
-          name: data.name || "",
-          description: data.description || "",
-          price: data.price || 0,
-          category: category,
-          docId: doc.id,
-          timestamp: data.timestamp ? data.timestamp.toMillis?.() || data.timestamp : 0 // ✅ fallback for old docs
-        });
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      items.push({
+        docId: doc.id,
+        name: data.name || "",
+        description: data.description || "",
+        price: data.price || 0,
+        imageUrl: data.url || data.imageUrl || "",
+        category: (data.category || "Uncategorized").toUpperCase(),
+        timestamp: data.timestamp ? (data.timestamp.toMillis?.() || data.timestamp) : 0
       });
+    });
 
-      // ✅ sort manually: old docs (0) first, then by timestamp ascending
-      items.sort((a, b) => a.timestamp - b.timestamp);
+    // sort by newest first
+    items.sort((a, b) => b.timestamp - a.timestamp);
 
-      // ✅ group into categories
-      items.forEach(item => {
-        if (!categories[item.category]) {
-          categories[item.category] = [];
-        }
-        categories[item.category].push(item);
-      });
+    // group by category
+    const categories = {};
+    items.forEach(item => {
+      if (!categories[item.category]) {
+        categories[item.category] = [];
+      }
+      categories[item.category].push(item);
+    });
 
-      for (const category in categories) {
-        galleryContainer.innerHTML += `
-          <div class="gallery-category">
-            <h3>${category}</h3>
-            <div class="gallery-wrapper">
-              <div class="gallery-grid" id="gallery-${category}"></div>
+    // render each category block
+    Object.keys(categories).forEach(category => {
+      const categoryContainer = document.createElement("div");
+      categoryContainer.className = "gallery-category";
+      categoryContainer.innerHTML = `<h2>${category}</h2>`;
+
+      categories[category].forEach(item => {
+        categoryContainer.innerHTML += `
+          <div class="product-slot" id="${item.docId}">
+            <img src="${item.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'}" alt="Product">
+            <textarea id="name-${item.docId}" placeholder="Item Name" rows="2">${item.name}</textarea>
+            <textarea id="desc-${item.docId}" placeholder="Item Description" rows="3">${item.description}</textarea>
+            <input type="number" id="price-${item.docId}" value="${item.price}" placeholder="Price">
+            <input type="text" id="url-${item.docId}" value="${item.imageUrl}" placeholder="Image URL">
+            <select id="category-${item.docId}">
+              <option value="EVENT ITEMS" ${item.category==="EVENT ITEMS"?"selected":""}>EVENT ITEMS</option>
+              <option value="THRILL RIDES" ${item.category==="THRILL RIDES"?"selected":""}>THRILL RIDES</option>
+              <option value="CARS" ${item.category==="CARS"?"selected":""}>CARS</option>
+              <option value="BATHROOM" ${item.category==="BATHROOM"?"selected":""}>BATHROOM</option>
+              <option value="UNCATEGORIZED" ${item.category==="UNCATEGORIZED"?"selected":""}>UNCATEGORIZED</option>
+            </select>
+            <div class="card-buttons">
+              <button class="delete-btn" onclick="removePhoto('${item.docId}')">🗑 Delete</button>
+              <button class="save-btn" onclick="updateProduct('${item.docId}')">💾 Save</button>
             </div>
           </div>
         `;
+      });
 
-        const categoryContainer = document.getElementById(`gallery-${category}`);
-
-        categories[category].forEach(item => {
-          categoryContainer.innerHTML += `
-            <div class="product-slot" id="${item.docId}">
-              <img src="${item.imageUrl}" alt="Product">
-              <textarea id="name-${item.docId}" placeholder="Item Name" rows="2">${item.name || ''}</textarea>
-              <textarea id="desc-${item.docId}" placeholder="Item Description" rows="3">${item.description || ''}</textarea>
-              <input type="number" id="price-${item.docId}" value="${item.price}" placeholder="Price">
-              <input type="text" id="url-${item.docId}" value="${item.imageUrl}" placeholder="Image URL">
-              <select id="category-${item.docId}">
-                <option value="EVENT ITEMS" ${item.category==="EVENT ITEMS"?"selected":""}>EVENT ITEMS</option>
-                <option value="THRILL RIDES" ${item.category==="THRILL RIDES"?"selected":""}>THRILL RIDES</option>
-                <option value="CARS" ${item.category==="CARS"?"selected":""}>CARS</option>
-                <option value="BATHROOM" ${item.category==="BATHROOM"?"selected":""}>BATHROOM</option>
-              </select>
-              <div style="margin-top:8px; display:flex; gap:6px; justify-content:space-between;">
-                <button class="delete-btn" onclick="removePhoto('${item.docId}')">🗑 Delete</button>
-                <button class="save-btn" onclick="updateProduct('${item.docId}')">💾 Save</button>
-              </div>
-            </div>
-          `;
-        });
-      }
+      galleryContainer.appendChild(categoryContainer);
     });
+  });
 }
+
 
 
     function removePhoto(docId) {
