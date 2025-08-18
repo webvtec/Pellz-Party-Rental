@@ -742,6 +742,9 @@ function loadReservations() {
             <p><strong>Total:</strong> JMD $${(booking.totalAmount || 0).toLocaleString()}</p>
             <div><strong>Items:</strong><ul>${itemsList}</ul></div>
             ${booking.notes ? `<p><em>Notes: ${booking.notes}</em></p>` : ''}
+
+            <!-- ❌ Cancel Button -->
+            <button class="cancel-btn" onclick="cancelReservation('${booking.id}')">Cancel Order</button>
           </div>`;
       });
     }
@@ -753,6 +756,7 @@ function loadReservations() {
     renderGroup("Past", past, "past");
   });
 }
+
 
     function cancelReservation(reservationId) {
   if (confirm("Are you sure you want to cancel this order?")) {
