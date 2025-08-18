@@ -592,11 +592,18 @@ function loadReservations() {
     reservationsContainer.innerHTML = '';
     const now = new Date();
 
-    // helper: strip time portion from a Date
+    // helper: strip time portion
     function normalizeDate(d) {
       return new Date(d.getFullYear(), d.getMonth(), d.getDate());
     }
     const today = normalizeDate(now);
+
+    // helper: parse YYYY-MM-DD in local time
+    function parseLocalDate(dateStr) {
+      if (!dateStr) return new Date(0);
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
 
     const reservations = [];
 
@@ -605,9 +612,9 @@ function loadReservations() {
       let bookingDate = null;
 
       if (booking.rentalDates?.includes(' to ')) {
-        bookingDate = new Date(booking.rentalDates.split(' to ')[0]);
+        bookingDate = parseLocalDate(booking.rentalDates.split(' to ')[0]);
       } else if (booking.rentalDates) {
-        bookingDate = new Date(booking.rentalDates);
+        bookingDate = parseLocalDate(booking.rentalDates);
       }
 
       reservations.push({
@@ -617,7 +624,7 @@ function loadReservations() {
       });
     });
 
-    // ✅ sort so today is first, then closest upcoming
+    // ✅ sort so today first, then closest upcoming
     reservations.sort((a, b) => {
       const aDate = a.bookingDate;
       const bDate = b.bookingDate;
@@ -661,7 +668,6 @@ function loadReservations() {
     });
   });
 }
-
 
 
 function clearReservations() {
