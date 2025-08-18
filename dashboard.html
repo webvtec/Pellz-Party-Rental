@@ -381,15 +381,28 @@
 <div id="adminGallery"></div>
 </div>
 
-   <!-- Reservations Section -->
-<div class="admin-container content-section" id="reservationsPage">
-  <h2></h2>
+    <div class="admin-container content-section" id="reservationsPage">
+  <h2>Reservations</h2>
+
+  <!-- 🔎 Search bar -->
+  <div style="margin: 15px 0; text-align:center;">
+    <input 
+      type="text" 
+      id="reservationSearch" 
+      placeholder="Search by name, order #, or phone..." 
+      style="width: 80%; max-width:500px; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size:16px;"
+    />
+  </div>
+
+  <!-- Reservations list -->
   <div id="reservationsList"></div>
+
+  <!-- Clear past reservations -->
   <div class="clear-container">
     <input id="clearInput" type="text" placeholder='Type "CONFIRM" to clear past reservations'>
     <button onclick="clearReservations()">Clear Past Reservations</button>
   </div>
-</div> 
+</div>
 
 <!-- Unavailable Days Page -->
 <div class="admin-container content-section" id="unavailableDaysSection">
@@ -613,28 +626,27 @@ function saveNewProduct(name, description, price, url, category) {
 
 function loadReservations() {
   const reservationsContainer = document.getElementById('reservationsList');
+  const searchInput = document.getElementById('reservationSearch');
+  let allReservations = [];
+
   db.collection('reservations').onSnapshot(snapshot => {
     reservationsContainer.innerHTML = '';
     const now = new Date();
 
-    // normalize to local midnight
     function normalizeDate(d) {
       return new Date(d.getFullYear(), d.getMonth(), d.getDate());
     }
     const today = normalizeDate(now);
 
-    // define tomorrow
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
-    // parse YYYY-MM-DD as local date
     function parseLocalDate(dateStr) {
       if (!dateStr) return new Date(0);
       const [year, month, day] = dateStr.split('-').map(Number);
       return new Date(year, month - 1, day, 0, 0, 0);
     }
 
-    // format helpers
     function formatDate(d) {
       return d.toLocaleDateString('en-US', {
         year: 'numeric',
@@ -664,7 +676,7 @@ function loadReservations() {
       return `${formatTime(startTime)} - ${formatTime(endTime)}`;
     }
 
-    const reservations = [];
+    allReservations = [];
 
     snapshot.forEach(doc => {
       const booking = doc.data();
@@ -680,7 +692,7 @@ function loadReservations() {
         bookingEnd = bookingStart;
       }
 
-      reservations.push({
+      allReservations.push({
         id: doc.id,
         bookingStart,
         bookingEnd,
@@ -688,7 +700,26 @@ function loadReservations() {
       });
     });
 
-    // ✅ helper: same-day check
+    renderReservations(allReservations); // initial render
+  });
+
+  // ✅ search listener
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase();
+      const filtered = allReservations.filter(r =>
+        (r.name && r.name.toLowerCase().includes(query)) ||
+        (r.orderNumber && r.orderNumber.toString().toLowerCase().includes(query)) ||
+        (r.phone && r.phone.toLowerCase().includes(query))
+      );
+      renderReservations(filtered);
+    });
+  }
+
+  // ✅ render function (same grouping logic)
+  function renderReservations(reservations) {
+    reservationsContainer.innerHTML = '';
+
     function isSameDay(d1, d2) {
       return d1 && d2 &&
              d1.getFullYear() === d2.getFullYear() &&
@@ -696,13 +727,16 @@ function loadReservations() {
              d1.getDate() === d2.getDate();
     }
 
-    // ✅ split into groups
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
     const todayBookings = reservations.filter(r =>
       r.bookingStart && r.bookingEnd &&
       today >= r.bookingStart && today <= r.bookingEnd
     );
 
-    // only bookings starting exactly tomorrow
     const tomorrowBookings = reservations.filter(r =>
       r.bookingStart && isSameDay(r.bookingStart, tomorrow)
     );
@@ -715,7 +749,35 @@ function loadReservations() {
       r.bookingEnd && r.bookingEnd < today
     ).sort((a, b) => b.bookingEnd - a.bookingEnd);
 
-    // ✅ render function
+    function formatDate(d) {
+      return d.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+
+    function formatDateRange(start, end) {
+      if (!start || !end) return "";
+      if (start.getTime() === end.getTime()) return formatDate(start);
+      return `${formatDate(start)} to ${formatDate(end)}`;
+    }
+
+    function formatTimeRange(startTime, endTime) {
+      if (!startTime && !endTime) return "";
+      function formatTime(t) {
+        if (!t) return "";
+        const [h, m] = t.split(':').map(Number);
+        const date = new Date();
+        date.setHours(h, m);
+        return date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit'
+        });
+      }
+      return `${formatTime(startTime)} - ${formatTime(endTime)}`;
+    }
+
     function renderGroup(title, list, badgeType) {
       if (!list.length) return;
       reservationsContainer.innerHTML += `<h2 class="reservation-group">${title}</h2>`;
@@ -745,14 +807,12 @@ function loadReservations() {
       });
     }
 
-    // ✅ render groups in order
     renderGroup("Today", todayBookings, "today");
     renderGroup("Tomorrow", tomorrowBookings, "tomorrow");
     renderGroup("Upcoming", upcoming, "upcoming");
     renderGroup("Past", past, "past");
-  });
+  }
 }
-
 
 function clearReservations() {
   const confirmInput = document.getElementById('clearInput').value.trim();
