@@ -441,71 +441,70 @@
 }
 
     function loadGallery() {
-  const galleryContainer = document.getElementById('adminGallery');
-  galleryContainer.innerHTML = '';
+  const galleryContainer = document.getElementById('adminGallery');
+  galleryContainer.innerHTML = '';
 
-  db.collection('gallery')
-    .orderBy('createdAt', 'asc')   // ✅ keep oldest first, newest stays at bottom
-    .onSnapshot((querySnapshot) => {
-      galleryContainer.innerHTML = '';
+  db.collection('gallery').onSnapshot((querySnapshot) => {
+    galleryContainer.innerHTML = '';
 
-      const categories = {};
+    const categories = {};
 
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const category = data.category || 'Uncategorized';
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const category = data.category || 'Uncategorized';
 
-        if (!categories[category]) {
-          categories[category] = [];
-        }
+      if (!categories[category]) {
+        categories[category] = [];
+      }
 
-        // Save name, price, description, and category along with imageUrl
-        categories[category].push({
-          imageUrl: data.url,
-          name: data.name || "",
-          description: data.description || "",
-          price: data.price || 0,
-          category: category,
-          docId: doc.id
-        });
-      });
+      // Save name, price, description, and category along with imageUrl
+      categories[category].push({
+        imageUrl: data.url,
+        name: data.name || "",
+        description: data.description || "",  // <-- add this line!
+        price: data.price || 0,
+        category: category,
+        docId: doc.id
+      });
+    });
 
-      for (const category in categories) {
-        galleryContainer.innerHTML += `
-          <div class="gallery-category">
-            <h3>${category}</h3>
-            <div class="gallery-wrapper">
-              <div class="gallery-grid" id="gallery-${category}"></div>
-            </div>
-          </div>
-        `;
+    for (const category in categories) {
+      galleryContainer.innerHTML += `
+        <div class="gallery-category">
+          <h3>${category}</h3>
+          <div class="gallery-wrapper">
+            <div class="gallery-grid" id="gallery-${category}"></div>
+          </div>
+        </div>
+      `;
 
-        const categoryContainer = document.getElementById(`gallery-${category}`);
+      const categoryContainer = document.getElementById(`gallery-${category}`);
 
-        categories[category].forEach(item => {
-          categoryContainer.innerHTML += `
-            <div class="product-slot" id="${item.docId}">
-              <img src="${item.imageUrl}" alt="Product">
-              <textarea id="name-${item.docId}" placeholder="Item Name" rows="2">${item.name || ''}</textarea>
-              <textarea id="desc-${item.docId}" placeholder="Item Description" rows="3">${item.description || ''}</textarea>
-              <input type="number" id="price-${item.docId}" value="${item.price}" placeholder="Price">
-              <input type="text" id="url-${item.docId}" value="${item.imageUrl}" placeholder="Image URL">
-              <select id="category-${item.docId}">
-                <option value="EVENT ITEMS" ${item.category==="EVENT ITEMS"?"selected":""}>EVENT ITEMS</option>
-                <option value="THRILL RIDES" ${item.category==="THRILL RIDES"?"selected":""}>THRILL RIDES</option>
-                <option value="CARS" ${item.category==="CARS"?"selected":""}>CARS</option>
-                <option value="BATHROOM" ${item.category==="BATHROOM"?"selected":""}>BATHROOM</option>
-              </select>
-              <div style="margin-top:8px; display:flex; gap:6px; justify-content:space-between;">
-                <button class="delete-btn" onclick="removePhoto('${item.docId}')">🗑 Delete</button>
-                <button class="save-btn" onclick="updateProduct('${item.docId}')">💾 Save</button>
-              </div>
-            </div>
-          `;
-        });
-      }
-    });
-}
+      categories[category].forEach(item => {
+        categoryContainer.innerHTML += `
+          <div class="product-slot" id="${item.docId}">
+            <img src="${item.imageUrl}" alt="Product">
+            <textarea id="name-${item.docId}" placeholder="Item Name" rows="2">${item.name || ''}</textarea>
+            <textarea id="desc-${item.docId}" placeholder="Item Description" rows="3">${item.description || ''}</textarea>
+            <input type="number" id="price-${item.docId}" value="${item.price}" placeholder="Price">
+            <input type="text" id="url-${item.docId}" value="${item.imageUrl}" placeholder="Image URL">
+            <select id="category-${item.docId}">
+              <option value="EVENT ITEMS" ${item.category==="EVENT ITEMS"?"selected":""}>EVENT ITEMS</option>
+              <option value="THRILL RIDES" ${item.category==="THRILL RIDES"?"selected":""}>THRILL RIDES</option>
+              <option value="CARS" ${item.category==="CARS"?"selected":""}>CARS</option>
+              <option value="BATHROOM" ${item.category==="BATHROOM"?"selected":""}>BATHROOM</option>
+            </select>
+            <div style="margin-top:8px; display:flex; gap:6px; justify-content:space-between;">
+              <button class="delete-btn" onclick="removePhoto('${item.docId}')">🗑 Delete</button>
+              <button class="save-btn" onclick="updateProduct('${item.docId}')">💾 Save</button>
+            </div>
+          </div>
+        `;
+      });
+    }
+  });
+    }
+    
 
     function removePhoto(docId) {
       db.collection('gallery').doc(docId).delete().catch((error) => {
@@ -538,7 +537,7 @@
       `;
     }
 
-    function saveNewProduct(tempId) {
+function saveNewProduct(tempId) {
   const name = document.getElementById(`name-${tempId}`).value.trim();
   const description = document.getElementById(`desc-${tempId}`).value.trim();   // ✅ grab description
   const price = parseFloat(document.getElementById(`price-${tempId}`).value) || 0;
@@ -550,34 +549,28 @@
     return;
   }
 
-  db.collection("gallery").add({
-    name,
-    description,
-    price,
-    url,
-    category,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()   // ✅ add timestamp
-  })
-  .then((docRef) => {
-    alert("Product added successfully!");
+  db.collection("gallery").add({ name, description, price, url, category })   // ✅ include description
+    .then((docRef) => {
+      alert("Product added successfully!");
 
-    // ✅ Update tempId to real Firestore docId
-    const slot = document.getElementById(tempId);
-    if (slot) {
-      slot.id = docRef.id;  
-      document.getElementById(`name-${tempId}`).id = `name-${docRef.id}`;
-      document.getElementById(`desc-${tempId}`).id = `desc-${docRef.id}`;   // ✅ update textarea ID
-      document.getElementById(`price-${tempId}`).id = `price-${docRef.id}`;
-      document.getElementById(`url-${tempId}`).id = `url-${docRef.id}`;
-      document.getElementById(`category-${tempId}`).id = `category-${docRef.id}`;
+      // ✅ Update tempId to real Firestore docId
+      const slot = document.getElementById(tempId);
+      if (slot) {
+        slot.id = docRef.id;  
+        document.getElementById(`name-${tempId}`).id = `name-${docRef.id}`;
+        document.getElementById(`desc-${tempId}`).id = `desc-${docRef.id}`;   // ✅ update textarea ID
+        document.getElementById(`price-${tempId}`).id = `price-${docRef.id}`;
+        document.getElementById(`url-${tempId}`).id = `url-${docRef.id}`;
+        document.getElementById(`category-${tempId}`).id = `category-${docRef.id}`;
 
-      // update button onclicks to use new docId
-      slot.querySelector(".save-btn").setAttribute("onclick", `updateProduct('${docRef.id}')`);
-      slot.querySelector(".delete-btn").setAttribute("onclick", `removePhoto('${docRef.id}')`);
-    }
-  })
-  .catch(err => alert("Error adding product: " + err.message));
+        // update button onclicks to use new docId
+        slot.querySelector(".save-btn").setAttribute("onclick", `updateProduct('${docRef.id}')`);
+        slot.querySelector(".delete-btn").setAttribute("onclick", `removePhoto('${docRef.id}')`);
+      }
+    })
+    .catch(err => alert("Error adding product: " + err.message));
 }
+
 
 
     function updateProduct(docId) {
