@@ -730,8 +730,7 @@ function updateManualPrice(itemName, itemId) {
 
 function updateCartCount() {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  // default to 1 if no quantity set
-  const count = cart.reduce((t, i) => t + (i.quantity || 1), 0);
+  const count = cart.reduce((t, i) => t + (i.quantity || 1), 0); // 👈 default to 1
   document.getElementById('cart-count').textContent = count;
 }
 
