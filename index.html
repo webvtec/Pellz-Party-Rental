@@ -752,16 +752,19 @@ async function addToCart(item) {
       return;
     }
 
+    // ✅ shorten name to first 2 words
+    const shortName = item.name.split(" ").slice(0, 2).join(" ");
+
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const existing = cart.find(i => i.name === item.name);
+    const existing = cart.find(i => i.name === shortName);
 
     if (existing) {
-      // 🚫 Duplicate → red toast
-      showToast(`${item.name} is already in your cart.`, "error");
+      showToast(`${shortName} is already in your cart.`, "error");
     } else {
       cart.push({
         ...item,
-        quantity: 1 // always 1 for non-qtyMap items
+        name: shortName,   // ✅ store shortened name
+        quantity: 1
       });
       showToast("ADDED TO CART", "success");
     }
@@ -776,6 +779,7 @@ async function addToCart(item) {
 }
 
 
+
 function addToCartWithQty(name, imageUrl) {
   if (!currentUser) {
     Swal.fire({
@@ -784,10 +788,13 @@ function addToCartWithQty(name, imageUrl) {
       text: "You must be logged in to add items to your cart.",
       confirmButtonText: "Login"
     }).then(() => {
-      window.location.href = "login.html"; // 👈 redirect to login
+      window.location.href = "login.html";
     });
     return;
   }
+
+  // ✅ shorten name
+  const shortName = name.split(" ").slice(0, 2).join(" ");
 
   const itemId = name.replace(/\s+/g, '-');
   const qtyEl = document.getElementById(`qty-${itemId}`);
@@ -805,7 +812,7 @@ function addToCartWithQty(name, imageUrl) {
     const item = snapshot.docs[0].data();
     const category = (item.category || '').toUpperCase();
     const isRestricted = restrictedCategories.includes(category);
-    const exists = cart.find(i => i.name === name);
+    const exists = cart.find(i => i.name === shortName);
 
     if (exists && isRestricted) {
       showToast("YOU CAN ONLY ADD THIS ITEM ONCE", "error");
@@ -818,18 +825,23 @@ function addToCartWithQty(name, imageUrl) {
       exists.days = days;
       exists.totalPrice = unitPrice * qty * days;
     } else {
-      cart.push({ name, price: unitPrice, imageUrl, quantity: qty, totalPrice: unitPrice * qty * days, days, category });
+      cart.push({ 
+        name: shortName,   // ✅ store shortened name
+        price: unitPrice, 
+        imageUrl, 
+        quantity: qty, 
+        totalPrice: unitPrice * qty * days, 
+        days, 
+        category 
+      });
     }
 
     localStorage.setItem('cart', JSON.stringify(cart));
     updateCartCount();
-
     validateCartStock(document.getElementById("rentalDateRange").value.trim());
-
     showToast("ADDED TO CART", "success");
   });
 }
-
 
 function updateCartCount() {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
