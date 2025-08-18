@@ -27,22 +27,24 @@
   font-size: 27px;
   font-weight: bold;
   color: #6200ea;
-  width: 100vw;           /* ensure it spans full width */
-  box-sizing: border-box; /* prevent overflow */
-        }
-    
+  width: 100%;          /* full width */
+  box-sizing: border-box; 
+  margin: 0;            /* make sure no gap */
+}
+
 .top-menu {
   display: flex;
-  justify-content: space-between; /* spread across */
+  justify-content: space-between;
   flex-wrap: wrap;
   background-color: #6200ea;
   padding: 10px;
-  width: 100%;            /* ✅ make nav full width */
+  width: 100%;          /* full width */
   box-sizing: border-box;
+  margin: 0;
 }
 
 .top-menu button {
-  flex: 1;                /* each button takes equal space */
+  flex: 1;
   margin: 5px;
   padding: 12px;
   border: none;
@@ -58,8 +60,8 @@
   background-color: #FFD1DC;
 }
 
-/* Mobile adjustments */
-@media (max-width: 100%) {
+/* ✅ Corrected media query */
+@media (max-width: 768px) {
   .top-menu {
     flex-direction: column;
   }
