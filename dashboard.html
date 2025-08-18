@@ -688,17 +688,23 @@ function loadReservations() {
       });
     });
 
+    // ✅ helper: same-day check
+    function isSameDay(d1, d2) {
+      return d1 && d2 &&
+             d1.getFullYear() === d2.getFullYear() &&
+             d1.getMonth() === d2.getMonth() &&
+             d1.getDate() === d2.getDate();
+    }
+
     // ✅ split into groups
     const todayBookings = reservations.filter(r =>
-      r.bookingStart && r.bookingEnd && (
-        today >= r.bookingStart && today <= r.bookingEnd
-      )
+      r.bookingStart && r.bookingEnd &&
+      today >= r.bookingStart && today <= r.bookingEnd
     );
 
+    // only bookings starting exactly tomorrow
     const tomorrowBookings = reservations.filter(r =>
-      r.bookingStart && r.bookingEnd && (
-        tomorrow >= r.bookingStart && tomorrow <= r.bookingEnd
-      )
+      r.bookingStart && isSameDay(r.bookingStart, tomorrow)
     );
 
     const upcoming = reservations.filter(r =>
@@ -709,7 +715,7 @@ function loadReservations() {
       r.bookingEnd && r.bookingEnd < today
     ).sort((a, b) => b.bookingEnd - a.bookingEnd);
 
-    // helper: render a group
+    // ✅ render function
     function renderGroup(title, list, badgeType) {
       if (!list.length) return;
       reservationsContainer.innerHTML += `<h2 class="reservation-group">${title}</h2>`;
@@ -739,7 +745,7 @@ function loadReservations() {
       });
     }
 
-    // ✅ render in order
+    // ✅ render groups in order
     renderGroup("Today", todayBookings, "today");
     renderGroup("Tomorrow", tomorrowBookings, "tomorrow");
     renderGroup("Upcoming", upcoming, "upcoming");
