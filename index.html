@@ -668,10 +668,16 @@ function loadGalleryByCategory(categoryFilter) {
   const galleryContainer = document.getElementById('galleryDisplay');
   galleryContainer.innerHTML = '';
 
-  db.collection('gallery')
-    .where('category', '==', categoryFilter)
-    .orderBy('timestamp', 'asc')   // ✅ enforce order
-    .get()
+  let query = db.collection('gallery').where('category', '==', categoryFilter);
+
+  // Try to order by timestamp safely
+  try {
+    query = query.orderBy('timestamp', 'asc');
+  } catch (e) {
+    console.warn("Skipping orderBy(timestamp) because field/index is missing:", e);
+  }
+
+  query.get()
     .then((querySnapshot) => {
       if (querySnapshot.empty) {
         galleryContainer.innerHTML = `<p style="text-align:center;">No items found in "${categoryFilter}".</p>`;
@@ -692,8 +698,16 @@ function loadGalleryByCategory(categoryFilter) {
 
       const categoryContainer = document.getElementById(`gallery-${categoryFilter}`);
 
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
+      // If timestamp exists, sort locally as fallback
+      let docs = querySnapshot.docs.map(doc => doc.data());
+      docs.sort((a, b) => {
+        if (a.timestamp && b.timestamp) {
+          return a.timestamp.toMillis() - b.timestamp.toMillis();
+        }
+        return 0; // leave order as is if missing
+      });
+
+      docs.forEach((data) => {
         const imageUrl = data.url;
         const name = data.name || 'Unnamed';
         const description = data.description || "";
@@ -743,7 +757,6 @@ function loadGalleryByCategory(categoryFilter) {
 
   showSection('gallerySection');
 }
-
 
 
 function updateManualPrice(itemName, itemId) {
