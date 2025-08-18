@@ -592,17 +592,17 @@ function loadReservations() {
     reservationsContainer.innerHTML = '';
     const now = new Date();
 
-    // helper: strip time portion
+    // helper: strip time (normalize to midnight local)
     function normalizeDate(d) {
       return new Date(d.getFullYear(), d.getMonth(), d.getDate());
     }
     const today = normalizeDate(now);
 
-    // helper: parse YYYY-MM-DD in local time
+    // helper: parse YYYY-MM-DD as local date
     function parseLocalDate(dateStr) {
       if (!dateStr) return new Date(0);
       const [year, month, day] = dateStr.split('-').map(Number);
-      return new Date(year, month - 1, day);
+      return new Date(year, month - 1, day, 0, 0, 0); // local midnight
     }
 
     const reservations = [];
@@ -624,18 +624,17 @@ function loadReservations() {
       });
     });
 
-    // ✅ sort so today first, then closest upcoming
-    reservations.sort((a, b) => {
-      const aDate = a.bookingDate;
-      const bDate = b.bookingDate;
+    // ✅ split into today, upcoming, past
+    const todayBookings = reservations.filter(r => r.bookingDate.getTime() === today.getTime());
+    const upcoming = reservations.filter(r => r.bookingDate > today)
+                                 .sort((a, b) => a.bookingDate - b.bookingDate);
+    const past = reservations.filter(r => r.bookingDate < today)
+                             .sort((a, b) => b.bookingDate - a.bookingDate);
 
-      if (aDate.getTime() === today.getTime() && bDate.getTime() !== today.getTime()) return -1;
-      if (bDate.getTime() === today.getTime() && aDate.getTime() !== today.getTime()) return 1;
+    // ✅ combine in order: today → upcoming → past
+    const orderedReservations = [...todayBookings, ...upcoming, ...past];
 
-      return aDate - bDate;
-    });
-
-    reservations.forEach(booking => {
+    orderedReservations.forEach(booking => {
       const dateStr = booking.rentalDates || '';
       const timeStr = `${booking.startTime || ''} - ${booking.endTime || ''}`;
 
@@ -644,6 +643,9 @@ function loadReservations() {
       if (booking.bookingDate.getTime() === today.getTime()) {
         badgeClass = 'today';
         badgeText = 'Today';
+      } else if (booking.bookingDate < today) {
+        badgeClass = 'past';
+        badgeText = 'Past';
       }
 
       const itemsList = (booking.cartItems || [])
@@ -668,7 +670,6 @@ function loadReservations() {
     });
   });
 }
-
 
 function clearReservations() {
   const confirmInput = document.getElementById('clearInput').value.trim();
