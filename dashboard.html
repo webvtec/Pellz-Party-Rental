@@ -637,108 +637,144 @@ function saveNewProduct(name, description, price, url, category) {
 
 function loadReservations() {
   const reservationsContainer = document.getElementById('reservationsList');
-  const searchInput = document.getElementById('reservationSearch');
-  const searchButton = document.getElementById('searchButton');
-  let allReservations = [];
-
   db.collection('reservations').onSnapshot(snapshot => {
+    reservationsContainer.innerHTML = '';
     const now = new Date();
-    function normalizeDate(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
-    const today = normalizeDate(now);
-    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
 
+    // normalize to local midnight
+    function normalizeDate(d) {
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+    const today = normalizeDate(now);
+
+    // define tomorrow
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    // parse YYYY-MM-DD as local date
     function parseLocalDate(dateStr) {
       if (!dateStr) return new Date(0);
-      const [y,m,d] = dateStr.split('-').map(Number);
-      return new Date(y, m-1, d, 0,0,0);
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day, 0, 0, 0);
     }
-    function formatDate(d) { return d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); }
-    function formatDateRange(start,end) {
-      if (!start||!end) return "";
-      if (start.getTime()===end.getTime()) return formatDate(start);
+
+    // format helpers
+    function formatDate(d) {
+      return d.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+
+    function formatDateRange(start, end) {
+      if (!start || !end) return "";
+      if (start.getTime() === end.getTime()) return formatDate(start);
       return `${formatDate(start)} to ${formatDate(end)}`;
     }
-    function formatTimeRange(st,et){
-      if (!st&&!et) return "";
-      function fmt(t){ if(!t)return ""; const [h,m]=t.split(':').map(Number);
-        const d=new Date(); d.setHours(h,m); return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }
-      return `${fmt(st)} - ${fmt(et)}`;
+
+    function formatTimeRange(startTime, endTime) {
+      if (!startTime && !endTime) return "";
+      function formatTime(t) {
+        if (!t) return "";
+        const [h, m] = t.split(':').map(Number);
+        const date = new Date();
+        date.setHours(h, m);
+        return date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit'
+        });
+      }
+      return `${formatTime(startTime)} - ${formatTime(endTime)}`;
     }
 
-    allReservations = [];
-    snapshot.forEach(doc=>{
-      const booking=doc.data();
-      let bookingStart=null, bookingEnd=null;
+    const reservations = [];
+
+    snapshot.forEach(doc => {
+      const booking = doc.data();
+      let bookingStart = null;
+      let bookingEnd = null;
+
       if (booking.rentalDates?.includes(' to ')) {
-        const [start,end]=booking.rentalDates.split(' to ');
-        bookingStart=parseLocalDate(start); bookingEnd=parseLocalDate(end);
+        const [start, end] = booking.rentalDates.split(' to ');
+        bookingStart = parseLocalDate(start);
+        bookingEnd = parseLocalDate(end);
       } else if (booking.rentalDates) {
-        bookingStart=parseLocalDate(booking.rentalDates);
-        bookingEnd=bookingStart;
+        bookingStart = parseLocalDate(booking.rentalDates);
+        bookingEnd = bookingStart;
       }
-      allReservations.push({ id:doc.id, bookingStart, bookingEnd, ...booking });
+
+      reservations.push({
+        id: doc.id,
+        bookingStart,
+        bookingEnd,
+        ...booking
+      });
     });
 
-    renderReservations(allReservations); 
-  });
+    // ✅ helper: same-day check
+    function isSameDay(d1, d2) {
+      return d1 && d2 &&
+             d1.getFullYear() === d2.getFullYear() &&
+             d1.getMonth() === d2.getMonth() &&
+             d1.getDate() === d2.getDate();
+    }
 
-  function runSearch() {
-    const query=searchInput.value.toLowerCase();
-    const filtered=allReservations.filter(r=>
-      (r.name && r.name.toLowerCase().includes(query)) ||
-      (r.orderNumber && r.orderNumber.toString().toLowerCase().includes(query)) ||
-      (r.phone && r.phone.toLowerCase().includes(query))
+    // ✅ split into groups
+    const todayBookings = reservations.filter(r =>
+      r.bookingStart && r.bookingEnd &&
+      today >= r.bookingStart && today <= r.bookingEnd
     );
-    renderReservations(filtered);
-  }
-  if (searchInput && searchButton) {
-    searchButton.addEventListener('click', runSearch);
-    searchInput.addEventListener('keypress', e => { if (e.key==='Enter') runSearch(); });
-  }
 
-  function renderReservations(reservations) {
-    reservationsContainer.innerHTML='';
-    const now=new Date();
-    const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-    const tomorrow=new Date(today); tomorrow.setDate(today.getDate()+1);
+    // only bookings starting exactly tomorrow
+    const tomorrowBookings = reservations.filter(r =>
+      r.bookingStart && isSameDay(r.bookingStart, tomorrow)
+    );
 
-    function isInRange(day,start,end){ return day>=start && day<=end; }
+    const upcoming = reservations.filter(r =>
+      r.bookingStart && r.bookingStart > tomorrow
+    ).sort((a, b) => a.bookingStart - b.bookingStart);
 
-    const todayBookings = reservations.filter(r=> r.bookingStart&&r.bookingEnd && isInRange(today,r.bookingStart,r.bookingEnd));
-    const tomorrowBookings = reservations.filter(r=> r.bookingStart&&r.bookingEnd && isInRange(tomorrow,r.bookingStart,r.bookingEnd));
-    const upcoming = reservations.filter(r=> r.bookingStart && r.bookingStart>tomorrow).sort((a,b)=>a.bookingStart-b.bookingStart);
-    const past = reservations.filter(r=> r.bookingEnd && r.bookingEnd<today).sort((a,b)=>b.bookingEnd-a.bookingEnd);
+    const past = reservations.filter(r =>
+      r.bookingEnd && r.bookingEnd < today
+    ).sort((a, b) => b.bookingEnd - a.bookingEnd);
 
-    function renderGroup(title,list,badgeType){
-      if(!list.length)return;
-      reservationsContainer.innerHTML+=`<h2 class="reservation-group">${title}</h2>`;
-      list.forEach(b=>{
-        const dateStr=formatDateRange(b.bookingStart,b.bookingEnd);
-        const timeStr=formatTimeRange(b.startTime,b.endTime);
-        const itemsList=(b.cartItems||[]).map(i=>`<li>${i.name} x${i.quantity}</li>`).join('');
-        reservationsContainer.innerHTML+=`
+    // ✅ render function
+    function renderGroup(title, list, badgeType) {
+      if (!list.length) return;
+      reservationsContainer.innerHTML += `<h2 class="reservation-group">${title}</h2>`;
+      list.forEach(booking => {
+        const dateStr = formatDateRange(booking.bookingStart, booking.bookingEnd);
+        const timeStr = formatTimeRange(booking.startTime, booking.endTime);
+
+        const itemsList = (booking.cartItems || [])
+          .map(i => `<li>${i.name} x${i.quantity}</li>`)
+          .join('');
+
+        reservationsContainer.innerHTML += `
           <div class="reservation-card">
             <div class="reservation-header">
-              <h3>${b.name} (Order #${b.orderNumber||b.id})</h3>
+              <h3>${booking.name} (Order #${booking.orderNumber || booking.id})</h3>
               <span class="badge ${badgeType}">${title}</span>
             </div>
-            <p>📞 ${b.phone}</p>
-            <p><strong>Location:</strong> ${b.location||'N/A'}</p>
+            <p>📞 ${booking.phone}</p>
+            <p><strong>Location:</strong> ${booking.location || 'N/A'}</p>
             <p><strong>Date:</strong> ${dateStr}</p>
-            ${timeStr?`<p><strong>Time:</strong> ${timeStr}</p>`:""}
-            <p><strong>Payment:</strong> ${b.paymentType||''}</p>
-            <p><strong>Total:</strong> JMD $${(b.totalAmount||0).toLocaleString()}</p>
+            ${timeStr ? `<p><strong>Time:</strong> ${timeStr}</p>` : ''}
+            <p><strong>Payment:</strong> ${booking.paymentType || ''}</p>
+            <p><strong>Total:</strong> JMD $${(booking.totalAmount || 0).toLocaleString()}</p>
             <div><strong>Items:</strong><ul>${itemsList}</ul></div>
-            ${b.notes?`<p><em>Notes: ${b.notes}</em></p>`:""}
+            ${booking.notes ? `<p><em>Notes: ${booking.notes}</em></p>` : ''}
           </div>`;
       });
     }
 
-    renderGroup("Today",todayBookings,"today");
-    renderGroup("Tomorrow",tomorrowBookings,"tomorrow");
-    renderGroup("Upcoming",upcoming,"upcoming");
-    renderGroup("Past",past,"past");
-  }
+    // ✅ render groups in order
+    renderGroup("Today", todayBookings, "today");
+    renderGroup("Tomorrow", tomorrowBookings, "tomorrow");
+    renderGroup("Upcoming", upcoming, "upcoming");
+    renderGroup("Past", past, "past");
+  });
 }
 
 
