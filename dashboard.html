@@ -21,32 +21,37 @@
       padding: 0;
     }
         .header-bar {
-      background-color: #FFD1DC;
-      padding: 8px;
-      text-align: center;
-      font-size: 27px;
-      font-weight: bold;
-      color: #6200ea;
+  background-color: #FFD1DC;
+  padding: 12px;
+  text-align: center;
+  font-size: 27px;
+  font-weight: bold;
+  color: #6200ea;
+  width: 100%;           /* ensure it spans full width */
+  box-sizing: border-box; /* prevent overflow */
         }
-
+    
 .top-menu {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between; /* spread across */
   flex-wrap: wrap;
   background-color: #6200ea;
   padding: 10px;
+  width: 100%;            /* ✅ make nav full width */
+  box-sizing: border-box;
 }
 
 .top-menu button {
-  flex: 1;
+  flex: 1;                /* each button takes equal space */
   margin: 5px;
-  padding: 10px;
+  padding: 12px;
   border: none;
-  border-radius: 8px;
-  background: #fff;
+  border-radius: 5px;
+  background-color: #fff;
   color: #6200ea;
   font-weight: bold;
   cursor: pointer;
+  text-align: center;
 }
 
 .top-menu button:hover {
