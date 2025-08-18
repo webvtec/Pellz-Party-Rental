@@ -359,15 +359,23 @@
   color: white;
 }
 
-    .highlighted {
-  border: 3px solid #ff9800 !important;
-  box-shadow: 0 0 12px #ff9800 !important;
-  transition: all 0.3s ease-in-out;
+
+  
+
+.cancel-btn {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: #e53935;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
 }
-
-
-
-  </style>
+.cancel-btn:hover {
+  background-color: #c62828;
+}
+</style>
 </head>
 <body>
 <div class="header-bar">ADMIN DASHBOARD</div>
@@ -395,8 +403,8 @@
 <!-- Unavailable Days Page -->
 <div class="admin-container content-section" id="unavailableDaysSection">
 <h2>Set Unavailable Days</h2>
-<input id="unavailableDateInput" type="date">
-<label><input checked="" id="allDayCheckbox" onchange="toggleTimeInputs()" type="checkbox"/> All Day</label>
+<input id="unavailableDateInput" type="date"/>
+<label><input checked="" id="allDayCheckbox" onchange="toggleTimeInputs()" type="checkbox"> All Day</input></label>
 <div id="timeInputs" style="display: none;">
 <label>FROM:</label>
 <input id="startTimeInput" type="time"/>
@@ -406,7 +414,7 @@
 <button onclick="addUnavailableDate()">Add Unavailable Date</button>
 <h3>Unavailable Dates</h3>
 <ul id="unavailableDatesList"></ul>
-</input></div>
+</div>
 <script>
     const firebaseConfig = {
   apiKey: "AIzaSyDccI-TdbCXAJr6CD77X4yOUOfezef7Oks",
@@ -633,7 +641,7 @@ function loadReservations() {
       return new Date(year, month - 1, day, 0, 0, 0);
     }
 
-    function isDayInRange(startDate, endDate, refDay) {
+    function isTodayBooking(startDate, endDate, refDay) {
       return refDay >= startDate && refDay <= endDate;
     }
 
@@ -685,13 +693,11 @@ function loadReservations() {
 
     // ✅ split into groups
     const todayBookings = reservations.filter(r =>
-      r.bookingStart && r.bookingEnd && isDayInRange(r.bookingStart, r.bookingEnd, today)
+      r.bookingStart && r.bookingEnd && isTodayBooking(r.bookingStart, r.bookingEnd, today)
     );
 
     const tomorrowBookings = reservations.filter(r =>
-      r.bookingStart && r.bookingEnd &&
-      isDayInRange(r.bookingStart, r.bookingEnd, tomorrow) &&
-      !isDayInRange(r.bookingStart, r.bookingEnd, today) // exclude ones already active today
+      r.bookingStart && r.bookingEnd && isTodayBooking(r.bookingStart, r.bookingEnd, tomorrow)
     );
 
     const upcoming = reservations.filter(r =>
@@ -710,6 +716,9 @@ function loadReservations() {
         const dateStr = formatDateRange(booking.bookingStart, booking.bookingEnd);
         const timeStr = formatTimeRange(booking.startTime, booking.endTime);
 
+        let badgeClass = badgeType;
+        let badgeText = title;
+
         const itemsList = (booking.cartItems || [])
           .map(i => `<li>${i.name} x${i.quantity}</li>`)
           .join('');
@@ -718,7 +727,7 @@ function loadReservations() {
           <div class="reservation-card">
             <div class="reservation-header">
               <h3>${booking.name} (Order #${booking.orderNumber || booking.id})</h3>
-              <span class="badge ${badgeType}">${title}</span>
+              <span class="badge ${badgeClass}">${badgeText}</span>
             </div>
             <p>📞 ${booking.phone}</p>
             <p><strong>Location:</strong> ${booking.location || 'N/A'}</p>
@@ -788,28 +797,6 @@ firebase.auth().onAuthStateChanged(user => {
     window.location.href = 'index.html';
   }
 });
-
-    function searchReservations() {
-  const query = document.getElementById("reservationSearch").value.toLowerCase();
-  const reservationsContainer = document.getElementById("reservationsList");
-
-  // Remove old highlights
-  document.querySelectorAll(".highlighted").forEach(el => el.classList.remove("highlighted"));
-
-  if (!query) return;
-
-  // Find first matching reservation card
-  const cards = reservationsContainer.querySelectorAll(".reservation-card");
-  for (let card of cards) {
-    const text = card.innerText.toLowerCase();
-    if (text.includes(query)) {
-      card.classList.add("highlighted");
-      card.scrollIntoView({ behavior: "smooth", block: "center" });
-      break;
-    }
-  }
-}
-
   </script>
 </body>
 </html>
