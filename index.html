@@ -99,9 +99,11 @@
 }
 
 .product-description {
-  font-size: 0.9em;
-  color: #666;
-  margin: 4px 0;
+  color: #000;          /* black text */
+  font-weight: bold;    /* bold */
+  white-space: pre-line; /* preserve spacing & newlines */
+  margin: 6px 0;
+  line-height: 1.4;
 }
 
   </style>
@@ -703,7 +705,8 @@ function loadGalleryByCategory(categoryFilter) {
             <img src="${imageUrl}" alt="${name}">
             <div class="product-info">
               <div class="product-name">${name}</div>
-              ${description ? `<div class="product-description">${description}</div>` : ''}
+              ${description ? `<div class="product-description">${description.replace(/\n/g, '<br>')}</div>` : ''}
+
         `;
 
         if (qtyMap[name]) {
