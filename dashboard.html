@@ -444,7 +444,9 @@
   const galleryContainer = document.getElementById('adminGallery');
   galleryContainer.innerHTML = '';
 
-  db.collection('gallery').onSnapshot((querySnapshot) => {
+  db.collection('gallery')
+  .orderBy('timestamp', 'asc')   // ✅ newest always at the bottom
+  .onSnapshot((querySnapshot) => {
     galleryContainer.innerHTML = '';
 
     const categories = {};
@@ -549,7 +551,10 @@ function saveNewProduct(tempId) {
     return;
   }
 
-  db.collection("gallery").add({ name, description, price, url, category })   // ✅ include description
+  db.collection("gallery").add({ 
+  name, description, price, url, category,
+  timestamp: firebase.firestore.FieldValue.serverTimestamp()   // ✅ add this line
+}) 
     .then((docRef) => {
       alert("Product added successfully!");
 
