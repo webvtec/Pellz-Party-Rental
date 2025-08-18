@@ -463,7 +463,7 @@ function loadGallery() {
     });
 
     // sort newest first
-    items.sort((a, b) => b.timestamp - a.timestamp);
+    items.sort((a, b) => a.timestamp - b.timestamp);
 
     // group by category
     const categories = {};
