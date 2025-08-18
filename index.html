@@ -264,31 +264,18 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ===================== Inventory Settings ===================== */
 const qtyMap = {
   "CHAIRS": {
-    options: [1, 2, 5, 10, 20],  // bundles you rent out
-    prices: {
-      1: 500,     // price if they take 1
-      2: 900,     // price if they take 2
-      5: 2000,
-      10: 3500,
-      20: 6000
-    }
+    options: [1, 2, 5, 10, 20],
+    prices: { 1: 500, 2: 900, 5: 2000, 10: 3500, 20: 6000 }
   },
   "Table": {
     options: [1, 2, 4],
-    prices: {
-      1: 800,
-      2: 1500,
-      4: 2800
-    }
+    prices: { 1: 800, 2: 1500, 4: 2800 }
   },
   "STARTER PACK - 25 Cotton Candies, 25 Snow Cones, 25 Popcorns, 25 Hot Dogs, Free Trampoline": {
-  options: [1, 2, 3],
-  prices: {
-    1: 3000,
-    2: 5800,
-    3: 8000
+    options: [1, 2, 3],
+    prices: { 1: 3000, 2: 5800, 3: 8000 }
   }
-}
+}; // 👈 close the whole object
 
 
 /* Items that can only be booked once per order (optional) */
