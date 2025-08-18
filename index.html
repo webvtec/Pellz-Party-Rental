@@ -743,7 +743,8 @@ function updateManualPrice(itemName, itemId) {
 
 async function addToCart(item) {
   try {
-    if (!currentUser) {
+    // ✅ use Firebase’s live auth state instead of your laggy variable
+    if (!firebase.auth().currentUser) {
       Swal.fire({
         icon: "warning",
         title: "Login Required",
@@ -761,7 +762,10 @@ async function addToCart(item) {
     if (existing) {
       showToast(`${item.name} is already in your cart.`, "error");
     } else {
-      cart.push({ ...item, quantity: 1 });
+      cart.push({
+        ...item,
+        quantity: 1 // always 1 for non-qtyMap items
+      });
       showToast("ADDED TO CART", "success");
     }
 
@@ -770,76 +774,66 @@ async function addToCart(item) {
 
   } catch (err) {
     console.error("addToCart error:", err);
-    showToast("❌ ERROR: " + err.message, "error");
+    showToast("❌ Could not add item. Try again.", "error");
   }
 }
 
+
 function addToCartWithQty(name, imageUrl) {
-  try {
-    if (!currentUser) {
-      Swal.fire({
-        icon: "warning",
-        title: "Login Required",
-        text: "You must be logged in to add items to your cart.",
-        confirmButtonText: "Login"
-      }).then(() => {
-        window.location.href = "login.html";
-      });
+  // ✅ use Firebase’s live auth state
+  if (!firebase.auth().currentUser) {
+    Swal.fire({
+      icon: "warning",
+      title: "Login Required",
+      text: "You must be logged in to add items to your cart.",
+      confirmButtonText: "Login"
+    }).then(() => {
+      window.location.href = "login.html"; // 👈 redirect to login
+    });
+    return;
+  }
+
+  const itemId = name.replace(/\s+/g, '-');
+  const qtyEl = document.getElementById(`qty-${itemId}`);
+  if (!qtyEl) return;
+  const qty = Number(qtyEl.value) || 1;
+  const totalBundle = Number(qtyMap[name]?.prices?.[qty]) || 0;
+  const unitPrice = totalBundle / Math.max(1, qty);
+  const days = 1;
+
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+  db.collection('gallery').where('name', '==', name).limit(1).get().then(snapshot => {
+    if (snapshot.empty) return;
+
+    const item = snapshot.docs[0].data();
+    const category = (item.category || '').toUpperCase();
+    const isRestricted = restrictedCategories.includes(category);
+    const exists = cart.find(i => i.name === name);
+
+    if (exists && isRestricted) {
+      showToast("YOU CAN ONLY ADD THIS ITEM ONCE", "error");
       return;
     }
 
-    const itemId = name.replace(/\s+/g, '-');
-    const qtyEl = document.getElementById(`qty-${itemId}`);
-    if (!qtyEl) throw new Error(`Quantity selector not found for ${name}`);
+    if (exists) {
+      exists.quantity = qty;
+      exists.price = unitPrice;
+      exists.days = days;
+      exists.totalPrice = unitPrice * qty * days;
+    } else {
+      cart.push({ name, price: unitPrice, imageUrl, quantity: qty, totalPrice: unitPrice * qty * days, days, category });
+    }
 
-    const qty = Number(qtyEl.value) || 1;
-    const totalBundle = Number(qtyMap[name]?.prices?.[qty]);
-    if (isNaN(totalBundle)) throw new Error(`No price found for ${name} (${qty})`);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    updateCartCount();
 
-    const unitPrice = totalBundle / Math.max(1, qty);
-    const days = 1;
+    validateCartStock(document.getElementById("rentalDateRange").value.trim());
 
-    let cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-    db.collection('gallery').where('name', '==', name).limit(1).get().then(snapshot => {
-      if (snapshot.empty) {
-        throw new Error(`Item '${name}' not found in Firestore gallery`);
-      }
-
-      const item = snapshot.docs[0].data();
-      const category = (item.category || '').toUpperCase();
-      const isRestricted = restrictedCategories.includes(category);
-      const exists = cart.find(i => i.name === name);
-
-      if (exists && isRestricted) {
-        showToast("YOU CAN ONLY ADD THIS ITEM ONCE", "error");
-        return;
-      }
-
-      if (exists) {
-        exists.quantity = qty;
-        exists.price = unitPrice;
-        exists.days = days;
-        exists.totalPrice = unitPrice * qty * days;
-      } else {
-        cart.push({ name, price: unitPrice, imageUrl, quantity: qty, totalPrice: unitPrice * qty * days, days, category });
-      }
-
-      localStorage.setItem('cart', JSON.stringify(cart));
-      updateCartCount();
-      validateCartStock(document.getElementById("rentalDateRange").value.trim());
-
-      showToast("ADDED TO CART", "success");
-    }).catch(err => {
-      console.error("addToCartWithQty Firestore error:", err);
-      showToast("❌ ERROR: " + err.message, "error");
-    });
-
-  } catch (err) {
-    console.error("addToCartWithQty crashed:", err);
-    showToast("❌ ERROR: " + err.message, "error");
-  }
+    showToast("ADDED TO CART", "success");
+  });
 }
+
 
 
 function updateCartCount() {
