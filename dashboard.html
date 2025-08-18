@@ -616,177 +616,108 @@ function saveNewProduct(tempId) {
       });
     }
 
+     
+
     function loadReservations() {
   const reservationsContainer = document.getElementById('reservationsList');
-  reservationsContainer.innerHTML = '';
-
-  db.collection('reservations').onSnapshot((querySnapshot) => {
-    let reservations = [];
+  db.collection('reservations').onSnapshot(snapshot => {
+    reservationsContainer.innerHTML = '';
     const now = new Date();
+    const reservations = [];
 
-    querySnapshot.forEach((doc) => {
+    snapshot.forEach(doc => {
       const booking = doc.data();
-
-      // ✅ Normalize date
       let bookingDate = null;
-      if (booking.rentalDates) {
-        bookingDate = new Date(booking.rentalDates + "T00:00:00");
-      } else if (booking.date) {
-        bookingDate = new Date(booking.date);
+      if (booking.rentalDates?.includes(' to ')) {
+        bookingDate = new Date(booking.rentalDates.split(' to ')[0]);
       }
-
-      if (bookingDate && !isNaN(bookingDate.getTime())) {
-        const diffHours = (now - bookingDate) / (1000 * 60 * 60);
-
-        // ✅ Keep Today + Future + Past 24h
-        if (diffHours <= 24) {
-          reservations.push({
-            id: doc.id,
-            ...booking,
-            bookingDate
-          });
-        }
+      if (bookingDate && !isNaN(bookingDate)) {
+        reservations.push({ id: doc.id, bookingDate, ...booking });
       }
     });
 
-    // ✅ Sort by soonest date
     reservations.sort((a, b) => a.bookingDate - b.bookingDate);
 
-    // ✅ Render as vertical cards
-    reservationsContainer.innerHTML = '';
-    reservations.forEach((booking) => {
-      const dateStr = booking.rentalDates || booking.date || '';
+    reservations.forEach(booking => {
+      const dateStr = booking.rentalDates || '';
       const timeStr = `${booking.startTime || ''} - ${booking.endTime || ''}`;
 
-      // Badge
-      let badgeClass = "upcoming";
-      let badgeText = "Upcoming";
-
-      const today = new Date();
-      if (booking.bookingDate.toDateString() === today.toDateString()) {
-        badgeClass = "today";
-        badgeText = "Today";
+      let badgeClass = 'upcoming';
+      let badgeText = 'Upcoming';
+      if (booking.bookingDate.toDateString() === now.toDateString()) {
+        badgeClass = 'today';
+        badgeText = 'Today';
       }
 
+      const itemsList = (booking.cartItems || [])
+        .map(i => `<li>${i.name} x${i.quantity}</li>`)
+        .join('');
+
       reservationsContainer.innerHTML += `
-        <div class="reservation-card" style="
-          background:#fff;
-          border-radius:10px;
-          box-shadow:0 2px 6px rgba(0,0,0,0.1);
-          padding:15px;
-          margin:10px 0;
-        ">
-          <div class="reservation-header" style="display:flex; justify-content:space-between; align-items:center;">
-            <h3 style="margin:0; color:#6200ea;">${booking.name}</h3>
-            <span class="badge ${badgeClass}" style="
-              padding:4px 8px;
-              border-radius:5px;
-              font-size:12px;
-              background:${badgeClass === 'today' ? '#28a745' : '#007bff'};
-              color:#fff;
-            ">${badgeText}</span>
+        <div class="reservation-card">
+          <div class="reservation-header">
+            <h3>${booking.name} (Order #${booking.orderNumber || booking.id})</h3>
+            <span class="badge ${badgeClass}">${badgeText}</span>
           </div>
-          <p style="margin:5px 0; color:#555;">📞 ${booking.phone}</p>
-          <p style="margin:5px 0;"><strong>Date:</strong> ${dateStr}</p>
-          <p style="margin:5px 0;"><strong>Time:</strong> ${timeStr}</p>
-          <p style="margin:5px 0;"><strong>Service:</strong> ${booking.service || booking.paymentType || ''}</p>
-          ${booking.notes ? `<p style="margin:5px 0; color:#777;"><em>Notes: ${booking.notes}</em></p>` : ""}
-        </div>
-      `;
+          <p>📞 ${booking.phone}</p>
+          <p><strong>Location:</strong> ${booking.location || 'N/A'}</p>
+          <p><strong>Date:</strong> ${dateStr}</p>
+          <p><strong>Time:</strong> ${timeStr}</p>
+          <p><strong>Payment:</strong> ${booking.paymentType || ''}</p>
+          <p><strong>Total:</strong> JMD $${(booking.totalAmount || 0).toLocaleString()}</p>
+          <div><strong>Items:</strong><ul>${itemsList}</ul></div>
+          ${booking.notes ? `<p><em>Notes: ${booking.notes}</em></p>` : ''}
+        </div>`;
     });
   });
 }
 
 function clearReservations() {
   const confirmInput = document.getElementById('clearInput').value.trim();
-
-  if (confirmInput !== 'CONFIRM') {
-    alert('TYPE "CONFIRM" TO CLEAR PAST RESERVATIONS.');
-    return;
-  }
+  if (confirmInput !== 'CONFIRM') { alert('TYPE "CONFIRM" TO CLEAR PAST RESERVATIONS.'); return; }
 
   const now = new Date();
-
-  db.collection('reservations').get().then((querySnapshot) => {
+  db.collection('reservations').get().then(snapshot => {
     const batch = db.batch();
-
-    querySnapshot.forEach((doc) => {
+    snapshot.forEach(doc => {
       const booking = doc.data();
-
-      // ✅ Normalize date
-      let bookingDate = null;
-      if (booking.rentalDates) {
-        bookingDate = new Date(booking.rentalDates + "T00:00:00");
-      } else if (booking.date) {
-        bookingDate = new Date(booking.date);
-      }
-
-      if (bookingDate && !isNaN(bookingDate.getTime())) {
-        const diffHours = (now - bookingDate) / (1000 * 60 * 60);
-
-        // ✅ Only delete reservations older than 24h
-        if (diffHours > 24) {
+      if (booking.rentalDates?.includes(' to ')) {
+        const bookingDate = new Date(booking.rentalDates.split(' to ')[1]);
+        if (bookingDate && now - bookingDate > 24 * 60 * 60 * 1000) {
           batch.delete(doc.ref);
         }
       }
     });
-
     return batch.commit();
   }).then(() => {
     alert('Past reservations cleared successfully.');
     document.getElementById('clearInput').value = '';
-  }).catch((error) => {
-    console.error("Error clearing reservations: ", error);
-    alert('Error clearing reservations: ' + error.message);
   });
 }
 
-
-
-    function loadUnavailableDates() {
-      const list = document.getElementById('unavailableDatesList');
-      list.innerHTML = '';
-
-      db.collection('unavailableDays').orderBy('date').onSnapshot((querySnapshot) => {
-        list.innerHTML = '';
-
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          let displayText = `${data.date} - `;
-
-          if (data.allDay) {
-            displayText += 'All Day';
-          } else {
-            displayText += `${data.startTime} to ${data.endTime}`;
-          }
-
-          list.innerHTML += `
-            <li>
-              ${displayText}
-              <button onclick="removeUnavailableDate('${doc.id}')">Remove</button>
-            </li>
-          `;
-        });
-      });
-    }
-
-    function removeUnavailableDate(docId) {
-      db.collection('unavailableDays').doc(docId).delete().catch((error) => {
-        console.error("Error removing unavailable date: ", error);
-        alert('Error removing date: ' + error.message);
-      });
-    }
-
-    firebase.auth().onAuthStateChanged((user) => {
-      if (user) {
-        showSection('gallerySection');
-        loadGallery();
-        loadReservations();
-        loadUnavailableDates();
-      } else {
-        window.location.href = 'index.html';
-      }
+function loadUnavailableDates() {
+  const list = document.getElementById('unavailableDatesList');
+  db.collection('unavailableDays').orderBy('date').onSnapshot(snapshot => {
+    list.innerHTML = '';
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      let text = `${d.date} - ${d.allDay ? 'All Day' : `${d.startTime} to ${d.endTime}`}`;
+      list.innerHTML += `<li>${text} <button onclick="removeUnavailableDate('${doc.id}')">Remove</button></li>`;
     });
+  });
+}
+
+function removeUnavailableDate(id) { db.collection('unavailableDays').doc(id).delete(); }
+
+firebase.auth().onAuthStateChanged(user => {
+  if (user) {
+    showSection('reservationsPage');
+    loadReservations();
+    loadUnavailableDates();
+  } else {
+    window.location.href = 'index.html';
+  }
+});
   </script>
 </body>
 </html>
