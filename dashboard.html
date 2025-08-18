@@ -587,6 +587,13 @@ function loadReservations() {
   db.collection('reservations').onSnapshot(snapshot => {
     reservationsContainer.innerHTML = '';
     const now = new Date();
+
+    // helper: strip time portion from a Date
+    function normalizeDate(d) {
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+    const today = normalizeDate(now);
+
     const reservations = [];
 
     snapshot.forEach(doc => {
@@ -595,35 +602,37 @@ function loadReservations() {
 
       if (booking.rentalDates?.includes(' to ')) {
         bookingDate = new Date(booking.rentalDates.split(' to ')[0]);
+      } else if (booking.rentalDates) {
+        bookingDate = new Date(booking.rentalDates);
       }
 
-      if (booking.rentalDates) {
-        reservations.push({ id: doc.id, bookingDate, ...booking });
-      } else {
-        reservations.push({ id: doc.id, bookingDate: new Date(0), ...booking });
-      }
+      reservations.push({
+        id: doc.id,
+        bookingDate: bookingDate ? normalizeDate(bookingDate) : new Date(0),
+        ...booking
+      });
     });
 
-    // ✅ sort newest → oldest (so recent orders show up first)
-    reservations.sort((a, b) => b.bookingDate - a.bookingDate);
+    // ✅ sort so today is first, then closest upcoming
+    reservations.sort((a, b) => {
+      const aDate = a.bookingDate;
+      const bDate = b.bookingDate;
+
+      if (aDate.getTime() === today.getTime() && bDate.getTime() !== today.getTime()) return -1;
+      if (bDate.getTime() === today.getTime() && aDate.getTime() !== today.getTime()) return 1;
+
+      return aDate - bDate;
+    });
 
     reservations.forEach(booking => {
-      const dateStr = booking.rentalDates || 'N/A';
+      const dateStr = booking.rentalDates || '';
       const timeStr = `${booking.startTime || ''} - ${booking.endTime || ''}`;
 
-      // ✅ Badge logic
       let badgeClass = 'upcoming';
       let badgeText = 'Upcoming';
-
-      if (!booking.bookingDate || isNaN(booking.bookingDate)) {
-        badgeClass = 'past';
-        badgeText = 'Unknown Date';
-      } else if (booking.bookingDate.toDateString() === now.toDateString()) {
+      if (booking.bookingDate.getTime() === today.getTime()) {
         badgeClass = 'today';
         badgeText = 'Today';
-      } else if (booking.bookingDate < now) {
-        badgeClass = 'past';
-        badgeText = 'Past';
       }
 
       const itemsList = (booking.cartItems || [])
@@ -636,7 +645,7 @@ function loadReservations() {
             <h3>${booking.name} (Order #${booking.orderNumber || booking.id})</h3>
             <span class="badge ${badgeClass}">${badgeText}</span>
           </div>
-          <p>📞 ${booking.phone || 'N/A'}</p>
+          <p>📞 ${booking.phone}</p>
           <p><strong>Location:</strong> ${booking.location || 'N/A'}</p>
           <p><strong>Date:</strong> ${dateStr}</p>
           <p><strong>Time:</strong> ${timeStr}</p>
@@ -648,6 +657,7 @@ function loadReservations() {
     });
   });
 }
+
 
 
 function clearReservations() {
