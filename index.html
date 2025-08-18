@@ -834,11 +834,9 @@ function addToCartWithQty(name, imageUrl) {
   });
 }
 
-
-
 function updateCartCount() {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const count = cart.reduce((t, i) => t + (i.quantity || 0), 0);
+  const count = cart.reduce((t, i) => t + (i.quantity || 1), 0);
   document.getElementById('cart-count').textContent = count;
 }
 
