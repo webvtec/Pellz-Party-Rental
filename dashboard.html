@@ -618,23 +618,62 @@ function saveNewProduct(tempId) {
   const tableBody = document.getElementById('reservationsTable');
   tableBody.innerHTML = '';
 
-  db.collection('reservations').orderBy('createdAt', 'desc').onSnapshot((querySnapshot) => {
-    tableBody.innerHTML = '';
+  db.collection('reservations').onSnapshot((querySnapshot) => {
+    let reservations = [];
+    const now = new Date();
+
     querySnapshot.forEach((doc) => {
       const booking = doc.data();
+      const bookingDate = new Date(booking.date || booking.rentalDates);
+
+      if (!isNaN(bookingDate.getTime())) {
+        const diffHours = (now - bookingDate) / (1000 * 60 * 60);
+
+        if (diffHours > 24) {
+          // ❌ Auto-remove expired reservations
+          db.collection('reservations').doc(doc.id).delete();
+        } else {
+          reservations.push({
+            id: doc.id,
+            ...booking,
+            bookingDate
+          });
+        }
+      }
+    });
+
+    // ✅ Sort by soonest date
+    reservations.sort((a, b) => a.bookingDate - b.bookingDate);
+
+    // ✅ Render as "cards" instead of plain rows
+    tableBody.innerHTML = '';
+    reservations.forEach((booking) => {
+      const dateStr = booking.rentalDates || booking.date || '';
+      const timeStr = `${booking.startTime || ''} - ${booking.endTime || ''}`;
 
       tableBody.innerHTML += `
         <tr>
-          <td>${booking.name}</td>
-          <td>${booking.phone}</td>
-          <td>${booking.rentalDates || ''}</td>
-          <td>${booking.startTime || ''} - ${booking.endTime || ''}</td>
-          <td>${booking.paymentType || ''}</td>
+          <td colspan="5">
+            <div style="
+              background:#fff; 
+              border-radius:10px; 
+              box-shadow:0 2px 6px rgba(0,0,0,0.1); 
+              padding:15px; 
+              margin:10px 0;
+            ">
+              <h3 style="margin:0; color:#6200ea;">${booking.name}</h3>
+              <p style="margin:5px 0; color:#555;">📞 ${booking.phone}</p>
+              <p style="margin:5px 0;"><strong>Date:</strong> ${dateStr}</p>
+              <p style="margin:5px 0;"><strong>Time:</strong> ${timeStr}</p>
+              <p style="margin:5px 0;"><strong>Service:</strong> ${booking.service || booking.paymentType || ''}</p>
+              ${booking.notes ? `<p style="margin:5px 0; color:#777;"><em>Notes: ${booking.notes}</em></p>` : ""}
+            </div>
+          </td>
         </tr>
       `;
     });
   });
-    }
+}
 
     function clearReservations() {
   const confirmInput = document.getElementById('clearInput').value.trim();
