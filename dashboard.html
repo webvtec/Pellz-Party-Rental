@@ -318,6 +318,17 @@
   background: #1e7e34;   /* darker green on hover */
 }
 
+    .product-slot textarea {
+  margin-bottom: 8px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-sizing: border-box;
+  resize: vertical;         /* user can resize down/up */
+  font-family: inherit;     /* match rest of inputs */
+  font-size: 14px;
+}
+
   </style>
 </head>
 
@@ -521,7 +532,7 @@
       galleryContainer.innerHTML += `
         <div class="product-slot" id="${newId}">
           <img src="" alt="Product">
-          <input type="text" id="name-${newId}" placeholder="Item Name">
+          <textarea id="name-${newId}" placeholder="Item Name" rows="5"></textarea>
           <input type="number" id="price-${newId}" placeholder="Price">
           <input type="text" id="url-${newId}" placeholder="Image URL">
           <select id="category-${newId}">
