@@ -741,43 +741,76 @@ function updateManualPrice(itemName, itemId) {
   document.getElementById(`price-${itemId}`).textContent = formatJMD(price);
 }
 
-async function addToCart(item) {
+function updateCartCount() {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  // default to 1 if no quantity set
+  const count = cart.reduce((t, i) => t + (i.quantity || 1), 0);
+  document.getElementById('cart-count').textContent = count;
+}
+
+function addToCart(item) {
   try {
-    // ✅ use Firebase’s live auth state instead of your laggy variable
-    if (!firebase.auth().currentUser) {
-      Swal.fire({
-        icon: "warning",
-        title: "Login Required",
-        text: "You must be logged in to add items to your cart.",
-        confirmButtonText: "Login"
-      }).then(() => {
-        window.location.href = "login.html";
-      });
+    if (!currentUser) {
+      Swal.fire({ icon: "warning", title: "Login Required", text: "Please log in first." });
       return;
     }
 
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const existing = cart.find(i => i.name === item.name);
+    const exists = cart.find(i => i.name === item.name);
 
-    if (existing) {
-      showToast(`${item.name} is already in your cart.`, "error");
+    if (exists) {
+      exists.quantity = (exists.quantity || 1) + 1;
     } else {
-      cart.push({
-        ...item,
-        quantity: 1 // always 1 for non-qtyMap items
-      });
-      showToast("ADDED TO CART", "success");
+      cart.push({ ...item, quantity: 1 });
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));
     updateCartCount();
-
+    showToast("ADDED TO CART", "success");
   } catch (err) {
     console.error("addToCart error:", err);
-    showToast("❌ Could not add item. Try again.", "error");
+    showToast("❌ ERROR: " + err.message, "error");
   }
 }
 
+function addToCartWithQty(name, imageUrl) {
+  try {
+    if (!currentUser) {
+      Swal.fire({ icon: "warning", title: "Login Required", text: "Please log in first." });
+      return;
+    }
+
+    const itemId = name.replace(/\s+/g, '-');
+    const qtyEl = document.getElementById(`qty-${itemId}`);
+    const qty = Number(qtyEl?.value) || 1;
+    const totalBundle = Number(qtyMap[name]?.prices?.[qty]);
+
+    if (isNaN(totalBundle)) {
+      throw new Error(`No price found for ${name} (${qty})`);
+    }
+
+    const unitPrice = totalBundle / qty;
+
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const exists = cart.find(i => i.name === name);
+
+    if (exists) {
+      exists.quantity = qty;
+      exists.price = unitPrice;
+      exists.totalPrice = unitPrice * qty;
+    } else {
+      cart.push({ name, price: unitPrice, imageUrl, quantity: qty, totalPrice: unitPrice * qty });
+    }
+
+    localStorage.setItem("cart", JSON.stringify(cart));
+    updateCartCount();
+    showToast("ADDED TO CART", "success");
+
+  } catch (err) {
+    console.error("addToCartWithQty error:", err);
+    showToast("❌ ERROR: " + err.message, "error");
+  }
+}
 
 function addToCartWithQty(name, imageUrl) {
   // ✅ use Firebase’s live auth state
@@ -832,12 +865,6 @@ function addToCartWithQty(name, imageUrl) {
 
     showToast("ADDED TO CART", "success");
   });
-}
-
-function updateCartCount() {
-  const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const count = cart.reduce((t, i) => t + (i.quantity || 1), 0);
-  document.getElementById('cart-count').textContent = count;
 }
 
 function updateRentalDuration() {
