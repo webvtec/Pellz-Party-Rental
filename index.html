@@ -668,7 +668,6 @@ function loadGalleryByCategory(categoryFilter) {
   const galleryContainer = document.getElementById('galleryDisplay');
   galleryContainer.innerHTML = '';
 
-  // ⚡ remove orderBy to avoid Firestore index errors
   db.collection('gallery')
     .where('category', '==', categoryFilter)
     .get()
@@ -692,21 +691,28 @@ function loadGalleryByCategory(categoryFilter) {
 
       const categoryContainer = document.getElementById(`gallery-${categoryFilter}`);
 
-      // ✅ local sort by timestamp if present
-      let docs = querySnapshot.docs.map(doc => doc.data());
-      docs.sort((a, b) => {
-        if (a.timestamp && b.timestamp) {
-          return a.timestamp.toMillis() - b.timestamp.toMillis();
-        }
-        return 0;
+      // ✅ Map docs properly, use imageUrl fallback
+      let docs = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          name: data.name || "Unnamed",
+          description: data.description || "",
+          price: Number(data.price) || 0,
+          imageUrl: data.imageUrl || data.url || "",  // ✅ works for new & old docs
+          timestamp: data.timestamp ? (data.timestamp.toMillis?.() || data.timestamp) : 0
+        };
       });
 
-      docs.forEach((data) => {
-        const imageUrl = data.url;
-        const name = data.name || 'Unnamed';
-        const description = data.description || "";
+      // ✅ Always sort oldest → newest (new uploads at bottom)
+      docs.sort((a, b) => a.timestamp - b.timestamp);
+
+      docs.forEach((item) => {
+        const imageUrl = item.imageUrl;
+        const name = item.name;
+        const description = item.description;
         const itemId = name.replace(/\s+/g, '-');
-        const firebasePrice = Number(data.price) || 0;
+        const firebasePrice = item.price;
+
         if (!imageUrl || !name) return;
 
         let html = `
@@ -751,7 +757,6 @@ function loadGalleryByCategory(categoryFilter) {
 
   showSection('gallerySection');
 }
-
 
 function updateManualPrice(itemName, itemId) {
   const qty = Number(document.getElementById(`qty-${itemId}`).value) || 1;
