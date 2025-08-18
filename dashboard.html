@@ -725,6 +725,7 @@ function removeUnavailableDate(id) { db.collection('unavailableDays').doc(id).de
 
 firebase.auth().onAuthStateChanged(user => {
   if (user) {
+    loadGallery();   // ✅ add this
     showSection('reservationsPage');
     loadReservations();
     loadUnavailableDates();
