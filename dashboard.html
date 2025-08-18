@@ -624,9 +624,17 @@ function saveNewProduct(tempId) {
 
     querySnapshot.forEach((doc) => {
       const booking = doc.data();
-      const bookingDate = new Date(booking.date || booking.rentalDates);
 
-      if (!isNaN(bookingDate.getTime())) {
+      // ✅ Normalize date parsing
+      let bookingDate = null;
+      if (booking.rentalDates) {
+        // If it's already in YYYY-MM-DD format, safe to parse
+        bookingDate = new Date(booking.rentalDates + "T00:00:00");
+      } else if (booking.date) {
+        bookingDate = new Date(booking.date);
+      }
+
+      if (bookingDate && !isNaN(bookingDate.getTime())) {
         const diffHours = (now - bookingDate) / (1000 * 60 * 60);
 
         if (diffHours > 24) {
@@ -645,7 +653,7 @@ function saveNewProduct(tempId) {
     // ✅ Sort by soonest date
     reservations.sort((a, b) => a.bookingDate - b.bookingDate);
 
-    // ✅ Render as "cards" instead of plain rows
+    // ✅ Render nicely
     tableBody.innerHTML = '';
     reservations.forEach((booking) => {
       const dateStr = booking.rentalDates || booking.date || '';
@@ -674,6 +682,7 @@ function saveNewProduct(tempId) {
     });
   });
 }
+
 
     function clearReservations() {
   const confirmInput = document.getElementById('clearInput').value.trim();
