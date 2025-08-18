@@ -668,16 +668,10 @@ function loadGalleryByCategory(categoryFilter) {
   const galleryContainer = document.getElementById('galleryDisplay');
   galleryContainer.innerHTML = '';
 
-  let query = db.collection('gallery').where('category', '==', categoryFilter);
-
-  // Try to order by timestamp safely
-  try {
-    query = query.orderBy('timestamp', 'asc');
-  } catch (e) {
-    console.warn("Skipping orderBy(timestamp) because field/index is missing:", e);
-  }
-
-  query.get()
+  // ⚡ remove orderBy to avoid Firestore index errors
+  db.collection('gallery')
+    .where('category', '==', categoryFilter)
+    .get()
     .then((querySnapshot) => {
       if (querySnapshot.empty) {
         galleryContainer.innerHTML = `<p style="text-align:center;">No items found in "${categoryFilter}".</p>`;
@@ -698,13 +692,13 @@ function loadGalleryByCategory(categoryFilter) {
 
       const categoryContainer = document.getElementById(`gallery-${categoryFilter}`);
 
-      // If timestamp exists, sort locally as fallback
+      // ✅ local sort by timestamp if present
       let docs = querySnapshot.docs.map(doc => doc.data());
       docs.sort((a, b) => {
         if (a.timestamp && b.timestamp) {
           return a.timestamp.toMillis() - b.timestamp.toMillis();
         }
-        return 0; // leave order as is if missing
+        return 0;
       });
 
       docs.forEach((data) => {
