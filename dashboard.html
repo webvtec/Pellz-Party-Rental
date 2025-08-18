@@ -482,20 +482,24 @@ function loadGallery() {
 
       categories[category].forEach(item => {
         categoryContainer.innerHTML += `
-          <div class="product-slot" id="${item.docId}">
-            <img src="${item.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'}" alt="Product">
-            <textarea id="name-${item.docId}" placeholder="Item Name" rows="2">${item.name}</textarea>
-            <textarea id="desc-${item.docId}" placeholder="Item Description" rows="3">${item.description}</textarea>
-            <input type="number" id="price-${item.docId}" value="${item.price}" placeholder="Price">
-            <input type="text" id="url-${item.docId}" value="${item.imageUrl}" placeholder="Image URL">
-            <select id="category-${item.docId}">
-              <option value="EVENT ITEMS" ${item.category==="EVENT ITEMS"?"selected":""}>EVENT ITEMS</option>
-            <div class="card-buttons">
-              <button class="delete-btn" onclick="removePhoto('${item.docId}')">🗑 Delete</button>
-              <button class="save-btn" onclick="updateProduct('${item.docId}')">💾 Save</button>
-            </div>
-          </div>
-        `;
+  <div class="product-slot" id="${item.docId}">
+    <img src="${item.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'}" alt="Product">
+    <textarea id="name-${item.docId}" placeholder="Item Name" rows="2">${item.name}</textarea>
+    <textarea id="desc-${item.docId}" placeholder="Item Description" rows="3">${item.description}</textarea>
+    <input type="number" id="price-${item.docId}" value="${item.price}" placeholder="Price">
+    <input type="text" id="url-${item.docId}" value="${item.imageUrl}" placeholder="Image URL">
+    <select id="category-${item.docId}">
+      <option value="EVENT ITEMS" ${item.category==="EVENT ITEMS"?"selected":""}>EVENT ITEMS</option>
+      <option value="THRILL RIDES" ${item.category==="THRILL RIDES"?"selected":""}>THRILL RIDES</option>
+      <option value="CARS" ${item.category==="CARS"?"selected":""}>CARS</option>
+      <option value="BATHROOM" ${item.category==="BATHROOM"?"selected":""}>BATHROOM</option>
+    </select>
+    <div class="card-buttons">
+      <button class="delete-btn" onclick="removePhoto('${item.docId}')">🗑 Delete</button>
+      <button class="save-btn" onclick="updateProduct('${item.docId}')">💾 Save</button>
+    </div>
+  </div>
+`;
       });
 
       galleryContainer.appendChild(categoryContainer);
