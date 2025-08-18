@@ -724,20 +724,23 @@ function loadReservations() {
           .join('');
 
         reservationsContainer.innerHTML += `
-          <div class="reservation-card">
-            <div class="reservation-header">
-              <h3>${booking.name} (Order #${booking.orderNumber || booking.id})</h3>
-              <span class="badge ${badgeClass}">${badgeText}</span>
-            </div>
-            <p>📞 ${booking.phone}</p>
-            <p><strong>Location:</strong> ${booking.location || 'N/A'}</p>
-            <p><strong>Date:</strong> ${dateStr}</p>
-            ${timeStr ? `<p><strong>Time:</strong> ${timeStr}</p>` : ''}
-            <p><strong>Payment:</strong> ${booking.paymentType || ''}</p>
-            <p><strong>Total:</strong> JMD $${(booking.totalAmount || 0).toLocaleString()}</p>
-            <div><strong>Items:</strong><ul>${itemsList}</ul></div>
-            ${booking.notes ? `<p><em>Notes: ${booking.notes}</em></p>` : ''}
-          </div>`;
+  <div class="reservation-card">
+    <div class="reservation-header">
+      <h3>${booking.name} (Order #${booking.orderNumber || booking.id})</h3>
+      <span class="badge ${badgeType}">${title}</span>
+    </div>
+    <p>📞 ${booking.phone}</p>
+    <p><strong>Location:</strong> ${booking.location || 'N/A'}</p>
+    <p><strong>Date:</strong> ${dateStr}</p>
+    ${timeStr ? `<p><strong>Time:</strong> ${timeStr}</p>` : ''}
+    <p><strong>Payment:</strong> ${booking.paymentType || ''}</p>
+    <p><strong>Total:</strong> JMD $${(booking.totalAmount || 0).toLocaleString()}</p>
+    <div><strong>Items:</strong><ul>${itemsList}</ul></div>
+    ${booking.notes ? `<p><em>Notes: ${booking.notes}</em></p>` : ''}
+
+    <!-- ❌ Cancel Button -->
+    <button class="cancel-btn" onclick="cancelReservation('${booking.id}')">Cancel Order</button>
+  </div>`;
       });
     }
 
@@ -747,6 +750,20 @@ function loadReservations() {
     renderGroup("Upcoming", upcoming, "upcoming");
     renderGroup("Past", past, "past");
   });
+}
+
+
+    function cancelReservation(reservationId) {
+  if (confirm("Are you sure you want to cancel this order?")) {
+    db.collection("reservations").doc(reservationId).delete()
+      .then(() => {
+        alert("Order cancelled successfully.");
+      })
+      .catch(error => {
+        console.error("Error cancelling order: ", error);
+        alert("Failed to cancel order. Please try again.");
+      });
+  }
 }
 
 
