@@ -1,20 +1,17 @@
 <!DOCTYPE html>
+
 <html lang="en">
-
 <head>
-  <!-- Essential for correct scaling on mobile -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ADMIN DASHBOARD</title>
-  <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;700&display=swap" rel="stylesheet">
-  
-  <!-- Firebase Scripts -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;700&display=swap" rel="stylesheet">
-
-  
-  <style>
+<!-- Essential for correct scaling on mobile -->
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>ADMIN DASHBOARD</title>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<!-- Firebase Scripts -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<style>
     html, body {
       width: 100%;
       min-width: 0;
@@ -331,69 +328,58 @@
 
   </style>
 </head>
-
 <body>
-  <div class="header-bar">ADMIN DASHBOARD</div>
-
-  <div class="top-menu">
-    <button onclick="showSection('gallerySection')">GALLERY</button>
-    <button onclick="showSection('reservationsPage')">RESERVATIONS</button>
-    <button onclick="showSection('unavailableDaysSection')">UNAVAILABLE DAYS</button>
-  </div>
-
-  <!-- Gallery Management Page -->
-  <div id="gallerySection" class="admin-container content-section">
-  <div class="add-slot-container">
-    <button class="add-slot-btn" onclick="addNewSlot()">➕ Add New Slot</button>
-  </div>
-  <div id="adminGallery"></div>
+<div class="header-bar">ADMIN DASHBOARD</div>
+<div class="top-menu">
+<button onclick="showSection('gallerySection')">GALLERY</button>
+<button onclick="showSection('reservationsPage')">RESERVATIONS</button>
+<button onclick="showSection('unavailableDaysSection')">UNAVAILABLE DAYS</button>
 </div>
-
-  <!-- Reservations Page -->
-  <div id="reservationsPage" class="admin-container content-section">
-  <h2>Reservations</h2>
-
-  <div class="reservations-container">
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Date</th>
-          <th>Time</th>
-          <th>Service</th>
-        </tr>
-      </thead>
-      <tbody id="reservationsTable"></tbody>
-    </table>
-  </div>
-
-  <div class="clear-container">
-    <input type="text" id="clearInput" placeholder="Type CONFIRM to clear all">
-    <button onclick="clearReservations()">Clear Reservations</button>
-  </div>
+<!-- Gallery Management Page -->
+<div class="admin-container content-section" id="gallerySection">
+<div class="add-slot-container">
+<button class="add-slot-btn" onclick="addNewSlot()">➕ Add New Slot</button>
 </div>
-
-  <!-- Unavailable Days Page -->
-  <div id="unavailableDaysSection" class="admin-container content-section">
-    <h2>Set Unavailable Days</h2>
-    <input type="date" id="unavailableDateInput">
-    <label><input type="checkbox" id="allDayCheckbox" checked onchange="toggleTimeInputs()"> All Day</label>
-
-    <div id="timeInputs" style="display: none;">
-  <label>FROM:</label>
-  <input type="time" id="startTimeInput">
-  <label>UNTIL:</label>
-  <input type="time" id="endTimeInput">
-    </div>
-
-    <button onclick="addUnavailableDate()">Add Unavailable Date</button>
-
-    <h3>Unavailable Dates</h3>
-    <ul id="unavailableDatesList"></ul>
-  </div>
-
-  <script>
+<div id="adminGallery"></div>
+</div>
+<!-- Reservations Page -->
+<div class="admin-container content-section" id="reservationsPage">
+<h2>Reservations</h2>
+<div class="reservations-container">
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Phone</th>
+<th>Date</th>
+<th>Time</th>
+<th>Service</th>
+</tr>
+</thead>
+<tbody id="reservationsTable"></tbody>
+</table>
+</div>
+<div class="clear-container">
+<input id="clearInput" placeholder="Type CONFIRM to clear all" type="text"/>
+<button onclick="clearReservations()">Clear Reservations</button>
+</div>
+</div>
+<!-- Unavailable Days Page -->
+<div class="admin-container content-section" id="unavailableDaysSection">
+<h2>Set Unavailable Days</h2>
+<input id="unavailableDateInput" type="date"/>
+<label><input checked="" id="allDayCheckbox" onchange="toggleTimeInputs()" type="checkbox"/> All Day</label>
+<div id="timeInputs" style="display: none;">
+<label>FROM:</label>
+<input id="startTimeInput" type="time"/>
+<label>UNTIL:</label>
+<input id="endTimeInput" type="time"/>
+</div>
+<button onclick="addUnavailableDate()">Add Unavailable Date</button>
+<h3>Unavailable Dates</h3>
+<ul id="unavailableDatesList"></ul>
+</div>
+<script>
     const firebaseConfig = {
   apiKey: "AIzaSyDccI-TdbCXAJr6CD77X4yOUOfezef7Oks",
   authDomain: "delivery-login-3a084.firebaseapp.com",
@@ -497,7 +483,7 @@
         categoryContainer.innerHTML += `
           <div class="product-slot" id="${item.docId}">
             <img src="${item.imageUrl}" alt="Product">
-            <textarea id="name-${item.docId}" placeholder="Item Name" rows="5">${item.name || ''}</textarea>
+            <textarea id="name-${item.docId}" placeholder="Item Name" rows="2">${item.name || ''}</textarea>\n<textarea id="desc-${item.docId}" placeholder="Item Description" rows="3">${item.description || ''}</textarea>
             <input type="number" id="price-${item.docId}" value="${item.price}" placeholder="Price">
             <input type="text" id="url-${item.docId}" value="${item.imageUrl}" placeholder="Image URL">
             <select id="category-${item.docId}">
@@ -532,7 +518,7 @@
       galleryContainer.innerHTML += `
         <div class="product-slot" id="${newId}">
           <img src="" alt="Product">
-          <textarea id="name-${newId}" placeholder="Item Name" rows="5"></textarea>
+          <textarea id="name-${newId}" placeholder="Item Name" rows="2"></textarea>\n<textarea id="desc-${newId}" placeholder="Item Description" rows="3"></textarea>
           <input type="number" id="price-${newId}" placeholder="Price">
           <input type="text" id="url-${newId}" placeholder="Image URL">
           <select id="category-${newId}">
