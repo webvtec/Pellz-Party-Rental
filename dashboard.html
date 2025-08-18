@@ -70,7 +70,6 @@
   }
 }
 
-    }
     .admin-container {
       max-width: 100%;
       margin: 20px auto;
@@ -290,15 +289,16 @@
       text-align: left;
     }
 
-    /* Mobile adjustments */
-    @media (max-width: 100%) {
-      .navbar {
-        flex-direction: column;
-      }
-      .navbar button {
-        width: 100%;
-      }
-    }
+    //* ✅ Proper responsive fix */
+@media (max-width: 768px) {
+  .top-menu {
+    flex-direction: column;
+  }
+  .top-menu button {
+    width: 100%;
+  }
+}
+    
     </style>
 </head>
 
