@@ -96,8 +96,8 @@
     }
     .gallery-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 15px;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
       margin-bottom: 30px;
     }
 .product-slot {
@@ -123,6 +123,41 @@
     }
     .product-slot button:first-child { background: #28a745; color:white; }
     .product-slot button:last-child { background: #dc3545; color:white; }
+
+    .product-slot img {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      margin-bottom: 8px;
+      border-radius: 6px;
+    }
+
+    .card-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+    }
+
+    .save-btn {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      flex: 1;
+      margin-right: 5px;
+    }
+
+    .delete-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      flex: 1;
+    }
 
     .gallery-grid div {
       position: relative;
@@ -190,21 +225,7 @@
 
   <!-- Gallery Management Page -->
   <div id="gallerySection" class="admin-container content-section">
-    <h2>ADD NEW ITEM</h2>
-    <input type="text" id="itemNameInput" placeholder="Item Name">
-    <input type="number" id="itemPriceInput" placeholder="Item Price">
-    <input type="text" id="photoUrlInput" placeholder="Image URL">
-
-    <label for="photoCategorySelect">Select Category</label>
-    <select id="photoCategorySelect">
-      <option value="EVENT ITEMS">EVENT ITEMS</option>
-      <option value="THRILL RIDES">THRILL RIDES</option>
-      <option value="CARS">CARS</option>
-      <option value="BATHROOM">BATHROOM</option>
-    </select>
-
-    <button onclick="addPhotoUrl()">Add Item</button>
-
+    <button onclick="addNewSlot()">➕ Add New Slot</button>
     <div id="adminGallery"></div>
   </div>
 
@@ -371,6 +392,49 @@
         console.error("Error removing document: ", error);
         alert('Error removing photo: ' + error.message);
       });
+    }
+
+    function addNewSlot() {
+      const galleryContainer = document.getElementById("adminGallery");
+      const newId = "new-" + Date.now();
+
+      galleryContainer.innerHTML += `
+        <div class="product-slot" id="${newId}">
+          <img src="" alt="Product">
+          <input type="text" id="name-${newId}" placeholder="Item Name">
+          <input type="number" id="price-${newId}" placeholder="Price">
+          <input type="text" id="url-${newId}" placeholder="Image URL">
+          <select id="category-${newId}">
+            <option value="EVENT ITEMS">EVENT ITEMS</option>
+            <option value="THRILL RIDES">THRILL RIDES</option>
+            <option value="CARS">CARS</option>
+            <option value="BATHROOM">BATHROOM</option>
+          </select>
+          <div class="card-buttons">
+            <button class="save-btn" onclick="saveNewProduct('${newId}')">💾 Save</button>
+            <button class="delete-btn" onclick="document.getElementById('${newId}').remove()">🗑 Delete</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function saveNewProduct(tempId) {
+      const name = document.getElementById(`name-${tempId}`).value.trim();
+      const price = parseFloat(document.getElementById(`price-${tempId}`).value) || 0;
+      const url = document.getElementById(`url-${tempId}`).value.trim();
+      const category = document.getElementById(`category-${tempId}`).value;
+
+      if (!name || !url || !category) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      db.collection("gallery").add({ name, price, url, category })
+        .then(() => {
+          alert("Product added successfully!");
+          loadGallery();
+        })
+        .catch(err => alert("Error adding product: " + err.message));
     }
 
     function updateProduct(docId) {
