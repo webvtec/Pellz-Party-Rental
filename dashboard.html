@@ -504,22 +504,37 @@
     }
 
     function saveNewProduct(tempId) {
-      const name = document.getElementById(`name-${tempId}`).value.trim();
-      const price = parseFloat(document.getElementById(`price-${tempId}`).value) || 0;
-      const url = document.getElementById(`url-${tempId}`).value.trim();
-      const category = document.getElementById(`category-${tempId}`).value;
+  const name = document.getElementById(`name-${tempId}`).value.trim();
+  const price = parseFloat(document.getElementById(`price-${tempId}`).value) || 0;
+  const url = document.getElementById(`url-${tempId}`).value.trim();
+  const category = document.getElementById(`category-${tempId}`).value;
 
-      if (!name || !url || !category) {
-        alert("Please fill in all fields.");
-        return;
+  if (!name || !url || !category) {
+    alert("Please fill in all fields.");
+    return;
+  }
+
+  db.collection("gallery").add({ name, price, url, category })
+    .then((docRef) => {
+      alert("Product added successfully!");
+
+      // ✅ Keep values in place, but convert tempId to real Firestore docId
+      const slot = document.getElementById(tempId);
+      if (slot) {
+        slot.id = docRef.id;  // replace tempId with real docId
+        document.getElementById(`name-${tempId}`).id = `name-${docRef.id}`;
+        document.getElementById(`price-${tempId}`).id = `price-${docRef.id}`;
+        document.getElementById(`url-${tempId}`).id = `url-${docRef.id}`;
+        document.getElementById(`category-${tempId}`).id = `category-${docRef.id}`;
+
+        // update button onclicks to use new docId
+        slot.querySelector(".save-btn").setAttribute("onclick", `updateProduct('${docRef.id}')`);
+        slot.querySelector(".delete-btn").setAttribute("onclick", `removePhoto('${docRef.id}')`);
       }
+    })
+    .catch(err => alert("Error adding product: " + err.message));
+}
 
-      db.collection("gallery").add({ name, price, url, category })
-  .then(() => {
-    alert("Product added successfully!");
-    // ❌ don’t reload gallery, leave inputs as is
-    // optional: disable Save button to show success
-  })
 
     function updateProduct(docId) {
       const name = document.getElementById(`name-${docId}`).value.trim();
