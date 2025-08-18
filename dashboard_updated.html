@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADMIN DASHBOARD</title>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* Styles remain unchanged */
+    body {
+      font-family: 'Zilla Slab', serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+        .header-bar {
+      background-color: #FFD1DC;
+      padding: 8px;
+      text-align: center;
+      font-size: 27px;
+      font-weight: bold;
+      color: #6200ea;
+        }
+
+    .top-menu {
+      display: flex;
+      justify-content: center;
+      background-color: #6200ea;
+      padding: 10px 0;
+    }
+    .top-menu button {
+      background-color: white;
+      color: #6200ea;
+      border: none;
+      padding: 6px 12px;
+      margin: 0 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .top-menu button:hover {
+      background-color: #FFD1DC;
+    }
+    .admin-container {
+      max-width: 1000px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      color: #6200ea;
+      text-align: center;
+    }
+    input[type="text"], input[type="date"], input[type="time"], select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background-color: #6200ea;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    button:hover {
+      background-color: #3700b3;
+    }
+    .gallery-category {
+      margin-top: 40px;
+    }
+    .gallery-category h3 {
+      text-align: center;
+      margin-bottom: 15px;
+      font-size: 22px;
+      color: #6200ea;
+      text-transform: uppercase;
+    }
+    .gallery-wrapper {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 10px;
+    }
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+.product-slot {
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .product-slot input, .product-slot select {
+      margin-bottom: 8px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .product-slot button {
+      flex: 1;
+      padding: 6px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .product-slot button:first-child { background: #28a745; color:white; }
+    .product-slot button:last-child { background: #dc3545; color:white; }
+
+    .gallery-grid div {
+      position: relative;
+    }
+    .gallery-grid img {
+      width: 100%;
+      height: 250px;
+      object-fit: cover;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+    }
+    .remove-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background-color: red;
+      color: white;
+      border: none;
+      padding: 5px 8px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #6200ea;
+      color: white;
+    }
+    .content-section {
+      display: none;
+    }
+    .content-section.active {
+      display: block;
+    }
+    .clear-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .clear-container input {
+      padding: 10px;
+      margin-right: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header-bar">ADMIN DASHBOARD</div>
+
+  <div class="top-menu">
+    <button onclick="showSection('gallerySection')">GALLERY</button>
+    <button onclick="showSection('reservationsPage')">RESERVATIONS</button>
+    <button onclick="showSection('unavailableDaysSection')">UNAVAILABLE DAYS</button>
+  </div>
+
+  <!-- Gallery Management Page -->
+  <div id="gallerySection" class="admin-container content-section">
+    <h2>ADD NEW ITEM</h2>
+    <input type="text" id="itemNameInput" placeholder="Item Name">
+    <input type="number" id="itemPriceInput" placeholder="Item Price">
+    <input type="text" id="photoUrlInput" placeholder="Image URL">
+
+    <label for="photoCategorySelect">Select Category</label>
+    <select id="photoCategorySelect">
+      <option value="EVENT ITEMS">EVENT ITEMS</option>
+      <option value="THRILL RIDES">THRILL RIDES</option>
+      <option value="CARS">CARS</option>
+      <option value="BATHROOM">BATHROOM</option>
+    </select>
+
+    <button onclick="addPhotoUrl()">Add Item</button>
+
+    <div id="adminGallery"></div>
+  </div>
+
+  <!-- Reservations Page -->
+  <div id="reservationsPage" class="admin-container content-section">
+    <h2>Reservations</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Service</th>
+        </tr>
+      </thead>
+      <tbody id="reservationsTable"></tbody>
+    </table>
+
+    <div class="clear-container">
+      <input type="text" id="clearInput" placeholder="Type CONFIRM to clear all">
+      <button onclick="clearReservations()">Clear Reservations</button>
+    </div>
+  </div>
+
+  <!-- Unavailable Days Page -->
+  <div id="unavailableDaysSection" class="admin-container content-section">
+    <h2>Set Unavailable Days</h2>
+    <input type="date" id="unavailableDateInput">
+    <label><input type="checkbox" id="allDayCheckbox" checked onchange="toggleTimeInputs()"> All Day</label>
+
+    <div id="timeInputs" style="display: none;">
+  <label>FROM:</label>
+  <input type="time" id="startTimeInput">
+  <label>UNTIL:</label>
+  <input type="time" id="endTimeInput">
+    </div>
+
+    <button onclick="addUnavailableDate()">Add Unavailable Date</button>
+
+    <h3>Unavailable Dates</h3>
+    <ul id="unavailableDatesList"></ul>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+  apiKey: "AIzaSyDccI-TdbCXAJr6CD77X4yOUOfezef7Oks",
+  authDomain: "delivery-login-3a084.firebaseapp.com",
+  projectId: "delivery-login-3a084",
+  storageBucket: "delivery-login-3a084.firebasestorage.app",
+  messagingSenderId: "201998621677",
+  appId: "1:201998621677:web:b51c3aeb2debe18b4aa5e4"
+};
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function showSection(sectionId) {
+      document.querySelectorAll('.content-section').forEach(section =>
+        section.classList.remove('active')
+      );
+      document.getElementById(sectionId).classList.add('active');
+    }
+
+    function toggleTimeInputs() {
+      const isAllDay = document.getElementById('allDayCheckbox').checked;
+      document.getElementById('timeInputs').style.display = isAllDay ? 'none' : 'block';
+    }
+
+    function addPhotoUrl() {
+  const nameInput = document.getElementById('itemNameInput');
+  const urlInput = document.getElementById('photoUrlInput');
+  const priceInput = document.getElementById('itemPriceInput'); // add this line
+  const categorySelect = document.getElementById('photoCategorySelect');
+
+  const name = nameInput.value.trim();
+  const url = urlInput.value.trim();
+  const price = parseFloat(priceInput.value); // add this line
+  const category = categorySelect.value.trim();
+
+  // Validate all fields
+  if (name === '' || url === '' || isNaN(price) || category === '') {
+    alert('Please enter a name, valid image URL, price, and select a category.');
+    return;
+  }
+
+  // Save to Firebase (✅ add price)
+  db.collection('gallery').add({
+    name: name,
+    url: url,
+    price: price,
+    category: category
+  })
+  .then(() => {
+    nameInput.value = '';
+    urlInput.value = '';
+    priceInput.value = ''; // clear price input
+    categorySelect.value = '';
+    alert('Item added successfully!');
+  })
+  .catch(error => {
+    console.error("Error adding item: ", error);
+    alert('Error adding item: ' + error.message);
+  });
+}
+
+    function loadGallery() {
+      const galleryContainer = document.getElementById('adminGallery');
+      galleryContainer.innerHTML = '';
+
+      db.collection('gallery').onSnapshot((querySnapshot) => {
+        galleryContainer.innerHTML = '';
+
+        const categories = {};
+
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          const imageUrl = data.url;
+          const category = data.category || 'Uncategorized';
+
+          if (!categories[category]) {
+            categories[category] = [];
+          }
+          categories[category].push({ imageUrl: imageUrl, docId: doc.id });
+        });
+
+        for (const category in categories) {
+          galleryContainer.innerHTML += `
+            <div class="gallery-category">
+              <h3>${category}</h3>
+              <div class="gallery-wrapper">
+                <div class="gallery-grid" id="gallery-${category}"></div>
+              </div>
+            </div>
+          `;
+
+          const categoryContainer = document.getElementById(`gallery-${category}`);
+
+          categories[category].forEach(item => {
+            categoryContainer.innerHTML += `
+              <div class="product-slot">
+                <img src="${item.imageUrl}" alt="Product">
+                <input type="text" id="name-${item.docId}" value="${item.name || ''}" placeholder="Item Name">
+                <input type="number" id="price-${item.docId}" value="${item.price || 0}" placeholder="Price">
+                <input type="text" id="url-${item.docId}" value="${item.imageUrl}" placeholder="Image URL">
+                <select id="category-${item.docId}">
+                  <option value="EVENT ITEMS" ${item.category==="EVENT ITEMS"?"selected":""}>EVENT ITEMS</option>
+                  <option value="THRILL RIDES" ${item.category==="THRILL RIDES"?"selected":""}>THRILL RIDES</option>
+                  <option value="CARS" ${item.category==="CARS"?"selected":""}>CARS</option>
+                  <option value="BATHROOM" ${item.category==="BATHROOM"?"selected":""}>BATHROOM</option>
+                </select>
+                <div style="margin-top:8px; display:flex; gap:6px;">
+                  <button onclick="updateProduct('${item.docId}')">💾 Save</button>
+                  <button class="remove-btn" onclick="removePhoto('${item.docId}')">🗑 Delete</button>
+                </div>
+              </div>
+            `;
+          });
+        }
+      });
+    }
+
+    function removePhoto(docId) {
+      db.collection('gallery').doc(docId).delete().catch((error) => {
+        console.error("Error removing document: ", error);
+        alert('Error removing photo: ' + error.message);
+      });
+    }
+
+    function updateProduct(docId) {
+      const name = document.getElementById(`name-${docId}`).value.trim();
+      const price = parseFloat(document.getElementById(`price-${docId}`).value) || 0;
+      const url = document.getElementById(`url-${docId}`).value.trim();
+      const category = document.getElementById(`category-${docId}`).value;
+
+      if (!name || !url || !category) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      db.collection("gallery").doc(docId).update({
+        name, price, url, category
+      })
+      .then(() => alert("Product updated successfully!"))
+      .catch(err => alert("Error updating product: " + err.message));
+    }
+
+    function removePhoto(docId) {
+      db.collection('gallery').doc(docId).delete().catch((error) => {
+        console.error("Error removing document: ", error);
+        alert('Error removing photo: ' + error.message);
+      });
+    }
+
+    function loadReservations() {
+  const tableBody = document.getElementById('reservationsTable');
+  tableBody.innerHTML = '';
+
+  db.collection('reservations').orderBy('createdAt', 'desc').onSnapshot((querySnapshot) => {
+    tableBody.innerHTML = '';
+    querySnapshot.forEach((doc) => {
+      const booking = doc.data();
+
+      tableBody.innerHTML += `
+        <tr>
+          <td>${booking.name}</td>
+          <td>${booking.phone}</td>
+          <td>${booking.rentalDates || ''}</td>
+          <td>${booking.startTime || ''} - ${booking.endTime || ''}</td>
+          <td>${booking.paymentType || ''}</td>
+        </tr>
+      `;
+    });
+  });
+    }
+
+    function clearReservations() {
+  const confirmInput = document.getElementById('clearInput').value.trim();
+
+  if (confirmInput !== 'CONFIRM') {
+    alert('TYPE "CONFIRM" TO CLEAR ALL RESERVATIONS.');
+    return;
+  }
+
+  db.collection('reservations').get().then((querySnapshot) => {
+    const batch = db.batch();
+
+    querySnapshot.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
+    batch.commit().then(() => {
+      alert('All reservations cleared successfully.');
+      document.getElementById('clearInput').value = '';
+    });
+  });
+    }
+    
+    function addUnavailableDate() {
+      const dateInput = document.getElementById('unavailableDateInput').value;
+      const isAllDay = document.getElementById('allDayCheckbox').checked;
+      const startTime = document.getElementById('startTimeInput').value;
+      const endTime = document.getElementById('endTimeInput').value;
+
+      if (!dateInput) {
+        alert('Please select a date.');
+        return;
+      }
+
+      if (!isAllDay && (!startTime || !endTime)) {
+        alert('Please enter both start and end times.');
+        return;
+      }
+
+      db.collection('unavailableDays').add({
+        date: dateInput,
+        allDay: isAllDay,
+        startTime: isAllDay ? null : startTime,
+        endTime: isAllDay ? null : endTime
+      })
+        .then(() => {
+          alert('Unavailability added.');
+          loadUnavailableDates();
+          document.getElementById('unavailableDateInput').value = '';
+          document.getElementById('startTimeInput').value = '';
+          document.getElementById('endTimeInput').value = '';
+        })
+        .catch(error => {
+          console.error('Error adding unavailable date: ', error);
+          alert('Error adding date: ' + error.message);
+        });
+    }
+
+    function loadUnavailableDates() {
+      const list = document.getElementById('unavailableDatesList');
+      list.innerHTML = '';
+
+      db.collection('unavailableDays').orderBy('date').onSnapshot((querySnapshot) => {
+        list.innerHTML = '';
+
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          let displayText = `${data.date} - `;
+
+          if (data.allDay) {
+            displayText += 'All Day';
+          } else {
+            displayText += `${data.startTime} to ${data.endTime}`;
+          }
+
+          list.innerHTML += `
+            <li>
+              ${displayText}
+              <button onclick="removeUnavailableDate('${doc.id}')">Remove</button>
+            </li>
+          `;
+        });
+      });
+    }
+
+    function removeUnavailableDate(docId) {
+      db.collection('unavailableDays').doc(docId).delete().catch((error) => {
+        console.error("Error removing unavailable date: ", error);
+        alert('Error removing date: ' + error.message);
+      });
+    }
+
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        showSection('gallerySection');
+        loadGallery();
+        loadReservations();
+        loadUnavailableDates();
+      } else {
+        window.location.href = 'index.html';
+      }
+    });
+  </script>
+</body>
+</html>
