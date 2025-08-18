@@ -592,46 +592,62 @@ function loadReservations() {
     reservationsContainer.innerHTML = '';
     const now = new Date();
 
-    // helper: strip time (normalize to midnight local)
+    // normalize to local midnight
     function normalizeDate(d) {
       return new Date(d.getFullYear(), d.getMonth(), d.getDate());
     }
     const today = normalizeDate(now);
 
-    // helper: parse YYYY-MM-DD as local date
+    // parse YYYY-MM-DD as local date
     function parseLocalDate(dateStr) {
       if (!dateStr) return new Date(0);
       const [year, month, day] = dateStr.split('-').map(Number);
-      return new Date(year, month - 1, day, 0, 0, 0); // local midnight
+      return new Date(year, month - 1, day, 0, 0, 0); 
+    }
+
+    // check if today falls in the booking range
+    function isTodayBooking(startDate, endDate, today) {
+      return today >= startDate && today <= endDate;
     }
 
     const reservations = [];
 
     snapshot.forEach(doc => {
       const booking = doc.data();
-      let bookingDate = null;
+      let bookingStart = null;
+      let bookingEnd = null;
 
       if (booking.rentalDates?.includes(' to ')) {
-        bookingDate = parseLocalDate(booking.rentalDates.split(' to ')[0]);
+        const [start, end] = booking.rentalDates.split(' to ');
+        bookingStart = parseLocalDate(start);
+        bookingEnd = parseLocalDate(end);
       } else if (booking.rentalDates) {
-        bookingDate = parseLocalDate(booking.rentalDates);
+        bookingStart = parseLocalDate(booking.rentalDates);
+        bookingEnd = bookingStart;
       }
 
       reservations.push({
         id: doc.id,
-        bookingDate: bookingDate ? normalizeDate(bookingDate) : new Date(0),
+        bookingStart,
+        bookingEnd,
         ...booking
       });
     });
 
-    // ✅ split into today, upcoming, past
-    const todayBookings = reservations.filter(r => r.bookingDate.getTime() === today.getTime());
-    const upcoming = reservations.filter(r => r.bookingDate > today)
-                                 .sort((a, b) => a.bookingDate - b.bookingDate);
-    const past = reservations.filter(r => r.bookingDate < today)
-                             .sort((a, b) => b.bookingDate - a.bookingDate);
+    // ✅ split groups
+    const todayBookings = reservations.filter(r => 
+      r.bookingStart && r.bookingEnd && isTodayBooking(r.bookingStart, r.bookingEnd, today)
+    );
 
-    // ✅ combine in order: today → upcoming → past
+    const upcoming = reservations.filter(r => 
+      r.bookingStart && r.bookingStart > today
+    ).sort((a, b) => a.bookingStart - b.bookingStart);
+
+    const past = reservations.filter(r => 
+      r.bookingEnd && r.bookingEnd < today
+    ).sort((a, b) => b.bookingEnd - a.bookingEnd);
+
+    // combine
     const orderedReservations = [...todayBookings, ...upcoming, ...past];
 
     orderedReservations.forEach(booking => {
@@ -640,10 +656,14 @@ function loadReservations() {
 
       let badgeClass = 'upcoming';
       let badgeText = 'Upcoming';
-      if (booking.bookingDate.getTime() === today.getTime()) {
+
+      if (isTodayBooking(booking.bookingStart, booking.bookingEnd, today)) {
         badgeClass = 'today';
         badgeText = 'Today';
-      } else if (booking.bookingDate < today) {
+      } else if (booking.bookingStart > today) {
+        badgeClass = 'upcoming';
+        badgeText = 'Upcoming';
+      } else {
         badgeClass = 'past';
         badgeText = 'Past';
       }
