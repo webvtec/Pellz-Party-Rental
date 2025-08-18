@@ -336,7 +336,7 @@
   color: #fff;
 }
 .badge.today { background: #28a745; }     /* green */
-.badge.upcoming { background: #007bff; }  /* blue */
+.badge.upcoming { background: #ff9800; }  /* orange */
 
     .reservation-group {
   margin-top: 30px;
@@ -351,6 +351,11 @@
 
     .badge.past {
   background: #9e9e9e; /* grey */
+  color: white;
+}
+
+    .badge.tomorrow {
+  background: #007bff; /* blue */
   color: white;
 }
 
@@ -608,34 +613,32 @@ function loadReservations() {
     reservationsContainer.innerHTML = '';
     const now = new Date();
 
-    // normalize to local midnight
     function normalizeDate(d) {
       return new Date(d.getFullYear(), d.getMonth(), d.getDate());
     }
     const today = normalizeDate(now);
 
-    // parse YYYY-MM-DD as local date
+    // define tomorrow
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
     function parseLocalDate(dateStr) {
       if (!dateStr) return new Date(0);
       const [year, month, day] = dateStr.split('-').map(Number);
-      return new Date(year, month - 1, day, 0, 0, 0); 
+      return new Date(year, month - 1, day, 0, 0, 0);
     }
 
-    // check if today falls in the booking range
-    function isTodayBooking(startDate, endDate, today) {
-      return today >= startDate && today <= endDate;
+    function isTodayBooking(startDate, endDate, refDay) {
+      return refDay >= startDate && refDay <= endDate;
     }
 
-    // format helpers
     function formatDate(d) {
       return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     }
 
     function formatDateRange(start, end) {
       if (!start || !end) return "";
-      if (start.getTime() === end.getTime()) {
-        return formatDate(start);
-      }
+      if (start.getTime() === end.getTime()) return formatDate(start);
       return `${formatDate(start)} to ${formatDate(end)}`;
     }
 
@@ -675,40 +678,33 @@ function loadReservations() {
       });
     });
 
-    // ✅ split groups
-    const todayBookings = reservations.filter(r => 
+    // ✅ split into groups
+    const todayBookings = reservations.filter(r =>
       r.bookingStart && r.bookingEnd && isTodayBooking(r.bookingStart, r.bookingEnd, today)
     );
 
-    const upcoming = reservations.filter(r => 
-      r.bookingStart && r.bookingStart > today
+    const tomorrowBookings = reservations.filter(r =>
+      r.bookingStart && r.bookingEnd && isTodayBooking(r.bookingStart, r.bookingEnd, tomorrow)
+    );
+
+    const upcoming = reservations.filter(r =>
+      r.bookingStart && r.bookingStart > tomorrow
     ).sort((a, b) => a.bookingStart - b.bookingStart);
 
-    const past = reservations.filter(r => 
+    const past = reservations.filter(r =>
       r.bookingEnd && r.bookingEnd < today
     ).sort((a, b) => b.bookingEnd - a.bookingEnd);
 
     // helper: render a group
-    function renderGroup(title, list) {
+    function renderGroup(title, list, badgeType) {
       if (!list.length) return;
       reservationsContainer.innerHTML += `<h2 class="reservation-group">${title}</h2>`;
       list.forEach(booking => {
         const dateStr = formatDateRange(booking.bookingStart, booking.bookingEnd);
         const timeStr = formatTimeRange(booking.startTime, booking.endTime);
 
-        let badgeClass = 'upcoming';
-        let badgeText = 'Upcoming';
-
-        if (isTodayBooking(booking.bookingStart, booking.bookingEnd, today)) {
-          badgeClass = 'today';
-          badgeText = 'Today';
-        } else if (booking.bookingStart > today) {
-          badgeClass = 'upcoming';
-          badgeText = 'Upcoming';
-        } else {
-          badgeClass = 'past';
-          badgeText = 'Past';
-        }
+        let badgeClass = badgeType;
+        let badgeText = title;
 
         const itemsList = (booking.cartItems || [])
           .map(i => `<li>${i.name} x${i.quantity}</li>`)
@@ -732,10 +728,11 @@ function loadReservations() {
       });
     }
 
-    // ✅ render groups in order
-    renderGroup("Today", todayBookings);
-    renderGroup("Upcoming", upcoming);
-    renderGroup("Past", past);
+    // ✅ render in order
+    renderGroup("Today", todayBookings, "today");
+    renderGroup("Tomorrow", tomorrowBookings, "tomorrow");
+    renderGroup("Upcoming", upcoming, "upcoming");
+    renderGroup("Past", past, "past");
   });
 }
 
