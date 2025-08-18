@@ -445,27 +445,35 @@ function loadGallery() {
   galleryContainer.innerHTML = '';
 
   db.collection('gallery')
-    .orderBy('timestamp', 'asc')   // ✅ ensures bottom order
     .onSnapshot((querySnapshot) => {
       galleryContainer.innerHTML = '';
       const categories = {};
 
+      const items = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         const category = data.category || 'Uncategorized';
 
-        if (!categories[category]) {
-          categories[category] = [];
-        }
-
-        categories[category].push({
+        items.push({
           imageUrl: data.url,
           name: data.name || "",
           description: data.description || "",
           price: data.price || 0,
           category: category,
-          docId: doc.id
+          docId: doc.id,
+          timestamp: data.timestamp ? data.timestamp.toMillis?.() || data.timestamp : 0 // ✅ fallback for old docs
         });
+      });
+
+      // ✅ sort manually: old docs (0) first, then by timestamp ascending
+      items.sort((a, b) => a.timestamp - b.timestamp);
+
+      // ✅ group into categories
+      items.forEach(item => {
+        if (!categories[item.category]) {
+          categories[item.category] = [];
+        }
+        categories[item.category].push(item);
       });
 
       for (const category in categories) {
