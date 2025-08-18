@@ -670,6 +670,7 @@ function loadGalleryByCategory(categoryFilter) {
 
   db.collection('gallery')
     .where('category', '==', categoryFilter)
+    .orderBy('timestamp', 'asc')   // ✅ enforce order
     .get()
     .then((querySnapshot) => {
       if (querySnapshot.empty) {
@@ -695,7 +696,7 @@ function loadGalleryByCategory(categoryFilter) {
         const data = doc.data();
         const imageUrl = data.url;
         const name = data.name || 'Unnamed';
-        const description = data.description || "";   // ✅ safe fallback
+        const description = data.description || "";
         const itemId = name.replace(/\s+/g, '-');
         const firebasePrice = Number(data.price) || 0;
         if (!imageUrl || !name) return;
@@ -706,7 +707,6 @@ function loadGalleryByCategory(categoryFilter) {
             <div class="product-info">
               <div class="product-name">${name}</div>
               ${description ? `<div class="product-description">${description.replace(/\n/g, '<br>')}</div>` : ''}
-
         `;
 
         if (qtyMap[name]) {
@@ -743,7 +743,6 @@ function loadGalleryByCategory(categoryFilter) {
 
   showSection('gallerySection');
 }
-
 
 
 function updateManualPrice(itemName, itemId) {
