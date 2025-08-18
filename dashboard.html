@@ -13,34 +13,52 @@
     <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
-    /* Styles remain unchanged */
-    body {
-      font-family: 'Zilla Slab', serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-    }
-        .header-bar {
+/* Ensure proper scaling and full width on all devices */
+html, body {
+  width: 100vw;
+  min-width: 0;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  font-family: 'Zilla Slab', serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 0;
+}
+
+/* Fix viewport scaling issue on mobile (add this meta in your HTML HEAD) */
+/*
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+*/
+
+.header-bar {
   background-color: #FFD1DC;
-  padding: 12px;
+  padding: 12px 0;
   text-align: center;
   font-size: 27px;
   font-weight: bold;
   color: #6200ea;
-  width: 100%;          /* full width */
-  box-sizing: border-box; 
-  margin: 0;            /* make sure no gap */
+  width: 100vw;
+  box-sizing: border-box;
+  margin: 0;
+  left: 0;
+  right: 0;
+  position: relative;
 }
 
+/* Top Menu Fix */
 .top-menu {
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
   background-color: #6200ea;
-  padding: 10px;
-  width: 100%;          /* full width */
+  padding: 10px 0;
+  width: 100vw;
   box-sizing: border-box;
   margin: 0;
+  left: 0;
+  right: 0;
+  position: relative;
 }
 
 .top-menu button {
@@ -54,75 +72,87 @@
   font-weight: bold;
   cursor: pointer;
   text-align: center;
+  min-width: 100px;
 }
 
 .top-menu button:hover {
   background-color: #FFD1DC;
 }
 
-/* ✅ Corrected media query */
 @media (max-width: 1200px) {
   .top-menu {
     flex-direction: column;
   }
   .top-menu button {
     width: 100%;
+    min-width: unset;
   }
 }
 
-    .admin-container {
-      max-width: 100%;
-      margin: 20px auto;
-      padding: 20px;
-      background-color: white;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    }
-    h2 {
-      color: #6200ea;
-      text-align: center;
-    }
-    input[type="text"], input[type="date"], input[type="time"], select {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 15px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-    button {
-      background-color: #6200ea;
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-bottom: 20px;
-    }
-    button:hover {
-      background-color: #3700b3;
-    }
-    .gallery-category {
-      margin-top: 40px;
-    }
-    .gallery-category h3 {
-      text-align: center;
-      margin-bottom: 15px;
-      font-size: 22px;
-      color: #6200ea;
-      text-transform: uppercase;
-    }
-    
-    .gallery-wrapper {
-      max-width: 100%;
-      margin: 0 auto;
-      padding: 0 10px;
-    }
-    .gallery-grid {
+.admin-container {
+  max-width: 100vw;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  overflow-x: auto;
+}
+h2 {
+  color: #6200ea;
+  text-align: center;
+}
+input[type="text"], input[type="date"], input[type="time"], select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+button {
+  background-color: #6200ea;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+button:hover {
+  background-color: #3700b3;
+}
+.gallery-category {
+  margin-top: 40px;
+}
+.gallery-category h3 {
+  text-align: center;
+  margin-bottom: 15px;
+  font-size: 22px;
+  color: #6200ea;
+  text-transform: uppercase;
+}
+
+.gallery-wrapper {
+  max-width: 100vw;
+  margin: 0 auto;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+.gallery-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* Always 2 side by side */
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
   margin-bottom: 30px;
   width: 100%;
+}
+
+@media (max-width: 700px) {
+  .gallery-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 }
 
 .product-slot {
@@ -136,166 +166,181 @@
   box-sizing: border-box;
 }
 
-    .product-slot input, .product-slot select {
-      margin-bottom: 8px;
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-    .product-slot button {
-      flex: 1;
-      padding: 6px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .product-slot button:first-child { background: #28a745; color:white; }
-    .product-slot button:last-child { background: #dc3545; color:white; }
+.product-slot input, .product-slot select {
+  margin-bottom: 8px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+.product-slot button {
+  flex: 1;
+  padding: 6px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.product-slot button:first-child { background: #28a745; color:white; }
+.product-slot button:last-child { background: #dc3545; color:white; }
 
-    .product-slot img {
-      width: 100%;
-      height: 150px;
-      object-fit: cover;
-      margin-bottom: 8px;
-      border-radius: 6px;
-    }
+.product-slot img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  margin-bottom: 8px;
+  border-radius: 6px;
+}
 
-    .card-buttons {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      margin-top: 10px;
-    }
+.card-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
 
-    .save-btn {
-      background: #28a745;
-      color: white;
-      border: none;
-      padding: 6px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      flex: 1;
-      margin-right: 5px;
-    }
+.save-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  flex: 1;
+  margin-right: 5px;
+}
 
-    .delete-btn {
-      background: #dc3545;
-      color: white;
-      border: none;
-      padding: 6px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      flex: 1;
-    }
+.delete-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  flex: 1;
+}
 
-    .gallery-grid div {
-      position: relative;
-    }
-    .gallery-grid img {
-      width: 100%;
-      height: 250px;
-      object-fit: cover;
-      border-radius: 10px;
-      box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
-    }
-    .remove-btn {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background-color: red;
-      color: white;
-      border: none;
-      padding: 5px 8px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 30px;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 10px;
-      text-align: center;
-    }
-    th {
-      background-color: #6200ea;
-      color: white;
-    }
-    .content-section {
-      display: none;
-    }
-    .content-section.active {
-      display: block;
-    }
-    .clear-container {
-      display: flex;
-      justify-content: center;
-      margin-top: 20px;
-    }
-    .clear-container input {
-      padding: 10px;
-      margin-right: 10px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-  /* Header/Nav */
-    header {
-      width: 100%;
-      background: #e69bd7; /* pink */
-      color: #4b0082;
-      padding: 15px;
-      text-align: center;
-      font-size: 1.5rem;
-      font-weight: bold;
-    }
+.gallery-grid div {
+  position: relative;
+}
+.gallery-grid img {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+.remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 5px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 30px;
+}
+th, td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
+}
+th {
+  background-color: #6200ea;
+  color: white;
+}
+.content-section {
+  display: none;
+}
+.content-section.active {
+  display: block;
+}
+.clear-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+.clear-container input {
+  padding: 10px;
+  margin-right: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
 
-    .navbar {
-      display: flex;
-      justify-content: space-around;
-      flex-wrap: wrap;
-      background: #5a00cc; /* purple */
-      padding: 10px;
-    }
+/* Header/Nav */
+header {
+  width: 100vw;
+  background: #e69bd7; /* pink */
+  color: #4b0082;
+  padding: 15px 0;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  box-sizing: border-box;
+  margin: 0;
+  left: 0;
+  right: 0;
+  position: relative;
+}
 
-    .navbar button {
-      flex: 1;
-      margin: 5px;
-      padding: 10px;
-      border: none;
-      border-radius: 8px;
-      background: #fff;
-      color: #5a00cc;
-      font-weight: bold;
-      cursor: pointer;
-    }
+.navbar {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  background: #5a00cc; /* purple */
+  padding: 10px 0;
+  width: 100vw;
+  box-sizing: border-box;
+  margin: 0;
+  left: 0;
+  right: 0;
+  position: relative;
+}
 
-    /* Reservations Table */
-    .reservations-container {
-      width: 100%;
-      overflow-x: auto; /* ✅ keeps table in bounds */
-    }
+.navbar button {
+  flex: 1;
+  margin: 5px;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #fff;
+  color: #5a00cc;
+  font-weight: bold;
+  cursor: pointer;
+}
 
-    .reservations-container table {
-      width: 100%;
-      border-collapse: collapse;
-    }
+/* Reservations Table */
+.reservations-container {
+  width: 100vw;
+  overflow-x: auto;
+  box-sizing: border-box;
+}
 
-    .reservations-container th,
-    .reservations-container td {
-      padding: 10px;
-      border: 1px solid #ccc;
-      text-align: left;
-    }
+.reservations-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
 
-    //* ✅ Proper responsive fix */
+.reservations-container th,
+.reservations-container td {
+  padding: 10px;
+  border: 1px solid #ccc;
+  text-align: left;
+}
+
+/* Responsive Fix for top menu and layout */
 @media (max-width: 1200px) {
   .top-menu {
     flex-direction: column;
   }
   .top-menu button {
     width: 100%;
+    min-width: unset;
   }
 }
     
