@@ -386,23 +386,20 @@
 
   <!-- 🔎 Search bar with button -->
   <div style="margin: 15px 0; text-align:center; display: flex; justify-content: center;">
-    <div style="position: relative; width: 80%; max-width:500px;">
-      <input 
-        type="text" 
-        id="reservationSearch" 
-        placeholder="SEARCH." 
-        style="width: 100%; padding: 10px 65px 10px 10px; 
-               border: 1px solid #ccc; border-radius: 8px; font-size:16px; box-sizing: border-box;"
-      />
-      <button 
-        id="searchButton"
-        style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
-               background: #2196f3; color: white; border: none; border-radius: 6px;
-               padding: 8px 14px; cursor: pointer; font-size:14px; height: 32px; line-height: 16px;">
-        🔍
-      </button>
-    </div>
+  <div style="display: flex; width: 80%; max-width:500px; border: 1px solid #ccc; border-radius: 8px; overflow: hidden;">
+    <input 
+      type="text" 
+      id="reservationSearch" 
+      placeholder="SEARCH..." 
+      style="flex: 1; padding: 10px; border: none; font-size:16px; outline: none;"
+    />
+    <button 
+      id="searchButton"
+      style="background: #2196f3; color: white; border: none; cursor: pointer; font-size:16px; padding: 0 16px;">
+      🔍
+    </button>
   </div>
+</div>
 
   <!-- Reservations list -->
   <div id="reservationsList"></div>
@@ -813,6 +810,20 @@ function loadUnavailableDates() {
     });
   });
 }
+
+
+    // 🔎 Search button logic
+document.getElementById("searchButton").addEventListener("click", () => {
+  const query = document.getElementById("reservationSearch").value.toLowerCase();
+  const reservationsContainer = document.getElementById("reservationsList");
+
+  // Loop through all reservation cards and filter
+  const cards = reservationsContainer.querySelectorAll(".reservation-card");
+  cards.forEach(card => {
+    const text = card.innerText.toLowerCase();
+    card.style.display = text.includes(query) ? "block" : "none";
+  });
+});
 
 function removeUnavailableDate(id) { db.collection('unavailableDays').doc(id).delete(); }
 
