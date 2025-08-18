@@ -264,19 +264,32 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ===================== Inventory Settings ===================== */
 const qtyMap = {
   "CHAIRS": {
-    options: [1, 2, 5, 10, 20],
-    prices: { 1: 500, 2: 900, 5: 2000, 10: 3500, 20: 6000 }
+    options: [1, 2, 5, 10, 20],  // bundles you rent out
+    prices: {
+      1: 500,     // price if they take 1
+      2: 900,     // price if they take 2
+      5: 2000,
+      10: 3500,
+      20: 6000
+    }
   },
   "Table": {
     options: [1, 2, 4],
-    prices: { 1: 800, 2: 1500, 4: 2800 }
+    prices: {
+      1: 800,
+      2: 1500,
+      4: 2800
+    }
   },
-  "STARTER PACK - 25 Cotton Candies, 25 Snow Cones, 25 Popcorns, 25 Hot Dogs, Free Trampoline": {
+  "Car": {
     options: [1, 2, 3],
-    prices: { 1: 3000, 2: 5800, 3: 8000 }
+    prices: {
+      1: 3000,
+      2: 5800,
+      3: 8000
+    }
   }
-}; // 👈 close the whole object
-
+};
 
 /* Items that can only be booked once per order (optional) */
 const restrictedCategories = ["BATHROOM"];
@@ -677,7 +690,7 @@ function loadGalleryByCategory(categoryFilter) {
         const imageUrl = data.url;
         const name = data.name || 'Unnamed';
         const itemId = name.replace(/\s+/g, '-');
-        const firebasePrice = Number(data.price); // may be NaN if not set
+        const firebasePrice = Number(data.price) || 0;
         if (!imageUrl || !name) return;
 
         let html = `
@@ -699,12 +712,9 @@ function loadGalleryByCategory(categoryFilter) {
             </select>
             <button onclick="addToCartWithQty('${name}', '${imageUrl}')">Add to Cart</button>`;
         } else {
-          // ✅ ensure valid number (never NaN or undefined)
-          const safePrice = isNaN(firebasePrice) ? 0 : firebasePrice;
-
           html += `
-            <div class="product-price">Price: <span id="price-${itemId}">${formatJMD(safePrice)}</span></div>
-            <button onclick="addToCart({ name: '${name}', price: ${safePrice}, imageUrl: '${imageUrl}' })">
+            <div class="product-price">Price: <span id="price-${itemId}">${formatJMD(firebasePrice)}</span></div>
+            <button onclick="addToCart({ name: '${name}', price: ${firebasePrice}, imageUrl: '${imageUrl}' })">
               Add to Cart
             </button>`;
         }
@@ -728,75 +738,103 @@ function updateManualPrice(itemName, itemId) {
   document.getElementById(`price-${itemId}`).textContent = formatJMD(price);
 }
 
-function updateCartCount() {
-  const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const count = cart.reduce((t, i) => t + (i.quantity || 1), 0); // 👈 default to 1
-  document.getElementById('cart-count').textContent = count;
-}
-
-function addToCart(item) {
+async function addToCart(item) {
   try {
     if (!currentUser) {
-      Swal.fire({ icon: "warning", title: "Login Required", text: "Please log in first." });
+      Swal.fire({
+        icon: "warning",
+        title: "Login Required",
+        text: "You must be logged in to add items to your cart.",
+        confirmButtonText: "Login"
+      }).then(() => {
+        window.location.href = "login.html";
+      });
       return;
     }
 
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const exists = cart.find(i => i.name === item.name);
+    const existing = cart.find(i => i.name === item.name);
 
-    if (exists) {
-      exists.quantity += 1;
+    if (existing) {
+      // 🚫 Duplicate → red toast
+      showToast(`${item.name} is already in your cart.`, "error");
     } else {
-      cart.push({ ...item, quantity: 1 });
+      cart.push({
+        ...item,
+        quantity: 1 // always 1 for non-qtyMap items
+      });
+      showToast("ADDED TO CART", "success");
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));
     updateCartCount();
-    showToast("ADDED TO CART", "success");
 
   } catch (err) {
     console.error("addToCart error:", err);
-    showToast("❌ ERROR: " + err.message, "error");
+    showToast("❌ Could not add item. Try again.", "error");
   }
 }
 
+
 function addToCartWithQty(name, imageUrl) {
-  try {
-    if (!currentUser) {
-      Swal.fire({ icon: "warning", title: "Login Required", text: "Please log in first." });
+  if (!currentUser) {
+    Swal.fire({
+      icon: "warning",
+      title: "Login Required",
+      text: "You must be logged in to add items to your cart.",
+      confirmButtonText: "Login"
+    }).then(() => {
+      window.location.href = "login.html"; // 👈 redirect to login
+    });
+    return;
+  }
+
+  const itemId = name.replace(/\s+/g, '-');
+  const qtyEl = document.getElementById(`qty-${itemId}`);
+  if (!qtyEl) return;
+  const qty = Number(qtyEl.value) || 1;
+  const totalBundle = Number(qtyMap[name]?.prices?.[qty]) || 0;
+  const unitPrice = totalBundle / Math.max(1, qty);
+  const days = 1;
+
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+  db.collection('gallery').where('name', '==', name).limit(1).get().then(snapshot => {
+    if (snapshot.empty) return;
+
+    const item = snapshot.docs[0].data();
+    const category = (item.category || '').toUpperCase();
+    const isRestricted = restrictedCategories.includes(category);
+    const exists = cart.find(i => i.name === name);
+
+    if (exists && isRestricted) {
+      showToast("YOU CAN ONLY ADD THIS ITEM ONCE", "error");
       return;
     }
-
-    const itemId = name.replace(/\s+/g, '-');
-    const qtyEl = document.getElementById(`qty-${itemId}`);
-    const qty = Number(qtyEl?.value) || 1;
-
-    const totalBundle = Number(qtyMap[name]?.prices?.[qty]);
-    if (isNaN(totalBundle)) {
-      throw new Error(`No price found for ${name} (${qty})`);
-    }
-
-    const unitPrice = totalBundle / qty;
-
-    let cart = JSON.parse(localStorage.getItem('cart')) || [];
-    const exists = cart.find(i => i.name === name);
 
     if (exists) {
       exists.quantity = qty;
       exists.price = unitPrice;
-      exists.totalPrice = unitPrice * qty;
+      exists.days = days;
+      exists.totalPrice = unitPrice * qty * days;
     } else {
-      cart.push({ name, price: unitPrice, imageUrl, quantity: qty, totalPrice: unitPrice * qty });
+      cart.push({ name, price: unitPrice, imageUrl, quantity: qty, totalPrice: unitPrice * qty * days, days, category });
     }
 
-    localStorage.setItem("cart", JSON.stringify(cart));
+    localStorage.setItem('cart', JSON.stringify(cart));
     updateCartCount();
-    showToast("ADDED TO CART", "success");
 
-  } catch (err) {
-    console.error("addToCartWithQty error:", err);
-    showToast("❌ ERROR: " + err.message, "error");
-  }
+    validateCartStock(document.getElementById("rentalDateRange").value.trim());
+
+    showToast("ADDED TO CART", "success");
+  });
+}
+
+
+function updateCartCount() {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const count = cart.reduce((t, i) => t + (i.quantity || 0), 0);
+  document.getElementById('cart-count').textContent = count;
 }
 
 function updateRentalDuration() {
