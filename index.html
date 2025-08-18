@@ -752,18 +752,15 @@ async function addToCart(item) {
       return;
     }
 
-    // ✅ shorten name to first 2 words
-    const shortName = item.name.split(" ").slice(0, 2).join(" ");
-
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const existing = cart.find(i => i.name === shortName);
+    const existing = cart.find(i => i.name === item.name); // check with full name
 
     if (existing) {
-      showToast(`${shortName} is already in your cart.`, "error");
+      showToast(`${item.name} is already in your cart.`, "error");
     } else {
       cart.push({
         ...item,
-        name: shortName,   // ✅ store shortened name
+        name: item.name,   // ✅ keep full name
         quantity: 1
       });
       showToast("ADDED TO CART", "success");
@@ -779,7 +776,6 @@ async function addToCart(item) {
 }
 
 
-
 function addToCartWithQty(name, imageUrl) {
   if (!currentUser) {
     Swal.fire({
@@ -793,12 +789,10 @@ function addToCartWithQty(name, imageUrl) {
     return;
   }
 
-  // ✅ shorten name
-  const shortName = name.split(" ").slice(0, 2).join(" ");
-
-  const itemId = name.replace(/\s+/g, '-');
+  const itemId = name.replace(/\s+/g, '-'); // still okay for DOM ids
   const qtyEl = document.getElementById(`qty-${itemId}`);
   if (!qtyEl) return;
+
   const qty = Number(qtyEl.value) || 1;
   const totalBundle = Number(qtyMap[name]?.prices?.[qty]) || 0;
   const unitPrice = totalBundle / Math.max(1, qty);
@@ -812,7 +806,9 @@ function addToCartWithQty(name, imageUrl) {
     const item = snapshot.docs[0].data();
     const category = (item.category || '').toUpperCase();
     const isRestricted = restrictedCategories.includes(category);
-    const exists = cart.find(i => i.name === shortName);
+
+    // ✅ check against full name
+    const exists = cart.find(i => i.name === name);
 
     if (exists && isRestricted) {
       showToast("YOU CAN ONLY ADD THIS ITEM ONCE", "error");
@@ -826,7 +822,7 @@ function addToCartWithQty(name, imageUrl) {
       exists.totalPrice = unitPrice * qty * days;
     } else {
       cart.push({ 
-        name: shortName,   // ✅ store shortened name
+        name,             // ✅ full name
         price: unitPrice, 
         imageUrl, 
         quantity: qty, 
@@ -842,6 +838,7 @@ function addToCartWithQty(name, imageUrl) {
     showToast("ADDED TO CART", "success");
   });
 }
+
 
 function updateCartCount() {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
