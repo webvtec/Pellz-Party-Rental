@@ -375,20 +375,10 @@
 <!-- Reservations Page -->
 <div class="admin-container content-section" id="reservationsPage">
 <h2>Reservations</h2>
-<div class="reservations-container">
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Phone</th>
-<th>Date</th>
-<th>Time</th>
-<th>Service</th>
-</tr>
-</thead>
-<tbody id="reservationsTable"></tbody>
-</table>
+<div class="reservations-container" style="max-height:500px; overflow-y:auto;">
+  <div id="reservationsTable"></div>
 </div>
+
 <div class="clear-container">
 <input id="clearInput" placeholder="Type CONFIRM to clear all" type="text"/>
 <button onclick="clearReservations()">Clear Reservations</button>
@@ -645,8 +635,8 @@ function saveNewProduct(tempId) {
     }
 
     function loadReservations() {
-  const tableBody = document.getElementById('reservationsTable');
-  tableBody.innerHTML = '';
+  const reservationsContainer = document.getElementById('reservationsTable');
+  reservationsContainer.innerHTML = '';
 
   db.collection('reservations').onSnapshot((querySnapshot) => {
     let reservations = [];
@@ -667,7 +657,7 @@ function saveNewProduct(tempId) {
         const diffHours = (now - bookingDate) / (1000 * 60 * 60);
 
         if (diffHours > 24) {
-          // ❌ auto-delete past
+          // ❌ remove expired automatically
           db.collection('reservations').doc(doc.id).delete();
         } else {
           reservations.push({
@@ -682,13 +672,13 @@ function saveNewProduct(tempId) {
     // ✅ Sort by soonest date
     reservations.sort((a, b) => a.bookingDate - b.bookingDate);
 
-    // ✅ Render as clean cards
-    tableBody.innerHTML = '';
+    // ✅ Render as vertical cards
+    reservationsContainer.innerHTML = '';
     reservations.forEach((booking) => {
       const dateStr = booking.rentalDates || booking.date || '';
       const timeStr = `${booking.startTime || ''} - ${booking.endTime || ''}`;
 
-      // Decide badge
+      // Badge
       let badgeClass = "upcoming";
       let badgeText = "Upcoming";
 
@@ -698,22 +688,30 @@ function saveNewProduct(tempId) {
         badgeText = "Today";
       }
 
-      tableBody.innerHTML += `
-        <tr>
-          <td colspan="5">
-            <div class="reservation-card">
-              <div class="reservation-header">
-                <h3>${booking.name}</h3>
-                <span class="badge ${badgeClass}">${badgeText}</span>
-              </div>
-              <p style="margin:5px 0; color:#555;">📞 ${booking.phone}</p>
-              <p style="margin:5px 0;"><strong>Date:</strong> ${dateStr}</p>
-              <p style="margin:5px 0;"><strong>Time:</strong> ${timeStr}</p>
-              <p style="margin:5px 0;"><strong>Service:</strong> ${booking.service || booking.paymentType || ''}</p>
-              ${booking.notes ? `<p style="margin:5px 0; color:#777;"><em>Notes: ${booking.notes}</em></p>` : ""}
-            </div>
-          </td>
-        </tr>
+      reservationsContainer.innerHTML += `
+        <div class="reservation-card" style="
+          background:#fff;
+          border-radius:10px;
+          box-shadow:0 2px 6px rgba(0,0,0,0.1);
+          padding:15px;
+          margin:10px 0;
+        ">
+          <div class="reservation-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0; color:#6200ea;">${booking.name}</h3>
+            <span class="badge ${badgeClass}" style="
+              padding:4px 8px;
+              border-radius:5px;
+              font-size:12px;
+              background:${badgeClass === 'today' ? '#28a745' : '#007bff'};
+              color:#fff;
+            ">${badgeText}</span>
+          </div>
+          <p style="margin:5px 0; color:#555;">📞 ${booking.phone}</p>
+          <p style="margin:5px 0;"><strong>Date:</strong> ${dateStr}</p>
+          <p style="margin:5px 0;"><strong>Time:</strong> ${timeStr}</p>
+          <p style="margin:5px 0;"><strong>Service:</strong> ${booking.service || booking.paymentType || ''}</p>
+          ${booking.notes ? `<p style="margin:5px 0; color:#777;"><em>Notes: ${booking.notes}</em></p>` : ""}
+        </div>
       `;
     });
   });
