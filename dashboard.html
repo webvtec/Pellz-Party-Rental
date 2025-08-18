@@ -719,40 +719,29 @@ function saveNewProduct(tempId) {
 }
 
     
-    function addUnavailableDate() {
-      const dateInput = document.getElementById('unavailableDateInput').value;
-      const isAllDay = document.getElementById('allDayCheckbox').checked;
-      const startTime = document.getElementById('startTimeInput').value;
-      const endTime = document.getElementById('endTimeInput').value;
+    function loadReservations() {
+  const tableBody = document.getElementById('reservationsTable');
+  tableBody.innerHTML = '';
 
-      if (!dateInput) {
-        alert('Please select a date.');
-        return;
-      }
+  db.collection('reservations').onSnapshot((querySnapshot) => {
+    tableBody.innerHTML = ''; // reset
+    querySnapshot.forEach((doc) => {
+      const booking = doc.data();
 
-      if (!isAllDay && (!startTime || !endTime)) {
-        alert('Please enter both start and end times.');
-        return;
-      }
+      // ✅ Just dump what’s in Firestore
+      tableBody.innerHTML += `
+        <tr>
+          <td>${booking.name || ''}</td>
+          <td>${booking.phone || ''}</td>
+          <td>${booking.rentalDates || ''}</td>
+          <td>${booking.startTime || ''} - ${booking.endTime || ''}</td>
+          <td>${booking.paymentType || ''}</td>
+        </tr>
+      `;
+    });
+  });
+}
 
-      db.collection('unavailableDays').add({
-        date: dateInput,
-        allDay: isAllDay,
-        startTime: isAllDay ? null : startTime,
-        endTime: isAllDay ? null : endTime
-      })
-        .then(() => {
-          alert('Unavailability added.');
-          loadUnavailableDates();
-          document.getElementById('unavailableDateInput').value = '';
-          document.getElementById('startTimeInput').value = '';
-          document.getElementById('endTimeInput').value = '';
-        })
-        .catch(error => {
-          console.error('Error adding unavailable date: ', error);
-          alert('Error adding date: ' + error.message);
-        });
-    }
 
     function loadUnavailableDates() {
       const list = document.getElementById('unavailableDatesList');
