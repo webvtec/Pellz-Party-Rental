@@ -497,7 +497,7 @@
         categoryContainer.innerHTML += `
           <div class="product-slot" id="${item.docId}">
             <img src="${item.imageUrl}" alt="Product">
-            <input type="text" id="name-${item.docId}" value="${item.name}" placeholder="Item Name">
+            <textarea id="name-${item.docId}" placeholder="Item Name" rows="5">${item.name || ''}</textarea>
             <input type="number" id="price-${item.docId}" value="${item.price}" placeholder="Price">
             <input type="text" id="url-${item.docId}" value="${item.imageUrl}" placeholder="Image URL">
             <select id="category-${item.docId}">
