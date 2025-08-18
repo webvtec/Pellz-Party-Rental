@@ -326,21 +326,28 @@
   font-size: 14px;
 }
 
-    .reservation-card {
+.reservation-card {
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
   padding: 15px;
-  margin: 10px 0;
+  margin: 12px 0;
 }
-.card-header {
+
+.reservation-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
+.reservation-header h3 {
+  margin: 0;
+  color: #6200ea;
+}
+
 .badge {
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
   font-size: 0.8rem;
   font-weight: bold;
   color: #fff;
@@ -648,10 +655,9 @@ function saveNewProduct(tempId) {
     querySnapshot.forEach((doc) => {
       const booking = doc.data();
 
-      // ✅ Normalize date parsing
+      // ✅ Normalize date
       let bookingDate = null;
       if (booking.rentalDates) {
-        // If it's already in YYYY-MM-DD format, safe to parse
         bookingDate = new Date(booking.rentalDates + "T00:00:00");
       } else if (booking.date) {
         bookingDate = new Date(booking.date);
@@ -661,7 +667,7 @@ function saveNewProduct(tempId) {
         const diffHours = (now - bookingDate) / (1000 * 60 * 60);
 
         if (diffHours > 24) {
-          // ❌ Auto-remove expired reservations
+          // ❌ auto-delete past
           db.collection('reservations').doc(doc.id).delete();
         } else {
           reservations.push({
@@ -676,23 +682,30 @@ function saveNewProduct(tempId) {
     // ✅ Sort by soonest date
     reservations.sort((a, b) => a.bookingDate - b.bookingDate);
 
-    // ✅ Render nicely
+    // ✅ Render as clean cards
     tableBody.innerHTML = '';
     reservations.forEach((booking) => {
       const dateStr = booking.rentalDates || booking.date || '';
       const timeStr = `${booking.startTime || ''} - ${booking.endTime || ''}`;
 
+      // Decide badge
+      let badgeClass = "upcoming";
+      let badgeText = "Upcoming";
+
+      const today = new Date();
+      if (booking.bookingDate.toDateString() === today.toDateString()) {
+        badgeClass = "today";
+        badgeText = "Today";
+      }
+
       tableBody.innerHTML += `
         <tr>
           <td colspan="5">
-            <div style="
-              background:#fff; 
-              border-radius:10px; 
-              box-shadow:0 2px 6px rgba(0,0,0,0.1); 
-              padding:15px; 
-              margin:10px 0;
-            ">
-              <h3 style="margin:0; color:#6200ea;">${booking.name}</h3>
+            <div class="reservation-card">
+              <div class="reservation-header">
+                <h3>${booking.name}</h3>
+                <span class="badge ${badgeClass}">${badgeText}</span>
+              </div>
               <p style="margin:5px 0; color:#555;">📞 ${booking.phone}</p>
               <p style="margin:5px 0;"><strong>Date:</strong> ${dateStr}</p>
               <p style="margin:5px 0;"><strong>Time:</strong> ${timeStr}</p>
