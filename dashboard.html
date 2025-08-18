@@ -457,10 +457,11 @@
         categories[category] = [];
       }
 
-      // ✅ Save name, price, and category along with imageUrl
+      // Save name, price, description, and category along with imageUrl
       categories[category].push({
         imageUrl: data.url,
         name: data.name || "",
+        description: data.description || "",  // <-- add this line!
         price: data.price || 0,
         category: category,
         docId: doc.id
@@ -483,7 +484,8 @@
         categoryContainer.innerHTML += `
           <div class="product-slot" id="${item.docId}">
             <img src="${item.imageUrl}" alt="Product">
-            <textarea id="name-${item.docId}" placeholder="Item Name" rows="2">${item.name || ''}</textarea>\n<textarea id="desc-${item.docId}" placeholder="Item Description" rows="3">${item.description || ''}</textarea>
+            <textarea id="name-${item.docId}" placeholder="Item Name" rows="2">${item.name || ''}</textarea>
+            <textarea id="desc-${item.docId}" placeholder="Item Description" rows="3">${item.description || ''}</textarea>
             <input type="number" id="price-${item.docId}" value="${item.price}" placeholder="Price">
             <input type="text" id="url-${item.docId}" value="${item.imageUrl}" placeholder="Image URL">
             <select id="category-${item.docId}">
@@ -501,7 +503,7 @@
       });
     }
   });
-}
+    }
 
 
     function removePhoto(docId) {
