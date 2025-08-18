@@ -656,10 +656,8 @@ function saveNewProduct(tempId) {
       if (bookingDate && !isNaN(bookingDate.getTime())) {
         const diffHours = (now - bookingDate) / (1000 * 60 * 60);
 
-        if (diffHours > 24) {
-          // ❌ remove expired automatically
-          db.collection('reservations').doc(doc.id).delete();
-        } else {
+        // ✅ Keep Today + Future + Past 24h
+        if (diffHours <= 24) {
           reservations.push({
             id: doc.id,
             ...booking,
@@ -716,7 +714,6 @@ function saveNewProduct(tempId) {
     });
   });
 }
-
 
     function clearReservations() {
   const confirmInput = document.getElementById('clearInput').value.trim();
