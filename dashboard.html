@@ -335,7 +335,9 @@
   font-weight: bold;
   color: #fff;
 }
-    
+.badge.today { background: #28a745; }     /* green */
+.badge.upcoming { background: #ff9800; }  /* orange */
+
     .reservation-group {
   margin-top: 30px;
   margin-bottom: 10px;
@@ -347,22 +349,16 @@
   text-align: center;
 }
 
-.badge.today {
-  background: #4caf50; /* green */
-  color: white;
-}
-.badge.tomorrow {
-  background: #2196f3; /* blue */
-  color: white;
-}
-.badge.upcoming {
-  background: #ff9800; /* orange */
-  color: white;
-}
-.badge.past {
+    .badge.past {
   background: #9e9e9e; /* grey */
   color: white;
 }
+
+    .badge.tomorrow {
+  background: #007bff; /* blue */
+  color: white;
+}
+
 
   </style>
 </head>
@@ -381,38 +377,15 @@
 <div id="adminGallery"></div>
 </div>
 
-    <div class="admin-container content-section" id="reservationsPage">
-  <h2>Reservations</h2>
-
-  <!-- 🔎 Search bar with button -->
-  <div style="margin: 15px 0; text-align:center; display: flex; justify-content: center;">
-    <div style="position: relative; width: 80%; max-width:500px;">
-      <input 
-        type="text" 
-        id="reservationSearch" 
-        placeholder="Search by name, order #, or phone..." 
-        style="width: 100%; padding: 10px 45px 10px 10px; border: 1px solid #ccc; border-radius: 8px; font-size:16px;"
-      />
-      <button 
-        id="searchButton"
-        style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); 
-               background: #2196f3; color: white; border: none; border-radius: 6px; 
-               padding: 6px 12px; cursor: pointer; font-size:14px;">
-        Search
-      </button>
-    </div>
-  </div>
-
-  <!-- Reservations list -->
+   <!-- Reservations Section -->
+<div class="admin-container content-section" id="reservationsPage">
+  <h2></h2>
   <div id="reservationsList"></div>
-
-  <!-- Clear past reservations -->
   <div class="clear-container">
     <input id="clearInput" type="text" placeholder='Type "CONFIRM" to clear past reservations'>
     <button onclick="clearReservations()">Clear Past Reservations</button>
   </div>
-</div>
-
+</div> 
 
 <!-- Unavailable Days Page -->
 <div class="admin-container content-section" id="unavailableDaysSection">
@@ -636,10 +609,6 @@ function saveNewProduct(name, description, price, url, category) {
 
 function loadReservations() {
   const reservationsContainer = document.getElementById('reservationsList');
-  const searchInput = document.getElementById('reservationSearch');
-  const searchButton = document.getElementById('searchButton');
-  let allReservations = [];
-
   db.collection('reservations').onSnapshot(snapshot => {
     reservationsContainer.innerHTML = '';
     const now = new Date();
@@ -649,6 +618,7 @@ function loadReservations() {
     }
     const today = normalizeDate(now);
 
+    // define tomorrow
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
@@ -658,12 +628,12 @@ function loadReservations() {
       return new Date(year, month - 1, day, 0, 0, 0);
     }
 
+    function isTodayBooking(startDate, endDate, refDay) {
+      return refDay >= startDate && refDay <= endDate;
+    }
+
     function formatDate(d) {
-      return d.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
+      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     }
 
     function formatDateRange(start, end) {
@@ -679,15 +649,12 @@ function loadReservations() {
         const [h, m] = t.split(':').map(Number);
         const date = new Date();
         date.setHours(h, m);
-        return date.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit'
-        });
+        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
       }
       return `${formatTime(startTime)} - ${formatTime(endTime)}`;
     }
 
-    allReservations = [];
+    const reservations = [];
 
     snapshot.forEach(doc => {
       const booking = doc.data();
@@ -703,7 +670,7 @@ function loadReservations() {
         bookingEnd = bookingStart;
       }
 
-      allReservations.push({
+      reservations.push({
         id: doc.id,
         bookingStart,
         bookingEnd,
@@ -711,51 +678,13 @@ function loadReservations() {
       });
     });
 
-    renderReservations(allReservations); // initial render
-  });
-
-  // ✅ Search function
-  function runSearch() {
-    const query = searchInput.value.toLowerCase();
-    const filtered = allReservations.filter(r =>
-      (r.name && r.name.toLowerCase().includes(query)) ||
-      (r.orderNumber && r.orderNumber.toString().toLowerCase().includes(query)) ||
-      (r.phone && r.phone.toLowerCase().includes(query))
-    );
-    renderReservations(filtered);
-  }
-
-  // ✅ Hook search button & Enter key
-  if (searchInput && searchButton) {
-    searchButton.addEventListener('click', runSearch);
-    searchInput.addEventListener('keypress', e => {
-      if (e.key === 'Enter') runSearch();
-    });
-  }
-
-  // ✅ Render reservations grouped
-  function renderReservations(reservations) {
-    reservationsContainer.innerHTML = '';
-
-    function isSameDay(d1, d2) {
-      return d1 && d2 &&
-             d1.getFullYear() === d2.getFullYear() &&
-             d1.getMonth() === d2.getMonth() &&
-             d1.getDate() === d2.getDate();
-    }
-
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-
+    // ✅ split into groups
     const todayBookings = reservations.filter(r =>
-      r.bookingStart && r.bookingEnd &&
-      today >= r.bookingStart && today <= r.bookingEnd
+      r.bookingStart && r.bookingEnd && isTodayBooking(r.bookingStart, r.bookingEnd, today)
     );
 
     const tomorrowBookings = reservations.filter(r =>
-      r.bookingStart && isSameDay(r.bookingStart, tomorrow)
+      r.bookingStart && r.bookingEnd && isTodayBooking(r.bookingStart, r.bookingEnd, tomorrow)
     );
 
     const upcoming = reservations.filter(r =>
@@ -766,12 +695,16 @@ function loadReservations() {
       r.bookingEnd && r.bookingEnd < today
     ).sort((a, b) => b.bookingEnd - a.bookingEnd);
 
+    // helper: render a group
     function renderGroup(title, list, badgeType) {
       if (!list.length) return;
       reservationsContainer.innerHTML += `<h2 class="reservation-group">${title}</h2>`;
       list.forEach(booking => {
         const dateStr = formatDateRange(booking.bookingStart, booking.bookingEnd);
         const timeStr = formatTimeRange(booking.startTime, booking.endTime);
+
+        let badgeClass = badgeType;
+        let badgeText = title;
 
         const itemsList = (booking.cartItems || [])
           .map(i => `<li>${i.name} x${i.quantity}</li>`)
@@ -781,7 +714,7 @@ function loadReservations() {
           <div class="reservation-card">
             <div class="reservation-header">
               <h3>${booking.name} (Order #${booking.orderNumber || booking.id})</h3>
-              <span class="badge ${badgeType}">${title}</span>
+              <span class="badge ${badgeClass}">${badgeText}</span>
             </div>
             <p>📞 ${booking.phone}</p>
             <p><strong>Location:</strong> ${booking.location || 'N/A'}</p>
@@ -795,11 +728,12 @@ function loadReservations() {
       });
     }
 
+    // ✅ render in order
     renderGroup("Today", todayBookings, "today");
     renderGroup("Tomorrow", tomorrowBookings, "tomorrow");
     renderGroup("Upcoming", upcoming, "upcoming");
     renderGroup("Past", past, "past");
-  }
+  });
 }
 
 
