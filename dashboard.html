@@ -72,14 +72,16 @@
     }
 
     @media (max-width: 900px) {
-      .top-menu {
-        flex-direction: column;
-      }
-      .top-menu button {
-        width: 100%;
-        min-width: unset;
-      }
-    }
+  .top-menu {
+    flex-direction: column;
+    align-items: center;  /* center buttons */
+  }
+  .top-menu button {
+    width: 90%;          /* not full width */
+    max-width: 300px;    /* shorter size */
+    min-width: unset;
+  }
+}
 
     .admin-container {
       width: 100%;
@@ -459,10 +461,10 @@
                   <option value="CARS" ${item.category==="CARS"?"selected":""}>CARS</option>
                   <option value="BATHROOM" ${item.category==="BATHROOM"?"selected":""}>BATHROOM</option>
                 </select>
-                <div style="margin-top:8px; display:flex; gap:6px;">
-                  <button onclick="updateProduct('${item.docId}')">💾 Save</button>
-                  <button class="remove-btn" onclick="removePhoto('${item.docId}')">🗑 Delete</button>
-                </div>
+                <div style="margin-top:8px; display:flex; gap:6px; justify-content:space-between;">
+  <button class="delete-btn" onclick="removePhoto('${item.docId}')">🗑 Delete</button>
+  <button class="save-btn" onclick="updateProduct('${item.docId}')">💾 Save</button>
+</div>
               </div>
             `;
           });
@@ -513,12 +515,11 @@
       }
 
       db.collection("gallery").add({ name, price, url, category })
-        .then(() => {
-          alert("Product added successfully!");
-          loadGallery();
-        })
-        .catch(err => alert("Error adding product: " + err.message));
-    }
+  .then(() => {
+    alert("Product added successfully!");
+    // ❌ don’t reload gallery, leave inputs as is
+    // optional: disable Save button to show success
+  })
 
     function updateProduct(docId) {
       const name = document.getElementById(`name-${docId}`).value.trim();
