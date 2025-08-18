@@ -213,7 +213,65 @@
       border: 1px solid #ccc;
       border-radius: 5px;
     }
-  </style>
+  /* Header/Nav */
+    header {
+      width: 100%;
+      background: #e69bd7; /* pink */
+      color: #4b0082;
+      padding: 15px;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .navbar {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      background: #5a00cc; /* purple */
+      padding: 10px;
+    }
+
+    .navbar button {
+      flex: 1;
+      margin: 5px;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: #fff;
+      color: #5a00cc;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* Reservations Table */
+    .reservations-container {
+      width: 100%;
+      overflow-x: auto; /* ✅ keeps table in bounds */
+    }
+
+    .reservations-container table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .reservations-container th,
+    .reservations-container td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 600px) {
+      .navbar {
+        flex-direction: column;
+      }
+      .navbar button {
+        width: 100%;
+      }
+    }
+    </style>
 </head>
 
 <body>
