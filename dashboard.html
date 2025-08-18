@@ -359,6 +359,13 @@
   color: white;
 }
 
+    .highlighted {
+  border: 3px solid #ff9800 !important;
+  box-shadow: 0 0 12px #ff9800 !important;
+  transition: all 0.3s ease-in-out;
+}
+
+
 
   </style>
 </head>
@@ -782,6 +789,28 @@ firebase.auth().onAuthStateChanged(user => {
     window.location.href = 'index.html';
   }
 });
+
+    function searchReservations() {
+  const query = document.getElementById("reservationSearch").value.toLowerCase();
+  const reservationsContainer = document.getElementById("reservationsList");
+
+  // Remove old highlights
+  document.querySelectorAll(".highlighted").forEach(el => el.classList.remove("highlighted"));
+
+  if (!query) return;
+
+  // Find first matching reservation card
+  const cards = reservationsContainer.querySelectorAll(".reservation-card");
+  for (let card of cards) {
+    const text = card.innerText.toLowerCase();
+    if (text.includes(query)) {
+      card.classList.add("highlighted");
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+      break;
+    }
+  }
+}
+
   </script>
 </body>
 </html>
