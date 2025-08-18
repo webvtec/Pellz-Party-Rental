@@ -679,23 +679,36 @@ function saveNewProduct(tempId) {
   const confirmInput = document.getElementById('clearInput').value.trim();
 
   if (confirmInput !== 'CONFIRM') {
-    alert('TYPE "CONFIRM" TO CLEAR ALL RESERVATIONS.');
+    alert('TYPE "CONFIRM" TO CLEAR PAST RESERVATIONS.');
     return;
   }
+
+  const now = new Date();
 
   db.collection('reservations').get().then((querySnapshot) => {
     const batch = db.batch();
 
     querySnapshot.forEach((doc) => {
-      batch.delete(doc.ref);
+      const booking = doc.data();
+      const bookingDate = new Date(booking.date || booking.rentalDates);
+
+      if (!isNaN(bookingDate.getTime())) {
+        const diffHours = (now - bookingDate) / (1000 * 60 * 60);
+
+        if (diffHours > 24) {
+          // ✅ Only delete reservations older than 24h
+          batch.delete(doc.ref);
+        }
+      }
     });
 
-    batch.commit().then(() => {
-      alert('All reservations cleared successfully.');
-      document.getElementById('clearInput').value = '';
-    });
+    return batch.commit();
+  }).then(() => {
+    alert('Past reservations cleared successfully.');
+    document.getElementById('clearInput').value = '';
   });
-    }
+}
+
     
     function addUnavailableDate() {
       const dateInput = document.getElementById('unavailableDateInput').value;
