@@ -201,26 +201,32 @@
       margin-top: 10px;
     }
 
-    .save-btn {
-      background: #dc3545;
-      color: white;
-      border: none;
-      padding: 6px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      flex: 1;
-      margin-right: 5px;
-    }
-
     .delete-btn {
-      background: #28a745;
-      color: white;
-      border: none;
-      padding: 6px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      flex: 1;
-    }
+  background: #dc3545;   /* red */
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.delete-btn:hover {
+  background: #a71d2a;   /* darker red on hover */
+}
+
+.save-btn {
+  background: #28a745;   /* green */
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.save-btn:hover {
+  background: #1e7e34;   /* darker green on hover */
+}
+
 
     .gallery-grid div {
       position: relative;
@@ -293,6 +299,27 @@
       border: 1px solid #ccc;
       text-align: left;
     }
+
+    .add-slot-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.add-slot-btn {
+  background: #28a745;   /* green like Save */
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+.add-slot-btn:hover {
+  background: #1e7e34;   /* darker green on hover */
+}
+
   </style>
 </head>
 
