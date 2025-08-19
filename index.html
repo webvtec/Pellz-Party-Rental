@@ -946,7 +946,6 @@ function togglePlaceOrderButton() {
   const btn = document.getElementById("placeOrderBtn");
   if (!btn) return;
 
-  // required fields
   const requiredFields = [
     "customerName",
     "customerPhone",
@@ -961,26 +960,28 @@ function togglePlaceOrderButton() {
   requiredFields.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
-      if (!el.value.trim()) {
-        el.style.border = "2px solid red";   // highlight empty
+      if (!el.value || el.value.trim() === "") {
+        // empty → red border
+        el.style.border = "2px solid red";
         allFilled = false;
       } else {
-        el.style.border = ""; // reset if filled
+        // filled → reset border
+        el.style.border = "";
       }
     }
   });
 
-  // disable if cart warnings OR missing fields
   if (cartHasWarnings || !allFilled) {
     btn.disabled = true;
-    btn.style.backgroundColor = "#999";   // greyed out
+    btn.style.backgroundColor = "#999";
     btn.style.cursor = "not-allowed";
   } else {
     btn.disabled = false;
-    btn.style.backgroundColor = "#6A0DAD"; // restore purple
+    btn.style.backgroundColor = "#6A0DAD";
     btn.style.cursor = "pointer";
   }
 }
+
 
 
 
