@@ -601,35 +601,31 @@ async function completeBooking() {
     const stockErrorMsg = document.getElementById("stockErrorMsg");
     if (stockErrorMsg) stockErrorMsg.innerHTML = "";
 
-  // ✅ keep success popup with 50% deposit + bank info
+// ✅ success popup with order number, 50% deposit + bank info
 Swal.fire({
   title: `ORDER MADE (#${orderNumber})`,
   html: `
-    <p>✅ We got your booking!</p>
-    <p><strong>IMPORTANT:</strong> You must transfer 
-    <b>50% of your grand total</b> within <b>24 hours</b> or your order will be cancelled.</p>
+    <p>✅ Your booking is confirmed!</p>
+    <p><b>Order Number:</b> <span style="color:#6A0DAD; font-weight:bold;">${orderNumber}</span></p>
 
-    <p>💰 Amount Due Now: 
-      <span style="color:#6A0DAD; font-weight:bold; font-size:18px;">
+    <p>Please transfer <b>50% deposit</b> within 24 hours 
+       or your order will be cancelled.</p>
+
+    <p>💰 Deposit Due: 
+      <span style="color:#6A0DAD; font-weight:bold;">
         ${formatJMD(totalAmount / 2)}
       </span>
     </p>
 
-    <hr style="margin:10px 0;">
-
-    <p><strong>Banking Details:</strong></p>
-    <p style="text-align:left; line-height:1.5; font-size:15px;">
-      🏦 Bank: <b>Your Bank Name</b><br>
-      👤 Account Name: <b>Your Account Name</b><br>
-      🔢 Account Number: <b>123456789</b><br>
-      🏛️ Branch: <b>Your Branch Name</b>
+    <p style="text-align:left; margin-top:10px;">
+      <b>Bank Details:</b><br>
+      Bank: Your Bank<br>
+      Acc #: 123456789<br>
+      Name: Your Name
     </p>
 
-    <hr style="margin:10px 0;">
-
-    <p style="font-size:14px;">
-      ℹ️ If you need to see this information again, it’s always available 
-      in the <b>PAYMENT INFO</b> section from the menu.
+    <p style="font-size:13px; margin-top:8px;">
+      ℹ️ Banking details are also in <b>PAYMENT INFO</b>.
     </p>
   `,
   icon: "success",
