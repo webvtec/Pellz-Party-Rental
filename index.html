@@ -1485,19 +1485,22 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
 
       // ✅ Added Invoice button
       html += `
-        <div style="margin-bottom:14px; padding:12px; border-bottom:1px solid #ddd; text-align:left;">
-          <strong>Order #${orderNum}</strong><br>
-          <span><b>Booked For:</b> ${rentalRange}</span><br>
-          <span><b>Items:</b> ${items}</span><br>
-          <span><b>Delivery Location:</b> ${location}</span><br>
-          <span><b>Total:</b> <span style="color:#6A0DAD; font-weight:bold;">${total}</span></span><br>
-          <span style="font-size:0.9em; color:#555;"><i>Booked On: ${bookedOn}</i></span><br>
-          <button 
-            onclick="generateInvoice(${JSON.stringify(data).replace(/"/g, '&quot;')})" 
-            style="margin-top:10px; padding:6px 12px; background:#6A0DAD; color:white; border:none; border-radius:6px; cursor:pointer;">
-            INVOICE
-          </button>
-        </div>`;
+        html += `
+  <div style="margin-bottom:14px; padding:12px; border-bottom:1px solid #ddd; text-align:left;">
+    <strong>Order #${orderNum}</strong><br>
+    <span><b>Booked For:</b> ${rentalRange}</span><br>
+    <span><b>Items:</b><br> ${items}</span><br>
+    <span><b>Delivery Location:</b> ${location}</span><br>
+    <span><b>Total:</b> <span style="color:#6A0DAD; font-weight:bold;">${total}</span></span><br>
+    <span style="font-size:0.9em; color:#555;"><i>Booked On: ${bookedOn}</i></span><br>
+    <div style="text-align:center; margin-top:8px;">
+      <button 
+        onclick="generateInvoice(${JSON.stringify(data).replace(/"/g, '&quot;')})" 
+        style="padding:6px 12px; background:#6A0DAD; color:white; border:none; border-radius:6px; cursor:pointer;">
+        INVOICE
+      </button>
+    </div>
+  </div>`;
     });
 
     html += "</div>";
