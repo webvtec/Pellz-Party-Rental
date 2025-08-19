@@ -1565,7 +1565,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
   const invoiceHtml = `
     <html>
       <head>
-        <title>Pellz Party Rentals Invoice #${order.orderNumber}</title>
+        <title>Invoice #${order.orderNumber}</title>
         <style>
           body { font-family: Arial, sans-serif; padding:20px; }
           h1.title { text-align:center; font-size:28px; font-weight:bold; color:black; margin-bottom:20px; }
@@ -1597,7 +1597,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
         </style>
       </head>
       <body>
-        <h1 class="title">INVOICE</h1>
+        <h1 class="title">PELLZ PARTY RENTAL INVOICE</h1>
         <p><b>Order #:</b> ${order.orderNumber}</p>
         <p><b>Date:</b> ${orderDate}</p>
         <p><b>Name:</b> ${order.name || ""}</p>
