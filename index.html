@@ -601,19 +601,36 @@ async function completeBooking() {
     const stockErrorMsg = document.getElementById("stockErrorMsg");
     if (stockErrorMsg) stockErrorMsg.innerHTML = "";
 
-    // ✅ keep success popup with 50% payment notice
+  // ✅ keep success popup with 50% deposit + bank info
 Swal.fire({
   title: `ORDER MADE (#${orderNumber})`,
   html: `
     <p>✅ We got your booking!</p>
     <p><strong>IMPORTANT:</strong> You must transfer 
     <b>50% of your grand total</b> within <b>24 hours</b> or your order will be cancelled.</p>
+
     <p>💰 Amount Due Now: 
       <span style="color:#6A0DAD; font-weight:bold; font-size:18px;">
         ${formatJMD(totalAmount / 2)}
       </span>
     </p>
-    <p>💳 Bank details are available in the <b>PAYMENT INFO</b> section.</p>
+
+    <hr style="margin:10px 0;">
+
+    <p><strong>Banking Details:</strong></p>
+    <p style="text-align:left; line-height:1.5; font-size:15px;">
+      🏦 Bank: <b>Your Bank Name</b><br>
+      👤 Account Name: <b>Your Account Name</b><br>
+      🔢 Account Number: <b>123456789</b><br>
+      🏛️ Branch: <b>Your Branch Name</b>
+    </p>
+
+    <hr style="margin:10px 0;">
+
+    <p style="font-size:14px;">
+      ℹ️ If you need to see this information again, it’s always available 
+      in the <b>PAYMENT INFO</b> section from the menu.
+    </p>
   `,
   icon: "success",
   confirmButtonColor: "#1a73e8"
