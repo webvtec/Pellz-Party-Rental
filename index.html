@@ -1675,8 +1675,14 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
   }
 }
 
-function generateInvoice(order) {
+
+  function generateInvoice(order) {
   const stamp = `STAMP-${order.orderNumber}-${Date.now()}`;
+
+  // ✅ Get payment options chosen from dashboard
+  const paymentOptions = (order.invoiceOptions && order.invoiceOptions.length > 0)
+    ? order.invoiceOptions.join(", ")
+    : "Not Specified";
 
   // Format order creation date
   const orderDate = order.createdAt?.toDate?.().toLocaleDateString("en-US", {
@@ -1776,6 +1782,7 @@ function generateInvoice(order) {
         <p><b>Phone:</b> ${order.phone || ""}</p>
         <p><b>Location:</b> ${order.location || ""}</p>
         <p><b>Rental Dates:</b> ${rentalRange}</p>
+        <p><b>Payment Method(s):</b> ${paymentOptions}</p> <!-- ✅ NEW LINE -->
 
         <table>
           <thead>
@@ -1805,8 +1812,6 @@ function generateInvoice(order) {
   invoiceWindow.document.write(invoiceHtml);
   invoiceWindow.document.close();
 }
-
-
 
 
   function showBankInfo() {
