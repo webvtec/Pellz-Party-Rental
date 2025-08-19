@@ -1483,14 +1483,20 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
         .map(i => `${i.name} x${i.quantity}`)
         .join(", ");
 
+      // ✅ Added Invoice button
       html += `
-        <div style="margin-bottom:14px; padding:12px; border-bottom:1px solid #ddd;">
+        <div style="margin-bottom:14px; padding:12px; border-bottom:1px solid #ddd; text-align:center;">
           <strong>Order #${orderNum}</strong><br>
           <span><b>Booked For:</b> ${rentalRange}</span><br>
           <span><b>Items:</b> ${items}</span><br>
           <span><b>Delivery Location:</b> ${location}</span><br>
           <span><b>Total:</b> <span style="color:#6A0DAD; font-weight:bold;">${total}</span></span><br>
-          <span style="font-size:0.9em; color:#555;"><i>Booked On: ${bookedOn}</i></span>
+          <span style="font-size:0.9em; color:#555;"><i>Booked On: ${bookedOn}</i></span><br>
+          <button 
+            onclick="generateInvoice(${JSON.stringify(data).replace(/"/g, '&quot;')})" 
+            style="margin-top:10px; padding:6px 12px; background:#6A0DAD; color:white; border:none; border-radius:6px; cursor:pointer;">
+            INVOICE
+          </button>
         </div>`;
     });
 
@@ -1509,6 +1515,61 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     Swal.fire("Error", "Could not load your orders. Try again later.", "error");
   }
 }
+
+
+  function generateInvoice(order) {
+  const stamp = `STAMP-${order.orderNumber}-${Date.now()}`;
+  
+  const itemsHtml = (order.cartItems || [])
+    .map(i => `<tr><td>${i.name}</td><td>${i.quantity}</td><td>${formatJMD(i.price)}</td></tr>`)
+    .join("");
+
+  const invoiceHtml = `
+    <html>
+      <head>
+        <title>Invoice #${order.orderNumber}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding:20px; }
+          h1 { color:#6A0DAD; }
+          table { width:100%; border-collapse: collapse; margin-top:15px; }
+          th, td { border:1px solid #ccc; padding:8px; text-align:left; }
+          .stamp {
+            position: fixed;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            color: rgba(106,13,173,0.15);
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Invoice #${order.orderNumber}</h1>
+        <p><b>Name:</b> ${order.name || ""}</p>
+        <p><b>Phone:</b> ${order.phone || ""}</p>
+        <p><b>Location:</b> ${order.location || ""}</p>
+        <p><b>Rental Dates:</b> ${order.rentalDates || ""}</p>
+        <p><b>Total:</b> ${formatJMD(order.totalAmount || 0)}</p>
+
+        <table>
+          <thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead>
+          <tbody>${itemsHtml}</tbody>
+        </table>
+
+        <div class="stamp">${stamp}</div>
+      </body>
+    </html>
+  `;
+
+  const invoiceWindow = window.open("", "_blank");
+  invoiceWindow.document.open();
+  invoiceWindow.document.write(invoiceHtml);
+  invoiceWindow.document.close();
+}
+
 
   function showBankInfo() {
   Swal.fire({
