@@ -610,7 +610,28 @@ async function completeBooking() {
 }
 
 
-/* Telegram: simple form POST to avoid CORS preflight */
+// ✅ Format date into "Month Day, Year"
+function formatDate(dateStr) {
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr; // fallback
+  return d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+}
+
+// ✅ Convert "HH:mm" to "h:mm AM/PM"
+function formatTimeTo12Hr(timeStr) {
+  if (!timeStr) return "";
+  const [hourStr, minuteStr] = timeStr.split(":");
+  let hour = parseInt(hourStr, 10);
+  const minute = parseInt(minuteStr || "0", 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12 || 12;
+  return `${hour}:${minute.toString().padStart(2, "0")} ${ampm}`;
+}
+
 async function sendTelegramMessage(
   name, phone, location, rentalDates,
   startTime, endTime, paymentType,
@@ -620,21 +641,30 @@ async function sendTelegramMessage(
     const botToken = "7638261664:AAGm0MNVQxN0hlW1bhXBRf-kSRuMgRkCLC8"; // 🔑 replace
     const chatId = "-1002734216867"; // 🔑 replace
 
+    // 🛒 Cart list, one per line
     const cartText = cart.map(item =>
-      `- ${item.name} x${item.quantity} @ $${item.price}`
+      `• ${item.name} x${item.quantity} @ $${item.price}`
     ).join("\n");
 
-    const message = `
-📦 New Order!
-🆔 Order: ${orderNumber}
-👤 ${name}
-📞 ${phone}
-📍 ${location}
-📅 ${rentalDates}
-⏰ ${startTime} - ${endTime}
-💳 ${paymentType}
+    // 📅 Format rental range if " to " is in rentalDates
+    let rentalRange = rentalDates;
+    if (rentalDates?.includes(" to ")) {
+      const [startStr, endStr] = rentalDates.split(" to ");
+      rentalRange = `${formatDate(startStr)} ${formatTimeTo12Hr(startTime)} → ${formatDate(endStr)} ${formatTimeTo12Hr(endTime)}`;
+    }
 
-🛒 Cart:
+    // ✅ Telegram message (clean & readable)
+    const message = `
+📦 *New Order!*
+🆔 Order: *${orderNumber}*
+👤 Name: ${name}
+📞 Phone: ${phone}
+📍 Location: ${location}
+
+📅 Booked For: ${rentalRange}
+💳 Payment: ${paymentType}
+
+🛒 Items:
 ${cartText}
 
 💰 Total: $${totalAmount}
@@ -662,6 +692,7 @@ ${cartText}
     throw err;
   }
 }
+
 
 /* ===================== Gallery / Cart ===================== */
 function loadGalleryByCategory(categoryFilter) {
