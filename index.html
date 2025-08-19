@@ -601,13 +601,24 @@ async function completeBooking() {
     const stockErrorMsg = document.getElementById("stockErrorMsg");
     if (stockErrorMsg) stockErrorMsg.innerHTML = "";
 
-    // ✅ keep success popup
-    Swal.fire({
-      title: `ORDER MADE (#${orderNumber})`,
-      text: "We got your booking!",
-      icon: "success",
-      confirmButtonColor: "#1a73e8"
-    });
+    // ✅ keep success popup with 50% payment notice
+Swal.fire({
+  title: `ORDER MADE (#${orderNumber})`,
+  html: `
+    <p>✅ We got your booking!</p>
+    <p><strong>IMPORTANT:</strong> You must transfer 
+    <b>50% of your grand total</b> within <b>24 hours</b> or your order will be cancelled.</p>
+    <p>💰 Amount Due Now: 
+      <span style="color:#6A0DAD; font-weight:bold; font-size:18px;">
+        ${formatJMD(totalAmount / 2)}
+      </span>
+    </p>
+    <p>💳 Bank details are available in the <b>PAYMENT INFO</b> section.</p>
+  `,
+  icon: "success",
+  confirmButtonColor: "#1a73e8"
+});
+
 
     fetchBookedDatesAndInitCalendar();
     const rentalDatesNow = (document.getElementById("rentalDateRange")?.value || "").trim();
@@ -621,8 +632,6 @@ async function completeBooking() {
     if (bookBtn) bookBtn.disabled = false;
   }
 }
-  
-
 
 
   // ✅ Remove red highlight as soon as user types or changes value
