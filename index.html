@@ -1724,13 +1724,17 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     <html>
       <head>
         <title>Invoice #${order.orderNumber}</title>
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap" rel="stylesheet">
+        <!-- Normal font -->
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400&display=swap" rel="stylesheet">
+        <!-- Cursive font just for title -->
+        <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
         <style>
           body { font-family: 'Poppins', sans-serif; padding:20px; }
           h1.title {
             text-align:center;
-            font-size:32px;
+            font-size:36px;
             font-weight:bold;
+            font-family: 'Dancing Script', cursive;
             background: linear-gradient(90deg, #6A0DAD, #007BFF, #2E8B57, #6A0DAD);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -1741,7 +1745,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
           th { background:#f2f2f2; }
           .grand-total { font-weight:bold; text-align:right; }
 
-          /* Watermark stamp with circular border */
+          /* Watermark stamp */
           .stamp {
             position: fixed;
             top: 50%;
