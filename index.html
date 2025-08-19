@@ -1651,10 +1651,10 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
           <span style="font-size:0.9em; color:#555;"><i>Booked On: ${bookedOn}</i></span><br>
           <div style="text-align:center; margin-top:8px;">
             <button 
-              onclick="generateInvoice(${JSON.stringify(data).replace(/"/g, '&quot;')})" 
-              style="padding:6px 12px; background:#6A0DAD; color:white; border:none; border-radius:6px; cursor:pointer;">
-              INVOICE
-            </button>
+          onclick="handleInvoiceClick(${JSON.stringify(data).replace(/"/g, '&quot;')})" 
+         style="padding:6px 12px; background:#6A0DAD; color:white; border:none; border-radius:6px; cursor:pointer;">
+         INVOICE
+         </button>
           </div>
         </div>`;
     });
@@ -1811,6 +1811,24 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
   invoiceWindow.document.open();
   invoiceWindow.document.write(invoiceHtml);
   invoiceWindow.document.close();
+}
+
+
+  function handleInvoiceClick(order) {
+  if (!order.invoiceSent) {
+    // ❌ Not sent yet → show disappearing message
+    Swal.fire({
+      icon: "info",
+      title: "Invoice Pending",
+      text: "Invoice will be sent when your order is completed.",
+      timer: 2000,
+      showConfirmButton: false
+    });
+    return;
+  }
+
+  // ✅ Sent → open actual invoice
+  generateInvoice(order);
 }
 
 
