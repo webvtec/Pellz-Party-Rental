@@ -1490,7 +1490,11 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
           <span><b>Items:</b> ${items}</span><br>
           <span><b>Delivery Location:</b> ${location}</span><br>
           <span><b>Total:</b> <span style="color:#6A0DAD; font-weight:bold;">${total}</span></span><br>
-          <span style="font-size:0.9em; color:#555;"><i>Booked On: ${bookedOn}</i></span>
+          <span style="font-size:0.9em; color:#555;"><i>Booked On: ${bookedOn}</i></span><br>
+          <button onclick='showInvoice(${JSON.stringify(data)})'
+            style="margin-top:8px; background:#6A0DAD; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;">
+            📄 Invoice
+          </button>
         </div>`;
     });
 
@@ -1509,6 +1513,59 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     Swal.fire("Error", "Could not load your orders. Try again later.", "error");
   }
 }
+
+/* ===================== Invoice Generator ===================== */
+function showInvoice(order) {
+  const itemsHtml = (order.cartItems || [])
+    .map(i => `<tr>
+        <td>${i.name}</td>
+        <td>${i.quantity}</td>
+        <td>${formatJMD(i.price)}</td>
+        <td>${formatJMD(i.price * i.quantity)}</td>
+      </tr>`).join("");
+
+  const html = `
+    <div style="text-align:left; font-family:Arial;">
+      <h2 style="text-align:center;">Invoice</h2>
+      <p><b>Order #:</b> ${order.orderNumber}</p>
+      <p><b>Name:</b> ${order.name}</p>
+      <p><b>Phone:</b> ${order.phone}</p>
+      <p><b>Location:</b> ${order.location}</p>
+      <p><b>Rental Dates:</b> ${order.rentalDates} (${order.startTime || ""} - ${order.endTime || ""})</p>
+      
+      <table border="1" cellspacing="0" cellpadding="6" style="width:100%; border-collapse:collapse; margin-top:10px;">
+        <thead>
+          <tr style="background:#eee;">
+            <th>Item</th><th>Qty</th><th>Unit Price</th><th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
+
+      <h3 style="text-align:right; margin-top:10px;">Grand Total: ${formatJMD(order.totalAmount)}</h3>
+    </div>
+  `;
+
+  Swal.fire({
+    title: "INVOICE",
+    html,
+    width: 600,
+    showCancelButton: true,
+    confirmButtonText: "Print",
+    cancelButtonText: "Close",
+    customClass: { popup: "swal2-rounded" }
+  }).then(result => {
+    if (result.isConfirmed) {
+      const w = window.open("", "_blank");
+      w.document.write(`<html><head><title>Invoice</title></head><body>${html}</body></html>`);
+      w.document.close();
+      w.print();
+    }
+  });
+}
+
 
   function showBankInfo() {
   Swal.fire({
@@ -1533,6 +1590,56 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
   });
 }
 
+function showInvoice(order) {
+  const itemsHtml = (order.cartItems || [])
+    .map(i => `<tr>
+        <td>${i.name}</td>
+        <td>${i.quantity}</td>
+        <td>${formatJMD(i.price)}</td>
+        <td>${formatJMD(i.price * i.quantity)}</td>
+      </tr>`).join("");
+
+  const html = `
+    <div style="text-align:left; font-family:Arial;">
+      <h2 style="text-align:center;">Invoice</h2>
+      <p><b>Order #:</b> ${order.orderNumber}</p>
+      <p><b>Name:</b> ${order.name}</p>
+      <p><b>Phone:</b> ${order.phone}</p>
+      <p><b>Location:</b> ${order.location}</p>
+      <p><b>Rental Dates:</b> ${order.rentalDates} (${order.startTime || ""} - ${order.endTime || ""})</p>
+      
+      <table border="1" cellspacing="0" cellpadding="6" style="width:100%; border-collapse:collapse; margin-top:10px;">
+        <thead>
+          <tr style="background:#eee;">
+            <th>Item</th><th>Qty</th><th>Unit Price</th><th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
+
+      <h3 style="text-align:right; margin-top:10px;">Grand Total: ${formatJMD(order.totalAmount)}</h3>
+    </div>
+  `;
+
+  Swal.fire({
+    title: "INVOICE",
+    html,
+    width: 600,
+    showCancelButton: true,
+    confirmButtonText: "Print",
+    cancelButtonText: "Close",
+    customClass: { popup: "swal2-rounded" }
+  }).then(result => {
+    if (result.isConfirmed) {
+      const w = window.open("", "_blank");
+      w.document.write(`<html><head><title>Invoice</title></head><body>${html}</body></html>`);
+      w.document.close();
+      w.print();
+    }
+  });
+}
 
 
 
