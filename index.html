@@ -1726,24 +1726,24 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
         <title>Invoice #${order.orderNumber}</title>
         <!-- Normal font -->
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400&display=swap" rel="stylesheet">
-        <!-- Cursive font just for title -->
-        <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+        <!-- Softer cursive font for title -->
+        <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
         <style>
-          body { font-family: 'Poppins', sans-serif; padding:20px; }
+          body { font-family: 'Poppins', sans-serif; padding:10px 20px; }
           h1.title {
             text-align:center;
-            font-size:36px;
-            font-weight:bold;
-            font-family: 'Dancing Script', cursive;
-            background: linear-gradient(90deg, #6A0DAD, #007BFF, #2E8B57, #6A0DAD);
+            font-size:30px;
+            font-family: 'Great Vibes', cursive;
+            background: linear-gradient(90deg, #6A0DAD, #007BFF, #2E8B57);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom:20px;
+            margin: 5px 0 10px 0;
           }
-          table { width:100%; border-collapse: collapse; margin-top:15px; }
-          th, td { border:1px solid #ccc; padding:8px; text-align:left; }
+          p { margin: 3px 0; font-size: 14px; }
+          table { width:100%; border-collapse: collapse; margin-top:10px; font-size: 14px; }
+          th, td { border:1px solid #ccc; padding:6px 8px; text-align:left; }
           th { background:#f2f2f2; }
-          .grand-total { font-weight:bold; text-align:right; }
+          .grand-total { font-weight:bold; text-align:right; background:#fafafa; }
 
           /* Watermark stamp */
           .stamp {
@@ -1751,13 +1751,13 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 32px;
+            font-size: 26px;
             color: rgba(106,13,173,0.25);
             font-weight: bold;
             text-align: center;
-            width: 250px;
-            height: 250px;
-            border: 6px dashed rgba(106,13,173,0.25);
+            width: 200px;
+            height: 200px;
+            border: 4px dashed rgba(106,13,173,0.25);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -1804,7 +1804,6 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
   invoiceWindow.document.write(invoiceHtml);
   invoiceWindow.document.close();
 }
-
 
 
   function showBankInfo() {
