@@ -106,6 +106,26 @@
   line-height: 1.4;
 }
 
+    .parishBtn {
+  padding: 10px 20px;
+  border: 2px solid #1a73e8;
+  background: white;
+  color: #1a73e8;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.parishBtn.selected {
+  background: #1a73e8;
+  color: white;
+}
+
+.parishBtn.error {
+  border: 2px solid red;
+}
+
   </style>
 </head>
 
@@ -208,6 +228,19 @@
             <input type="time" id="endTime" />
           </div>
         </div>
+
+        <div id="deliveryParishSection" style="margin-top:15px; text-align:center;">
+  <p style="font-weight:bold; margin-bottom:10px;">DELIVERY PARISHES AVAILABLE</p>
+  
+  <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+    <button type="button" class="parishBtn" data-parish="KINGSTON">KINGSTON</button>
+    <button type="button" class="parishBtn" data-parish="ST. CATHRINE">ST. CATHRINE</button>
+    <button type="button" class="parishBtn" data-parish="CLARENDON">CLARENDON</button>
+  </div>
+
+  <!-- hidden input to store chosen parish -->
+  <input type="hidden" id="selectedParish" name="selectedParish">
+</div>
 
         <div style="margin-bottom:15px;">
           <label for="customerLocation"><strong>Location:</strong></label>
@@ -493,7 +526,7 @@ let bookingInProgress = false; // guard variable
   return allValid;
 }
 
-async function completeBooking() {
+  async function completeBooking() {
   if (bookingInProgress) return; 
   bookingInProgress = true;
 
@@ -507,6 +540,7 @@ async function completeBooking() {
     const rentalDates = (document.getElementById("rentalDateRange")?.value || "").trim();
     const startTime = (document.getElementById("startTime")?.value || "").trim();
     const endTime = (document.getElementById("endTime")?.value || "").trim();
+    const parish = (document.getElementById("selectedParish")?.value || "").trim();
     const paymentType = "Pay on Delivery";
 
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
@@ -518,17 +552,27 @@ async function completeBooking() {
       customerLocation: location,
       rentalDateRange: rentalDates,
       startTime: startTime,
-      endTime: endTime
+      endTime: endTime,
+      selectedParish: parish
     };
 
     let allValid = true;
     Object.keys(requiredFields).forEach(id => {
-      const el = document.getElementById(id);
-      if (!requiredFields[id]) {
-        el?.classList.add("error");
-        allValid = false;
+      if (id === "selectedParish") {
+        if (!requiredFields[id]) {
+          document.querySelectorAll(".parishBtn").forEach(b => b.classList.add("error"));
+          allValid = false;
+        } else {
+          document.querySelectorAll(".parishBtn").forEach(b => b.classList.remove("error"));
+        }
       } else {
-        el?.classList.remove("error");
+        const el = document.getElementById(id);
+        if (!requiredFields[id]) {
+          el?.classList.add("error");
+          allValid = false;
+        } else {
+          el?.classList.remove("error");
+        }
       }
     });
 
@@ -576,6 +620,7 @@ async function completeBooking() {
         userId: currentUser ? currentUser.uid : null,
         name, phone, location,
         rentalDates, startTime, endTime,
+        parish, // ✅ new field saved
         paymentType,
         cartItems: cart,
         totalAmount,
@@ -587,7 +632,7 @@ async function completeBooking() {
     await sendTelegramMessage(
       name, phone, location, rentalDates,
       startTime, endTime, paymentType,
-      cart, totalAmount, orderNumber
+      cart, totalAmount, orderNumber, parish // ✅ include parish if needed
     );
 
     // --- cleanup ---
@@ -595,44 +640,31 @@ async function completeBooking() {
     updateCartCount();
     document.getElementById("cartModal").style.display = "none";
 
-    ["customerName","customerPhone","customerLocation","rentalDateRange","startTime","endTime"]
+    ["customerName","customerPhone","customerLocation","rentalDateRange","startTime","endTime","selectedParish"]
       .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+
+    document.querySelectorAll(".parishBtn").forEach(b => b.classList.remove("selected"));
 
     const stockErrorMsg = document.getElementById("stockErrorMsg");
     if (stockErrorMsg) stockErrorMsg.innerHTML = "";
 
-    // ✅ keep success popup with 50% deposit + bank info
-Swal.fire({
-  title: `ORDER MADE<br>ORDER # (${orderNumber})`,
-  html: `
-    <p>You must transfer <strong>50%</strong> of your grand total to the account provided below within 24 hours or your order will be canceled</p>
-    <p>💰 50% Due Now: 
-      <span style="color:#6A0DAD; font-weight:bold; font-size:18px;">
-        ${formatJMD(totalAmount / 2)}
-      </span>
-    </p>
-
-    <hr style="margin:10px 0;">
-
-    <p><strong>Banking Details:</strong></p>
-    <p style="text-align:left; line-height:1.5; font-size:15px;">
-      🏦 Bank: <b>Your Bank Name</b><br>
-      👤 Account Name: <b>Your Account Name</b><br>
-      🔢 Account Number: <b>123456789</b><br>
-      🏛️ Branch: <b>Your Branch Name</b>
-    </p>
-
-    <hr style="margin:10px 0;">
-
-    <p style="font-size:14px;">
-      ℹ️ If you need to see the account information again, it’s always available 
-      in the <b>PAYMENT INFO</b> section from the menu.
-    </p>
-  `,
-  icon: "success",
-  confirmButtonColor: "#1a73e8"
-});
-
+    // ✅ keep success popup
+    Swal.fire({
+      title: `ORDER MADE<br>ORDER # (${orderNumber})`,
+      html: `
+        <p>✅ Your booking is confirmed!</p>
+        <p><b>Delivery Parish:</b> ${parish}</p>
+        <p>You must transfer <strong>50%</strong> of your grand total within 24 hours 
+        or your order will be cancelled.</p>
+        <p>💰 Amount Due Now: 
+          <span style="color:#6A0DAD; font-weight:bold; font-size:18px;">
+            ${formatJMD(totalAmount / 2)}
+          </span>
+        </p>
+      `,
+      icon: "success",
+      confirmButtonColor: "#1a73e8"
+    });
 
     fetchBookedDatesAndInitCalendar();
     const rentalDatesNow = (document.getElementById("rentalDateRange")?.value || "").trim();
@@ -640,7 +672,6 @@ Swal.fire({
 
   } catch (err) {
     console.error("completeBooking crashed:", err);
-    // ❌ keep errors silent (no popup), just stop
   } finally {
     bookingInProgress = false;
     if (bookBtn) bookBtn.disabled = false;
@@ -1769,6 +1800,16 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
 }
 
 
+  // Parish button logic (run once on page load)
+document.querySelectorAll(".parishBtn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    // clear previous selection
+    document.querySelectorAll(".parishBtn").forEach(b => b.classList.remove("selected", "error"));
+    // mark selected
+    btn.classList.add("selected");
+    document.getElementById("selectedParish").value = btn.dataset.parish;
+  });
+});
 
 
 </script>
