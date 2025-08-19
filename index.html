@@ -632,6 +632,11 @@ function formatTimeTo12Hr(timeStr) {
   return `${hour}:${minute.toString().padStart(2, "0")} ${ampm}`;
 }
 
+// ✅ Format currency with commas
+function formatCurrency(amount) {
+  return `$${Number(amount).toLocaleString("en-US")}`;
+}
+
 async function sendTelegramMessage(
   name, phone, location, rentalDates,
   startTime, endTime, paymentType,
@@ -641,9 +646,9 @@ async function sendTelegramMessage(
     const botToken = "7638261664:AAGm0MNVQxN0hlW1bhXBRf-kSRuMgRkCLC8"; // 🔑 replace
     const chatId = "-1002734216867"; // 🔑 replace
 
-    // 🛒 Cart list, one per line
+    // 🛒 Cart list, one per line with formatted prices
     const cartText = cart.map(item =>
-      `• ${item.name} x${item.quantity} @ $${item.price}`
+      `• ${item.name} x${item.quantity} @ ${formatCurrency(item.price)}`
     ).join("\n");
 
     // 📅 Format rental range if " to " is in rentalDates
@@ -667,7 +672,7 @@ async function sendTelegramMessage(
 🛒 Items:
 ${cartText}
 
-💰 Total: $${totalAmount}
+💰 Total: ${formatCurrency(totalAmount)}
     `;
 
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
@@ -692,6 +697,7 @@ ${cartText}
     throw err;
   }
 }
+
 
 
 /* ===================== Gallery / Cart ===================== */
