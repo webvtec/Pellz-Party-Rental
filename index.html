@@ -10,7 +10,6 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <!-- Firebase (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
@@ -1491,11 +1490,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
           <span><b>Items:</b> ${items}</span><br>
           <span><b>Delivery Location:</b> ${location}</span><br>
           <span><b>Total:</b> <span style="color:#6A0DAD; font-weight:bold;">${total}</span></span><br>
-          <span style="font-size:0.9em; color:#555;"><i>Booked On: ${bookedOn}</i></span><br>
-          <button onclick='showInvoice(${JSON.stringify(data)})'
-            style="margin-top:8px; background:#6A0DAD; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;">
-            📄 Invoice
-          </button>
+          <span style="font-size:0.9em; color:#555;"><i>Booked On: ${bookedOn}</i></span>
         </div>`;
     });
 
@@ -1514,7 +1509,6 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     Swal.fire("Error", "Could not load your orders. Try again later.", "error");
   }
 }
-
 
   function showBankInfo() {
   Swal.fire({
@@ -1539,103 +1533,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
   });
 }
 
-function showInvoice(order) {
-  function formatDate(dateStr) {
-    const d = new Date(dateStr);
-    if (isNaN(d)) return dateStr;
-    return d.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric"
-    });
-  }
 
-  // ✅ Handle ranges like "2030-07-06 to 2030-07-08"
-  let rentalDateFormatted = "";
-  if (order.rentalDates?.includes(" to ")) {
-    const [startStr, endStr] = order.rentalDates.split(" to ");
-    rentalDateFormatted = `${formatDate(startStr)} → ${formatDate(endStr)}`;
-  } else if (order.rentalDates) {
-    rentalDateFormatted = formatDate(order.rentalDates);
-  }
 
-  const itemsHtml = (order.cartItems || [])
-    .map(i => `<tr>
-        <td>${i.name}</td>
-        <td>${i.quantity}</td>
-        <td>${formatJMD(i.price)}</td>
-        <td>${formatJMD(i.price * i.quantity)}</td>
-      </tr>`).join("");
 
-  // ✅ Build the invoice HTML string with actual values filled in
-  const html = `
-    <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Invoice - ${order.orderNumber}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          h2 { text-align: center; }
-          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          th, td { border: 1px solid #000; padding: 6px; text-align: left; }
-          th { background: #f0f0f0; }
-          .total { text-align: right; font-weight: bold; margin-top: 10px; }
-          .download-btn {
-            margin: 15px 0;
-            padding: 8px 16px;
-            background: #6A0DAD;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-          }
-        </style>
-        <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-      </head>
-      <body>
-        <div id="invoice-content">
-          <h2>Invoice</h2>
-          <p><b>Order #:</b> ${order.orderNumber}</p>
-          <p><b>Name:</b> ${order.name}</p>
-          <p><b>Phone:</b> ${order.phone}</p>
-          <p><b>Location:</b> ${order.location}</p>
-          <p><b>Rental Dates:</b> ${rentalDateFormatted} (${order.startTime || ""} - ${order.endTime || ""})</p>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Item</th><th>Qty</th><th>Unit Price</th><th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-          </table>
-
-          <h3 class="total">Grand Total: ${formatJMD(order.totalAmount)}</h3>
-        </div>
-
-        <button class="download-btn" onclick="downloadInvoice()">⬇ Save to Gallery</button>
-
-        <script>
-          function downloadInvoice() {
-            const invoice = document.getElementById("invoice-content");
-            html2canvas(invoice).then(canvas => {
-              const link = document.createElement("a");
-              link.href = canvas.toDataURL("image/png");
-              link.download = "Invoice-${order.orderNumber}.png";
-              link.click();
-            });
-          }
-
-          // ✅ Write the finished string into new window
-  const w = window.open("", "_blank");
-  w.document.write(html);
-  w.document.close();
-          }
-        </script>
-      </body>
-    </html>
-
-  
+</script>
