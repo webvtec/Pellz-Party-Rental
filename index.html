@@ -352,11 +352,14 @@ function showSection(sectionId) {
 }
 
 function login() {
-  const email = prompt('Enter admin email:');
-  const password = prompt('Enter admin password:');
-  if (!email || !password) return;
-  firebase.auth().signInWithEmailAndPassword(email, password)
-    .then(() => { window.location.href = 'dashboard.html'; })
+  // 🔑 Hardcoded Admin Credentials
+  const adminEmail = "carlanviroberts@gmail.com"; 
+  const adminPassword = "@Carlanvi321"; 
+
+  firebase.auth().signInWithEmailAndPassword(adminEmail, adminPassword)
+    .then(() => {
+      window.location.href = 'dashboard.html';
+    })
     .catch((error) => {
       let msg = 'Authentication failed: ' + error.message;
       if (error.code === 'auth/wrong-password') msg = 'Incorrect password. Please try again.';
