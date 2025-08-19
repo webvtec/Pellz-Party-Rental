@@ -655,6 +655,38 @@ async function completeBooking() {
 
 
 
+  // ✅ Remove red highlight as soon as user types or changes value
+function attachLiveValidation(fieldIds) {
+  fieldIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    el.addEventListener("input", () => {
+      if (el.value.trim()) {
+        el.classList.remove("error");
+      }
+    });
+
+    // also check on blur (for things like date/time pickers)
+    el.addEventListener("blur", () => {
+      if (el.value.trim()) {
+        el.classList.remove("error");
+      }
+    });
+  });
+}
+
+// Attach to your cart modal fields
+attachLiveValidation([
+  "customerName",
+  "customerPhone",
+  "customerLocation",
+  "rentalDateRange",
+  "startTime",
+  "endTime"
+]);
+
+
 // ✅ Format date into "Month Day, Year"
 function formatDate(dateStr) {
   const d = new Date(dateStr);
