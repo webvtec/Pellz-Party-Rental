@@ -365,20 +365,6 @@
   transition: all 0.3s ease-in-out;
 }
 
-.cancel-btn {
-  padding: 12px 14px;
-  background-color: #e53935;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background 0.2s;
-}
-.cancel-btn:hover {
-  background-color: #c62828;
-}
-
 
 .reservation-card .action-buttons {
   display: flex;
@@ -394,19 +380,31 @@
   border-radius: 6px;
 }
 
-    .invoice-btn {
-  background-color: #28a745;   /* green */
-  color: #fff;
+    .cancel-btn, .invoice-btn {
+  flex: 1;
   padding: 12px 14px;
   font-weight: bold;
   border-radius: 6px;
   border: none;
   cursor: pointer;
-  margin-top: 15px;   /* 👈 control how far down it sits */
   transition: background 0.2s;
 }
+
+/* keep unique colors */
+.cancel-btn {
+  background-color: #e53935;
+  color: white;
+}
+.cancel-btn:hover {
+  background-color: #c62828;
+}
+
+.invoice-btn {
+  background-color: #28a745;
+  color: white;
+}
 .invoice-btn:hover {
-  background-color: #1e7e34;   /* darker green */
+  background-color: #1e7e34;
 }
 
 </style>
