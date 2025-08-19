@@ -768,26 +768,26 @@ function loadReservations() {
           .join('');
 
         reservationsContainer.innerHTML += `
-          <div class="reservation-card">
-            <div class="reservation-header">
-              <h3>${booking.name} (Order #${booking.orderNumber || booking.id})</h3>
-              <span class="badge ${badgeType}">${title}</span>
-            </div>
-            <p>📞 ${booking.phone}</p>
-            <p><strong>Location:</strong> ${booking.location || 'N/A'}</p>
-            <p><strong>Date:</strong> ${dateStr}</p>
-            ${timeStr ? `<p><strong>Time:</strong> ${timeStr}</p>` : ''}
-            <p><strong>Payment:</strong> ${booking.paymentType || ''}</p>
-            <p><strong>Total:</strong> JMD $${(booking.totalAmount || 0).toLocaleString()}</p>
-            <div><strong>Items:</strong><ul>${itemsList}</ul></div>
-            ${booking.notes ? `<p><em>Notes: ${booking.notes}</em></p>` : ''}
+  <div class="reservation-card" data-id="${booking.id}">
+    <div class="reservation-header">
+      <h3>${booking.name} (Order #${booking.orderNumber || booking.id})</h3>
+      <span class="badge ${badgeType}">${title}</span>
+    </div>
+    <p>📞 ${booking.phone}</p>
+    <p><strong>Location:</strong> ${booking.location || 'N/A'}</p>
+    <p><strong>Date:</strong> ${dateStr}</p>
+    ${timeStr ? `<p><strong>Time:</strong> ${timeStr}</p>` : ''}
+    <p><strong>Payment:</strong> ${booking.paymentType || ''}</p>
+    <p><strong>Total:</strong> JMD $${(booking.totalAmount || 0).toLocaleString()}</p>
+    <div><strong>Items:</strong><ul>${itemsList}</ul></div>
+    ${booking.notes ? `<p><em>Notes: ${booking.notes}</em></p>` : ''}
 
-            <!-- ❌ Cancel and Invoice Button -->
-         <div class="action-buttons">
-         <button class="cancel-btn" onclick="cancelReservation('${booking.id}')">Cancel Order</button>
-         <button class="invoice-btn" onclick="openInvoiceModal('${booking.id}')">Invoice</button>
-         </div>
-          </div>`;
+    <div class="action-buttons">
+      <button class="cancel-btn" onclick="cancelReservation('${booking.id}')">Cancel Order</button>
+      <button class="invoice-btn" onclick="openInvoiceModal('${booking.id}')">Invoice</button>
+    </div>
+    ${booking.invoiceSent ? `<p class="invoice-status" style="color:green; font-weight:bold;">INVOICE SENT</p>` : ""}
+  </div>`;
       });
     }
 
@@ -904,20 +904,29 @@ function sendInvoice() {
     return;
   }
 
-  // Save/update the invoice selection in Firestore
   db.collection("reservations").doc(currentInvoiceOrderId).update({
-    invoiceOptions: selectedOptions
+    invoiceOptions: selectedOptions,
+    invoiceSent: true   // ✅ mark invoice as sent
   })
   .then(() => {
-    alert("Invoice sent with options: " + selectedOptions.join(", "));
     closeInvoiceModal();
+
+    // ✅ Add message directly under the buttons for immediate feedback
+    const card = document.querySelector(`.reservation-card[data-id='${currentInvoiceOrderId}']`);
+    if (card && !card.querySelector(".invoice-status")) {
+      const status = document.createElement("p");
+      status.className = "invoice-status";
+      status.style.color = "green";
+      status.style.fontWeight = "bold";
+      status.innerText = "INVOICE SENT";
+      card.appendChild(status);
+    }
   })
   .catch(err => {
     console.error("Error sending invoice:", err);
     alert("Failed to send invoice.");
   });
 }
-
   </script>
 </body>
 </html>
