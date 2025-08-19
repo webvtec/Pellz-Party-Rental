@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <!-- Firebase (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
@@ -1573,6 +1574,7 @@ function showInvoice(order) {
   w.document.write(`
     <html>
       <head>
+        <meta charset="UTF-8">
         <title>Invoice - ${order.orderNumber}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 20px; }
@@ -1592,46 +1594,46 @@ function showInvoice(order) {
             font-size: 14px;
           }
         </style>
+        <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
       </head>
       <body>
-        <h2>Invoice</h2>
-        <p><b>Order #:</b> ${order.orderNumber}</p>
-        <p><b>Name:</b> ${order.name}</p>
-        <p><b>Phone:</b> ${order.phone}</p>
-        <p><b>Location:</b> ${order.location}</p>
-        <p><b>Rental Dates:</b> ${rentalDateFormatted} (${order.startTime || ""} - ${order.endTime || ""})</p>
+        <div id="invoice-content">
+          <h2>Invoice</h2>
+          <p><b>Order #:</b> ${order.orderNumber}</p>
+          <p><b>Name:</b> ${order.name}</p>
+          <p><b>Phone:</b> ${order.phone}</p>
+          <p><b>Location:</b> ${order.location}</p>
+          <p><b>Rental Dates:</b> ${rentalDateFormatted} (${order.startTime || ""} - ${order.endTime || ""})</p>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Item</th><th>Qty</th><th>Unit Price</th><th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-        </table>
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th><th>Qty</th><th>Unit Price</th><th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
 
-        <h3 class="total">Grand Total: ${formatJMD(order.totalAmount)}</h3>
+          <h3 class="total">Grand Total: ${formatJMD(order.totalAmount)}</h3>
+        </div>
 
-        <button class="download-btn" onclick="downloadInvoice()">⬇ Download Invoice</button>
+        <button class="download-btn" onclick="downloadInvoice()">⬇ Save to Gallery</button>
+
+        <script>
+          function downloadInvoice() {
+            const invoice = document.getElementById("invoice-content");
+            html2canvas(invoice).then(canvas => {
+              const link = document.createElement("a");
+              link.href = canvas.toDataURL("image/png");
+              link.download = "Invoice-${order.orderNumber}.png";
+              link.click();
+            });
+          }
+        <\/script>
       </body>
     </html>
-  `);
-
-  // ✅ Add script after writing HTML
-  w.document.write(`
-    <script>
-      function downloadInvoice() {
-        const blob = new Blob([document.documentElement.outerHTML], { type: "text/html" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "Invoice-${order.orderNumber}.html";
-        a.click();
-        URL.revokeObjectURL(url);
-      }
-    <\/script>
   `);
 
   w.document.close();
