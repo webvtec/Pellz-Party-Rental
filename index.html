@@ -648,23 +648,37 @@ let bookingInProgress = false; // guard variable
     const stockErrorMsg = document.getElementById("stockErrorMsg");
     if (stockErrorMsg) stockErrorMsg.innerHTML = "";
 
-    // ✅ keep success popup
-    Swal.fire({
-      title: `ORDER MADE<br>ORDER # (${orderNumber})`,
-      html: `
-        <p>✅ Your booking is confirmed!</p>
-        <p><b>Delivery Parish:</b> ${parish}</p>
-        <p>You must transfer <strong>50%</strong> of your grand total within 24 hours 
-        or your order will be cancelled.</p>
-        <p>💰 Amount Due Now: 
-          <span style="color:#6A0DAD; font-weight:bold; font-size:18px;">
-            ${formatJMD(totalAmount / 2)}
-          </span>
-        </p>
-      `,
-      icon: "success",
-      confirmButtonColor: "#1a73e8"
-    });
+    // ✅ keep success popup with 50% deposit + bank info
+Swal.fire({
+  title: `ORDER MADE<br>ORDER # (${orderNumber})`,
+  html: `
+    <p>You must transfer <strong>50%</strong> of your grand total to the account provided below within 24 hours or your order will be canceled</p>
+    <p>💰 50% Due Now: 
+      <span style="color:#6A0DAD; font-weight:bold; font-size:18px;">
+        ${formatJMD(totalAmount / 2)}
+      </span>
+    </p>
+
+    <hr style="margin:10px 0;">
+
+    <p><strong>Banking Details:</strong></p>
+    <p style="text-align:left; line-height:1.5; font-size:15px;">
+      🏦 Bank: <b>Your Bank Name</b><br>
+      👤 Account Name: <b>Your Account Name</b><br>
+      🔢 Account Number: <b>123456789</b><br>
+      🏛️ Branch: <b>Your Branch Name</b>
+    </p>
+
+    <hr style="margin:10px 0;">
+
+    <p style="font-size:14px;">
+      ℹ️ If you need to see this information again, it’s always available 
+      in the <b>PAYMENT INFO</b> section from the menu.
+    </p>
+  `,
+  icon: "success",
+  confirmButtonColor: "#1a73e8"
+});
 
     fetchBookedDatesAndInitCalendar();
     const rentalDatesNow = (document.getElementById("rentalDateRange")?.value || "").trim();
