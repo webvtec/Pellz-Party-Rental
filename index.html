@@ -1675,7 +1675,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
   }
 }
 
-  function generateInvoice(order) {
+function generateInvoice(order) {
   const stamp = `STAMP-${order.orderNumber}-${Date.now()}`;
 
   // Format order creation date
@@ -1726,14 +1726,15 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
         <title>Invoice #${order.orderNumber}</title>
         <!-- Normal font -->
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400&display=swap" rel="stylesheet">
-        <!-- Softer cursive font for title -->
-        <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+        <!-- Fallback slab serif for Rockwell -->
+        <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
         <style>
           body { font-family: 'Poppins', sans-serif; padding:10px 20px; }
           h1.title {
             text-align:center;
-            font-size:30px;
-            font-family: 'Great Vibes', cursive;
+            font-size:32px;
+            font-weight:bold;
+            font-family: Rockwell, 'Roboto Slab', 'Zilla Slab', serif;
             background: linear-gradient(90deg, #6A0DAD, #007BFF, #2E8B57);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -1804,6 +1805,8 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
   invoiceWindow.document.write(invoiceHtml);
   invoiceWindow.document.close();
 }
+
+
 
 
   function showBankInfo() {
