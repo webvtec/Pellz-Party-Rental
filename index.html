@@ -465,6 +465,35 @@ async function generateUniqueOrderNumber(name) {
 
 let bookingInProgress = false; // guard variable
 
+
+  function validateCartForm() {
+  const requiredFields = [
+    "customerName",
+    "customerPhone",
+    "rentalDateRange",
+    "startTime",
+    "endTime",
+    "customerLocation"
+  ];
+
+  let allValid = true;
+
+  requiredFields.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    if (!el.value.trim()) {
+      el.classList.add("error");   // turn red (you already have CSS for this)
+      allValid = false;
+    } else {
+      el.classList.remove("error");
+    }
+  });
+
+  return allValid;
+}
+
+  
 async function completeBooking() {
   if (bookingInProgress) return; // prevent duplicate run
   bookingInProgress = true;
@@ -482,20 +511,48 @@ async function completeBooking() {
     const paymentType = "Pay on Delivery";
 
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
-    if (cart.length === 0) {
-      Swal.fire({ icon: "info", title: "Cart is empty", text: "Add items before placing an order." });
-      return;
+
+    // ✅ Highlight required fields
+    const requiredFields = {
+      customerName: name,
+      customerPhone: phone,
+      customerLocation: location,
+      rentalDateRange: rentalDates,
+      startTime: startTime,
+      endTime: endTime
+    };
+
+    let allValid = true;
+    Object.keys(requiredFields).forEach(id => {
+      const el = document.getElementById(id);
+      if (!requiredFields[id]) {
+        el?.classList.add("error");
+        allValid = false;
+      } else {
+        el?.classList.remove("error");
+      }
+    });
+
+    if (!allValid || cart.length === 0) {
+      bookingInProgress = false;
+      if (bookBtn) bookBtn.disabled = false;
+      return; // 🚫 stop silently if fields are empty or cart is empty
     }
 
+    // 📅 check rental dates format
     if (!rentalDates.includes(" to ")) {
-      Swal.fire({ icon: "error", title: "Invalid dates", text: "Please select a valid rental date range." });
+      document.getElementById("rentalDateRange")?.classList.add("error");
+      bookingInProgress = false;
+      if (bookBtn) bookBtn.disabled = false;
       return;
     }
     const [startStr, endStr] = rentalDates.split(" to ");
     const start = new Date(startStr);
     const end = new Date(endStr);
     if (isNaN(start) || isNaN(end)) {
-      Swal.fire({ icon: "error", title: "Invalid dates", text: "Please select a valid rental date range." });
+      document.getElementById("rentalDateRange")?.classList.add("error");
+      bookingInProgress = false;
+      if (bookBtn) bookBtn.disabled = false;
       return;
     }
 
@@ -537,16 +594,19 @@ async function completeBooking() {
 
       const stockAvailable = (qtyMap?.[cartItem.name]?.options?.slice(-1)?.[0]) || 1;
       if (alreadyBooked + (cartItem.quantity || 1) > stockAvailable) {
-        throw new Error(`❌ ${cartItem.name} is already fully booked.`);
+        document.getElementById("rentalDateRange")?.classList.add("error");
+        bookingInProgress = false;
+        if (bookBtn) bookBtn.disabled = false;
+        return;
       }
     }
 
     /* ===================== TRANSACTION (WRITE ONLY) ===================== */
     await db.runTransaction(async (transaction) => {
-      const docRef = db.collection("reservations").doc(orderNumber); // ✅ use orderNumber as ID
+      const docRef = db.collection("reservations").doc(orderNumber); 
       transaction.set(docRef, {
         orderNumber,
-        userId: currentUser ? currentUser.uid : null, // ✅ added so we can filter later
+        userId: currentUser ? currentUser.uid : null,
         name, phone, location,
         rentalDates, startTime, endTime,
         paymentType,
@@ -556,24 +616,20 @@ async function completeBooking() {
       });
     });
 
-    console.log("✅ Reservation saved atomically with Order #", orderNumber);
+    console.log("✅ Reservation saved with Order #", orderNumber);
 
-    // --- Send Telegram after transaction succeeds ---
+    // --- Send Telegram ---
     await sendTelegramMessage(
       name, phone, location, rentalDates,
       startTime, endTime, paymentType,
       cart, totalAmount, orderNumber
     );
-    console.log("✅ Telegram sent with Order #", orderNumber);
 
-    // --- Success ---
+    // --- Success cleanup ---
     localStorage.removeItem("cart");
     updateCartCount();
-    if (document.getElementById("cartModal")) {
-      document.getElementById("cartModal").style.display = "none";
-    }
+    document.getElementById("cartModal").style.display = "none";
 
-    // ✅ Clear form fields
     document.getElementById("customerName").value = "";
     document.getElementById("customerPhone").value = "";
     document.getElementById("customerLocation").value = "";
@@ -581,33 +637,22 @@ async function completeBooking() {
     document.getElementById("startTime").value = "";
     document.getElementById("endTime").value = "";
 
-    // ✅ Clear stock errors
     const stockErrorMsg = document.getElementById("stockErrorMsg");
     if (stockErrorMsg) stockErrorMsg.innerHTML = "";
 
-    Swal.fire({
-      title: `ORDER MADE (#${orderNumber})`,
-      text: "We got your booking!",
-      icon: "success",
-      confirmButtonColor: "#1a73e8"
-    });
-
-    // 🔄 Refresh reservations so stock validation updates immediately
+    // 🔄 refresh reservations
     fetchBookedDatesAndInitCalendar();
     const rentalDatesNow = (document.getElementById("rentalDateRange")?.value || "").trim();
-    if (rentalDatesNow) {
-      validateCartStock(rentalDatesNow);
-    }
+    if (rentalDatesNow) validateCartStock(rentalDatesNow);
 
   } catch (err) {
     console.error("completeBooking crashed:", err);
-    Swal.fire({ icon: "error", title: "Stock Issue", text: err.message || "Unexpected error placing the order." });
   } finally {
-    bookingInProgress = false; // reset guard
-    const bookBtn = document.getElementById("completeBookingBtn");
-    if (bookBtn) bookBtn.disabled = false; // re-enable button if failed
+    bookingInProgress = false;
+    if (bookBtn) bookBtn.disabled = false;
   }
 }
+
 
 
 // ✅ Format date into "Month Day, Year"
