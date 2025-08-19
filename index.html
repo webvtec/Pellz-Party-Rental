@@ -1816,13 +1816,12 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
 
   function handleInvoiceClick(order) {
   if (!order.invoiceSent) {
-    // ❌ Not sent yet → show disappearing message
+    // ❌ Not sent yet → show popup that stays until "OK"
     Swal.fire({
       icon: "info",
       title: "Invoice Pending",
       text: "Invoice will be sent when your order is completed.",
-      timer: 2000,
-      showConfirmButton: false
+      confirmButtonText: "OK"
     });
     return;
   }
