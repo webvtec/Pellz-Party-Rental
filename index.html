@@ -941,37 +941,19 @@ let cartHasWarnings = false;
 
 /* ===================== Toggle Place Order button ===================== */
 function togglePlaceOrderButton() {
-  const btn = document.getElementById("placeOrderBtn");
-  if (!btn) return;
+  const btn = document.getElementById("placeOrderBtn");
+  if (!btn) return;
 
-  // required fields
-  const requiredFields = [
-    "customerName",
-    "customerPhone",
-    "rentalDateRange",
-    "startTime",
-    "endTime",
-    "customerLocation"
-  ];
-
-  // check if any required field is empty
-  let allFilled = requiredFields.every(id => {
-    const el = document.getElementById(id);
-    return el && el.value.trim() !== "";
-  });
-
-  // disable if cart warnings OR missing fields
-  if (cartHasWarnings || !allFilled) {
-    btn.disabled = true;
-    btn.style.backgroundColor = "#999";   // greyed out
-    btn.style.cursor = "not-allowed";
-  } else {
-    btn.disabled = false;
-    btn.style.backgroundColor = "#6A0DAD"; // restore purple
-    btn.style.cursor = "pointer";
-  }
+  if (cartHasWarnings) {
+    btn.disabled = true;
+    btn.style.backgroundColor = "#999";   // greyed out
+    btn.style.cursor = "not-allowed";
+  } else {
+    btn.disabled = false;
+    btn.style.backgroundColor = "#6A0DAD"; // restore purple (or your theme color)
+    btn.style.cursor = "pointer";
+  }
 }
-
 
 
 function viewCart() {
