@@ -181,40 +181,38 @@
       <button id="closeCheckoutBtn" style="position:absolute; top:10px; right:15px; font-size:20px; background:none; border:none; color:#6A0DAD; cursor:pointer;">✖</button>
 
       <div>
-  <h2>YOUR CART</h2>
+        <h2>YOUR CART</h2>
 
-  <div style="margin-bottom:10px;">
-    <label for="customerName"><strong>Your Name:</strong></label>
-    <input type="text" id="customerName" placeholder="Enter your name" required />
-  </div>
+        <div style="margin-bottom:10px;">
+          <label for="customerName"><strong>Your Name:</strong></label>
+          <input type="text" id="customerName" placeholder="Enter your name" required />
+        </div>
 
-  <div style="margin-bottom:15px;">
-    <label for="customerPhone"><strong>Phone Number:</strong></label>
-    <input type="tel" id="customerPhone" placeholder="Enter phone number" required />
-  </div>
+        <div style="margin-bottom:15px;">
+          <label for="customerPhone"><strong>Phone Number:</strong></label>
+          <input type="tel" id="customerPhone" placeholder="Enter phone number" required />
+        </div>
 
-  <div style="margin-bottom:15px;">
-    <label for="rentalDateRange"><strong>Select Rental Dates:</strong></label>
-    <input id="rentalDateRange" placeholder="Select start and end date" required />
-  </div>
+        <div style="margin-bottom:15px;">
+          <label for="rentalDateRange"><strong>Select Rental Dates:</strong></label>
+          <input id="rentalDateRange" placeholder="Select start and end date" />
+        </div>
 
-  <div style="display:flex; gap:10px; margin-bottom:10px;">
-    <div style="flex:1;">
-      <label for="startTime">Start Time:</label>
-      <input type="time" id="startTime" required />
-    </div>
-    <div style="flex:1;">
-      <label for="endTime">End Time:</label>
-      <input type="time" id="endTime" required />
-    </div>
-  </div>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+          <div style="flex:1;">
+            <label for="startTime">Start Time:</label>
+            <input type="time" id="startTime" />
+          </div>
+          <div style="flex:1;">
+            <label for="endTime">End Time:</label>
+            <input type="time" id="endTime" />
+          </div>
+        </div>
 
-  <div style="margin-bottom:15px;">
-    <label for="customerLocation"><strong>Location:</strong></label>
-    <input type="text" id="customerLocation" placeholder="Enter delivery location" required />
-  </div>
-</div>
-
+        <div style="margin-bottom:15px;">
+          <label for="customerLocation"><strong>Location:</strong></label>
+          <input type="text" id="customerLocation" placeholder="Enter delivery location" required />
+        </div>
 
         <!-- 🔔 Availability warnings appear here -->
 <div id="cartWarnings" style="color:red; font-weight:bold; margin:10px 0;"></div>
