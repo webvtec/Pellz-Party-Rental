@@ -1727,85 +1727,85 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     .join("");
 
   const invoiceHtml = `
-    <html>
-      <head>
-        <title>Invoice #${order.orderNumber}</title>
-        <!-- Normal font -->
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400&display=swap" rel="stylesheet">
-        <!-- Fallback slab serif for Rockwell -->
-        <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
-        <style>
-          body { font-family: 'Poppins', sans-serif; padding:10px 20px; }
-          h1.title {
-            text-align:center;
-            font-size:32px;
-            font-weight:bold;
-            font-family: Rockwell, 'Roboto Slab', 'Zilla Slab', serif;
-            background: linear-gradient(90deg, #6A0DAD, #007BFF, #2E8B57);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin: 5px 0 10px 0;
-          }
-          p { margin: 3px 0; font-size: 14px; }
-          table { width:100%; border-collapse: collapse; margin-top:10px; font-size: 14px; }
-          th, td { border:1px solid #ccc; padding:6px 8px; text-align:left; }
-          th { background:#f2f2f2; }
-          .grand-total { font-weight:bold; text-align:right; background:#fafafa; }
+  <html>
+    <head>
+      <title>Invoice #${order.orderNumber}</title>
+      <!-- fonts + styles same as before -->
+      <style>
+        body { font-family: 'Poppins', sans-serif; padding:10px 20px; }
+        h1.title {
+          text-align:center;
+          font-size:32px;
+          font-weight:bold;
+          font-family: Rockwell, 'Roboto Slab', 'Zilla Slab', serif;
+          background: linear-gradient(90deg, #6A0DAD, #007BFF, #2E8B57);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          margin: 5px 0 10px 0;
+        }
+        p { margin: 3px 0; font-size: 14px; }
+        table { width:100%; border-collapse: collapse; margin-top:10px; font-size: 14px; }
+        th, td { border:1px solid #ccc; padding:6px 8px; text-align:left; }
+        th { background:#f2f2f2; }
+        .grand-total { font-weight:bold; text-align:right; background:#fafafa; }
+        .payment-row td { font-weight:bold; background:#f9f9ff; color:#333; }
+        .stamp {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 26px;
+          color: rgba(106,13,173,0.25);
+          font-weight: bold;
+          text-align: center;
+          width: 200px;
+          height: 200px;
+          border: 4px dashed rgba(106,13,173,0.25);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+          user-select: none;
+        }
+      </style>
+    </head>
+    <body>
+      <h1 class="title">PELLZ PARTY RENTAL INVOICE</h1>
+      <p><b>Order #:</b> ${order.orderNumber}</p>
+      <p><b>Date:</b> ${orderDate}</p>
+      <p><b>Name:</b> ${order.name || ""}</p>
+      <p><b>Phone:</b> ${order.phone || ""}</p>
+      <p><b>Location:</b> ${order.location || ""}</p>
+      <p><b>Rental Dates:</b> ${rentalRange}</p>
 
-          /* Watermark stamp */
-          .stamp {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 26px;
-            color: rgba(106,13,173,0.25);
-            font-weight: bold;
-            text-align: center;
-            width: 200px;
-            height: 200px;
-            border: 4px dashed rgba(106,13,173,0.25);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-            user-select: none;
-          }
-        </style>
-      </head>
-      <body>
-        <h1 class="title">PELLZ PARTY RENTAL INVOICE</h1>
-        <p><b>Order #:</b> ${order.orderNumber}</p>
-        <p><b>Date:</b> ${orderDate}</p>
-        <p><b>Name:</b> ${order.name || ""}</p>
-        <p><b>Phone:</b> ${order.phone || ""}</p>
-        <p><b>Location:</b> ${order.location || ""}</p>
-        <p><b>Rental Dates:</b> ${rentalRange}</p>
-        <p><b>Payment Method(s):</b> ${paymentOptions}</p> <!-- ✅ NEW LINE -->
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Unit Price</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+          <tr>
+            <td colspan="3" class="grand-total">Grand Total</td>
+            <td><b>${formatJMD(grandTotal)}</b></td>
+          </tr>
+          <tr class="payment-row">
+            <td colspan="3" class="grand-total">Payment Method(s)</td>
+            <td>${paymentOptions}</td>
+          </tr>
+        </tbody>
+      </table>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Qty</th>
-              <th>Unit Price</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-            <tr>
-              <td colspan="3" class="grand-total">Grand Total</td>
-              <td><b>${formatJMD(grandTotal)}</b></td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="stamp">${stamp}</div>
+    </body>
+  </html>
+`;
 
-        <div class="stamp">${stamp}</div>
-      </body>
-    </html>
-  `;
 
   const invoiceWindow = window.open("", "_blank");
   invoiceWindow.document.open();
