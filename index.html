@@ -1519,9 +1519,27 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
 
   function generateInvoice(order) {
   const stamp = `STAMP-${order.orderNumber}-${Date.now()}`;
-  
+
+  // Format order creation date
+  const orderDate = order.createdAt?.toDate?.().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  }) || new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+
   const itemsHtml = (order.cartItems || [])
-    .map(i => `<tr><td>${i.name}</td><td>${i.quantity}</td><td>${formatJMD(i.price)}</td></tr>`)
+    .map(i => `
+      <tr>
+        <td>${i.name}</td>
+        <td>${i.quantity}</td>
+        <td>${formatJMD(i.price)}</td>
+        <td>${formatJMD((i.price || 0) * (i.quantity || 1))}</td>
+      </tr>
+    `)
     .join("");
 
   const invoiceHtml = `
@@ -1530,9 +1548,11 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
         <title>Invoice #${order.orderNumber}</title>
         <style>
           body { font-family: Arial, sans-serif; padding:20px; }
-          h1 { color:#6A0DAD; }
+          h1.title { text-align:center; font-size:28px; font-weight:bold; color:black; margin-bottom:20px; }
           table { width:100%; border-collapse: collapse; margin-top:15px; }
           th, td { border:1px solid #ccc; padding:8px; text-align:left; }
+          th { background:#f2f2f2; }
+          .grand-total { font-weight:bold; text-align:right; }
           .stamp {
             position: fixed;
             top: 40%;
@@ -1547,16 +1567,30 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
         </style>
       </head>
       <body>
-        <h1>Invoice #${order.orderNumber}</h1>
+        <h1 class="title">INVOICE</h1>
+        <p><b>Invoice #:</b> ${order.orderNumber}</p>
+        <p><b>Date:</b> ${orderDate}</p>
         <p><b>Name:</b> ${order.name || ""}</p>
         <p><b>Phone:</b> ${order.phone || ""}</p>
         <p><b>Location:</b> ${order.location || ""}</p>
         <p><b>Rental Dates:</b> ${order.rentalDates || ""}</p>
-        <p><b>Total:</b> ${formatJMD(order.totalAmount || 0)}</p>
 
         <table>
-          <thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead>
-          <tbody>${itemsHtml}</tbody>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Unit Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+            <tr>
+              <td colspan="3" class="grand-total">Grand Total</td>
+              <td><b>${formatJMD(order.totalAmount || 0)}</b></td>
+            </tr>
+          </tbody>
         </table>
 
         <div class="stamp">${stamp}</div>
