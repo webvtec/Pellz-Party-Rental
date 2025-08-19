@@ -395,6 +395,22 @@
   font-weight: bold;
   border-radius: 6px;
 }
+
+    .invoice-btn {
+  background-color: #28a745;   /* green */
+  color: #fff;
+  padding: 12px;
+  font-weight: bold;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  margin-top: 15px;   /* 👈 control how far down it sits */
+  transition: background 0.2s;
+}
+.invoice-btn:hover {
+  background-color: #1e7e34;   /* darker green */
+}
+
 </style>
 </head>
 <body>
@@ -444,8 +460,8 @@
 <label><input type="checkbox" value="FULL PAYMENT UPON ARRIVAL"/> FULL PAYMENT UPON ARRIVAL</label><br/>
 <label><input type="checkbox" value="50% BANK TRANSFER"/> 50% BANK TRANSFER</label><br/>
 <label><input type="checkbox" value="50% UPON ARRIVAL"/> 50% UPON ARRIVAL</label><br/><br/>
-<button onclick="sendInvoice()">Send</button>
 <button onclick="closeInvoiceModal()">Cancel</button>
+<button onclick="sendInvoice()">Send</button>
 </div>
 </div>
 <script>
@@ -770,10 +786,10 @@ function loadReservations() {
             <div><strong>Items:</strong><ul>${itemsList}</ul></div>
             ${booking.notes ? `<p><em>Notes: ${booking.notes}</em></p>` : ''}
 
-            <!-- ❌ Cancel and Save Button -->
+            <!-- ❌ Cancel and Invoice Button -->
          <div class="action-buttons">
          <button class="cancel-btn" onclick="cancelReservation('${booking.id}')">Cancel Order</button>
-         <button class="save-btn" onclick="openInvoiceModal('${booking.id}')">Invoice</button>
+         <button class="invoice-btn" onclick="openInvoiceModal('${booking.id}')">Invoice</button>
          </div>
           </div>`;
       });
