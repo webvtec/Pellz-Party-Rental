@@ -1539,14 +1539,23 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
 }
 
 function showInvoice(order) {
-  // Format rental dates (assume order.rentalDates is something like "2030-07-06")
   function formatDate(dateStr) {
     const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr; // fallback if not a valid date
     return d.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric"
     });
+  }
+
+  // ✅ Handle rental range like "2030-07-06 to 2030-07-08"
+  let rentalDateFormatted = "";
+  if (order.rentalDates?.includes(" to ")) {
+    const [startStr, endStr] = order.rentalDates.split(" to ");
+    rentalDateFormatted = `${formatDate(startStr)} → ${formatDate(endStr)}`;
+  } else if (order.rentalDates) {
+    rentalDateFormatted = formatDate(order.rentalDates);
   }
 
   const itemsHtml = (order.cartItems || [])
@@ -1556,10 +1565,6 @@ function showInvoice(order) {
         <td>${formatJMD(i.price)}</td>
         <td>${formatJMD(i.price * i.quantity)}</td>
       </tr>`).join("");
-
-  const rentalDateFormatted = order.rentalDates
-    ? formatDate(order.rentalDates)
-    : "";
 
   const html = `
     <html>
@@ -1590,7 +1595,7 @@ function showInvoice(order) {
         <p><b>Name:</b> ${order.name}</p>
         <p><b>Phone:</b> ${order.phone}</p>
         <p><b>Location:</b> ${order.location}</p>
-        <p><b>Rental Date:</b> ${rentalDateFormatted} (${order.startTime || ""} - ${order.endTime || ""})</p>
+        <p><b>Rental Dates:</b> ${rentalDateFormatted} (${order.startTime || ""} - ${order.endTime || ""})</p>
 
         <table>
           <thead>
@@ -1622,7 +1627,6 @@ function showInvoice(order) {
     </html>
   `;
 
-  // Open invoice in a new tab
   const w = window.open("", "_blank");
   w.document.write(html);
   w.document.close();
