@@ -1724,9 +1724,18 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     <html>
       <head>
         <title>Invoice #${order.orderNumber}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap" rel="stylesheet">
         <style>
-          body { font-family: Arial, sans-serif; padding:20px; }
-          h1.title { text-align:center; font-size:28px; font-weight:bold; color:black; margin-bottom:20px; }
+          body { font-family: 'Poppins', sans-serif; padding:20px; }
+          h1.title {
+            text-align:center;
+            font-size:32px;
+            font-weight:bold;
+            background: linear-gradient(90deg, #6A0DAD, #007BFF, #2E8B57, #6A0DAD);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom:20px;
+          }
           table { width:100%; border-collapse: collapse; margin-top:15px; }
           th, td { border:1px solid #ccc; padding:8px; text-align:left; }
           th { background:#f2f2f2; }
@@ -1755,7 +1764,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
         </style>
       </head>
       <body>
-        <h1>PELLZ PARTY RENTAL INVOICE</h1>
+        <h1 class="title">PELLZ PARTY RENTAL INVOICE</h1>
         <p><b>Order #:</b> ${order.orderNumber}</p>
         <p><b>Date:</b> ${orderDate}</p>
         <p><b>Name:</b> ${order.name || ""}</p>
