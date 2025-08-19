@@ -1541,7 +1541,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
 function showInvoice(order) {
   function formatDate(dateStr) {
     const d = new Date(dateStr);
-    if (isNaN(d)) return dateStr; // fallback if not a valid date
+    if (isNaN(d)) return dateStr;
     return d.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
@@ -1549,7 +1549,7 @@ function showInvoice(order) {
     });
   }
 
-  // ✅ Handle rental range like "2030-07-06 to 2030-07-08"
+  // ✅ Handle ranges like "2030-07-06 to 2030-07-08"
   let rentalDateFormatted = "";
   if (order.rentalDates?.includes(" to ")) {
     const [startStr, endStr] = order.rentalDates.split(" to ");
@@ -1566,7 +1566,11 @@ function showInvoice(order) {
         <td>${formatJMD(i.price * i.quantity)}</td>
       </tr>`).join("");
 
-  const html = `
+  // ✅ Open new tab
+  const w = window.open("", "_blank");
+
+  // Write invoice page HTML
+  w.document.write(`
     <html>
       <head>
         <title>Invoice - ${order.orderNumber}</title>
@@ -1611,26 +1615,26 @@ function showInvoice(order) {
         <h3 class="total">Grand Total: ${formatJMD(order.totalAmount)}</h3>
 
         <button class="download-btn" onclick="downloadInvoice()">⬇ Download Invoice</button>
-
-        <script>
-          function downloadInvoice() {
-            const blob = new Blob([document.documentElement.outerHTML], { type: "text/html" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "Invoice-${order.orderNumber}.html";
-            a.click();
-            URL.revokeObjectURL(url);
-          }
-        </script>
       </body>
     </html>
-  `;
+  `);
 
-  const w = window.open("", "_blank");
-  w.document.write(html);
+  // ✅ Add script after writing HTML
+  w.document.write(`
+    <script>
+      function downloadInvoice() {
+        const blob = new Blob([document.documentElement.outerHTML], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "Invoice-${order.orderNumber}.html";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    <\/script>
+  `);
+
   w.document.close();
 }
-
 
 </script>
