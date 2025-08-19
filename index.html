@@ -1531,15 +1531,35 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
     day: "numeric"
   });
 
+  // Format rental dates properly
+  let rentalRange = order.rentalDates || "N/A";
+  if (order.rentalDates?.includes(" to ")) {
+    const [startStr, endStr] = order.rentalDates.split(" to ");
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+    if (!isNaN(start) && !isNaN(end)) {
+      const fmt = { year: "numeric", month: "long", day: "numeric" };
+      rentalRange = `${start.toLocaleDateString("en-US", fmt)} → ${end.toLocaleDateString("en-US", fmt)}`;
+    }
+  }
+
+  // Build items and recalc grand total
+  let grandTotal = 0;
   const itemsHtml = (order.cartItems || [])
-    .map(i => `
-      <tr>
-        <td>${i.name}</td>
-        <td>${i.quantity}</td>
-        <td>${formatJMD(i.price)}</td>
-        <td>${formatJMD((i.price || 0) * (i.quantity || 1))}</td>
-      </tr>
-    `)
+    .map(i => {
+      const qty = i.quantity || 1;
+      const unit = Number(i.price) || 0;
+      const lineTotal = unit * qty;
+      grandTotal += lineTotal;
+      return `
+        <tr>
+          <td>${i.name}</td>
+          <td>${qty}</td>
+          <td>${formatJMD(unit)}</td>
+          <td>${formatJMD(lineTotal)}</td>
+        </tr>
+      `;
+    })
     .join("");
 
   const invoiceHtml = `
@@ -1553,16 +1573,26 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
           th, td { border:1px solid #ccc; padding:8px; text-align:left; }
           th { background:#f2f2f2; }
           .grand-total { font-weight:bold; text-align:right; }
+
+          /* Watermark stamp with circular border */
           .stamp {
             position: fixed;
-            top: 40%;
+            top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 40px;
-            color: rgba(106,13,173,0.15);
+            font-size: 32px;
+            color: rgba(106,13,173,0.25);
             font-weight: bold;
-            white-space: nowrap;
+            text-align: center;
+            width: 250px;
+            height: 250px;
+            border: 6px dashed rgba(106,13,173,0.25); /* dashed for official seal effect */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             pointer-events: none;
+            user-select: none;
           }
         </style>
       </head>
@@ -1573,7 +1603,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
         <p><b>Name:</b> ${order.name || ""}</p>
         <p><b>Phone:</b> ${order.phone || ""}</p>
         <p><b>Location:</b> ${order.location || ""}</p>
-        <p><b>Rental Dates:</b> ${order.rentalDates || ""}</p>
+        <p><b>Rental Dates:</b> ${rentalRange}</p>
 
         <table>
           <thead>
@@ -1588,7 +1618,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
             ${itemsHtml}
             <tr>
               <td colspan="3" class="grand-total">Grand Total</td>
-              <td><b>${formatJMD(order.totalAmount || 0)}</b></td>
+              <td><b>${formatJMD(grandTotal)}</b></td>
             </tr>
           </tbody>
         </table>
