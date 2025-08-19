@@ -1567,11 +1567,8 @@ function showInvoice(order) {
         <td>${formatJMD(i.price * i.quantity)}</td>
       </tr>`).join("");
 
-  // ✅ Open new tab
-  const w = window.open("", "_blank");
-
-  // Write invoice page HTML
-  w.document.write(`
+  // ✅ Build final HTML string with real values
+  const html = `
     <html>
       <head>
         <meta charset="UTF-8">
@@ -1634,9 +1631,13 @@ function showInvoice(order) {
         <\/script>
       </body>
     </html>
-  `);
+  `;
 
+  // ✅ Write the final HTML into the new tab
+  const w = window.open("", "_blank");
+  w.document.write(html);
   w.document.close();
 }
+
 
 </script>
