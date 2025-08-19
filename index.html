@@ -1547,20 +1547,6 @@ function showInvoice(order) {
         <td>${formatJMD(i.price * i.quantity)}</td>
       </tr>`).join("");
 
-  // ✅ Format rental dates nicely
-  let rentalRange = order.rentalDates || "N/A";
-  if (order.rentalDates?.includes(" to ")) {
-    const [startStr, endStr] = order.rentalDates.split(" to ");
-    const start = new Date(startStr);
-    const end = new Date(endStr);
-    if (!isNaN(start) && !isNaN(end)) {
-      const fmt = { year: "numeric", month: "long", day: "numeric" };
-      const startFmt = start.toLocaleDateString("en-US", fmt);
-      const endFmt = end.toLocaleDateString("en-US", fmt);
-      rentalRange = `${startFmt} → ${endFmt}`;
-    }
-  }
-
   const html = `
     <html>
       <head>
@@ -1572,10 +1558,10 @@ function showInvoice(order) {
           th, td { border: 1px solid #000; padding: 6px; text-align: left; }
           th { background: #f0f0f0; }
           .total { text-align: right; font-weight: bold; margin-top: 10px; }
-          .download-btn {
+          .print-btn {
             margin: 15px 0;
             padding: 8px 16px;
-            background: #007BFF;
+            background: #6A0DAD;
             color: white;
             border: none;
             border-radius: 6px;
@@ -1585,12 +1571,12 @@ function showInvoice(order) {
         </style>
       </head>
       <body>
-        <h2>Pellz Party Rentals Invoice</h2>
+        <h2>Invoice</h2>
         <p><b>Order #:</b> ${order.orderNumber}</p>
         <p><b>Name:</b> ${order.name}</p>
         <p><b>Phone:</b> ${order.phone}</p>
         <p><b>Location:</b> ${order.location}</p>
-        <p><b>Rental Dates:</b> ${rentalRange} (${order.startTime || ""} - ${order.endTime || ""})</p>
+        <p><b>Rental Dates:</b> ${order.rentalDates} (${order.startTime || ""} - ${order.endTime || ""})</p>
 
         <table>
           <thead>
@@ -1605,19 +1591,7 @@ function showInvoice(order) {
 
         <h3 class="total">Grand Total: ${formatJMD(order.totalAmount)}</h3>
 
-        <button class="download-btn" onclick="downloadInvoice()">⬇ Download Invoice</button>
-
-        <script>
-          function downloadInvoice() {
-            const blob = new Blob([document.documentElement.outerHTML], { type: "text/html" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "Invoice-${order.orderNumber}.html";
-            a.click();
-            URL.revokeObjectURL(url);
-          }
-        </script>
+        <button class="print-btn" onclick="window.print()">🖨 Print Invoice</button>
       </body>
     </html>
   `;
@@ -1627,5 +1601,6 @@ function showInvoice(order) {
   w.document.write(html);
   w.document.close();
 }
+
 
 </script>
