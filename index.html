@@ -946,6 +946,7 @@ function togglePlaceOrderButton() {
   const btn = document.getElementById("placeOrderBtn");
   if (!btn) return;
 
+  // required fields
   const requiredFields = [
     "customerName",
     "customerPhone",
@@ -955,38 +956,14 @@ function togglePlaceOrderButton() {
     "customerLocation"
   ];
 
-  let allValid = true;
-
-  requiredFields.forEach(id => {
+  // check if any required field is empty
+  let allFilled = requiredFields.every(id => {
     const el = document.getElementById(id);
-    if (el) {
-      let value = el.value.trim();
-      let valid = true;
-
-      // --- extra rules ---
-      if (!value) {
-        valid = false; // empty
-      } else if (id === "customerPhone" && !/^\d{7,15}$/.test(value)) {
-        // phone must be 7–15 digits
-        valid = false;
-      } else if (id === "customerName" && value.length < 3) {
-        // name at least 3 characters
-        valid = false;
-      } else if (id === "customerLocation" && value.length < 3) {
-        // location at least 3 characters
-        valid = false;
-      }
-
-      if (!valid) {
-        el.style.border = "2px solid red";   // highlight invalid
-        allValid = false;
-      } else {
-        el.style.border = ""; // reset if valid
-      }
-    }
+    return el && el.value.trim() !== "";
   });
 
-  if (cartHasWarnings || !allValid) {
+  // disable if cart warnings OR missing fields
+  if (cartHasWarnings || !allFilled) {
     btn.disabled = true;
     btn.style.backgroundColor = "#999";   // greyed out
     btn.style.cursor = "not-allowed";
@@ -996,6 +973,7 @@ function togglePlaceOrderButton() {
     btn.style.cursor = "pointer";
   }
 }
+
 
 
 function viewCart() {
