@@ -1567,7 +1567,7 @@ function showInvoice(order) {
         <td>${formatJMD(i.price * i.quantity)}</td>
       </tr>`).join("");
 
-  // ✅ Build final HTML string with real values
+  // ✅ Build final HTML string with data already interpolated
   const html = `
     <html>
       <head>
@@ -1633,7 +1633,7 @@ function showInvoice(order) {
     </html>
   `;
 
-  // ✅ Write the final HTML into the new tab
+  // ✅ Write the final interpolated HTML to new window
   const w = window.open("", "_blank");
   w.document.write(html);
   w.document.close();
