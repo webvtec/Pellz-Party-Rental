@@ -1600,47 +1600,59 @@ function showInvoice(order) {
       </tr>`).join("");
 
   const html = `
-    <div style="text-align:left; font-family:Arial;">
-      <h2 style="text-align:center;">Invoice</h2>
-      <p><b>Order #:</b> ${order.orderNumber}</p>
-      <p><b>Name:</b> ${order.name}</p>
-      <p><b>Phone:</b> ${order.phone}</p>
-      <p><b>Location:</b> ${order.location}</p>
-      <p><b>Rental Dates:</b> ${order.rentalDates} (${order.startTime || ""} - ${order.endTime || ""})</p>
-      
-      <table border="1" cellspacing="0" cellpadding="6" style="width:100%; border-collapse:collapse; margin-top:10px;">
-        <thead>
-          <tr style="background:#eee;">
-            <th>Item</th><th>Qty</th><th>Unit Price</th><th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${itemsHtml}
-        </tbody>
-      </table>
+    <html>
+      <head>
+        <title>Invoice - ${order.orderNumber}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h2 { text-align: center; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          th, td { border: 1px solid #000; padding: 6px; text-align: left; }
+          th { background: #f0f0f0; }
+          .total { text-align: right; font-weight: bold; margin-top: 10px; }
+          .print-btn {
+            margin: 15px 0;
+            padding: 8px 16px;
+            background: #6A0DAD;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <h2>Invoice</h2>
+        <p><b>Order #:</b> ${order.orderNumber}</p>
+        <p><b>Name:</b> ${order.name}</p>
+        <p><b>Phone:</b> ${order.phone}</p>
+        <p><b>Location:</b> ${order.location}</p>
+        <p><b>Rental Dates:</b> ${order.rentalDates} (${order.startTime || ""} - ${order.endTime || ""})</p>
 
-      <h3 style="text-align:right; margin-top:10px;">Grand Total: ${formatJMD(order.totalAmount)}</h3>
-    </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th><th>Qty</th><th>Unit Price</th><th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <h3 class="total">Grand Total: ${formatJMD(order.totalAmount)}</h3>
+
+        <button class="print-btn" onclick="window.print()">🖨 Print Invoice</button>
+      </body>
+    </html>
   `;
 
-  Swal.fire({
-    title: "INVOICE",
-    html,
-    width: 600,
-    showCancelButton: true,
-    confirmButtonText: "Print",
-    cancelButtonText: "Close",
-    customClass: { popup: "swal2-rounded" }
-  }).then(result => {
-    if (result.isConfirmed) {
-      const w = window.open("", "_blank");
-      w.document.write(`<html><head><title>Invoice</title></head><body>${html}</body></html>`);
-      w.document.close();
-      w.print();
-    }
-  });
+  // Open invoice in a new tab
+  const w = window.open("", "_blank");
+  w.document.write(html);
+  w.document.close();
 }
-
 
 
 </script>
