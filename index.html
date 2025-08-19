@@ -493,13 +493,12 @@ let bookingInProgress = false; // guard variable
   return allValid;
 }
 
-  
 async function completeBooking() {
-  if (bookingInProgress) return; // prevent duplicate run
+  if (bookingInProgress) return; 
   bookingInProgress = true;
 
   const bookBtn = document.getElementById("completeBookingBtn");
-  if (bookBtn) bookBtn.disabled = true; // disable button immediately
+  if (bookBtn) bookBtn.disabled = true; 
 
   try {
     const name = (document.getElementById("customerName")?.value || "").trim();
@@ -512,7 +511,7 @@ async function completeBooking() {
 
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-    // ✅ Highlight required fields
+    // ✅ highlight required fields
     const requiredFields = {
       customerName: name,
       customerPhone: phone,
@@ -536,10 +535,10 @@ async function completeBooking() {
     if (!allValid || cart.length === 0) {
       bookingInProgress = false;
       if (bookBtn) bookBtn.disabled = false;
-      return; // 🚫 stop silently if fields are empty or cart is empty
+      return; // 🚫 stop silently
     }
 
-    // 📅 check rental dates format
+    // 📅 rental dates check
     if (!rentalDates.includes(" to ")) {
       document.getElementById("rentalDateRange")?.classList.add("error");
       bookingInProgress = false;
@@ -566,44 +565,12 @@ async function completeBooking() {
     }
     totalAmount = Number(totalAmount.toFixed(2));
 
-    // --- generate unique order number ---
+    // --- generate order number ---
     const orderNumber = await generateUniqueOrderNumber(name);
 
-    /* ===================== CONFLICT CHECK ===================== */
-    const reservationsSnap = await db.collection("reservations").get();
-
-    for (const cartItem of cart) {
-      let alreadyBooked = 0;
-
-      reservationsSnap.forEach(doc => {
-        const r = doc.data();
-        if (!r.rentalDates || !r.cartItems) return;
-
-        const [resStartStr, resEndStr] = r.rentalDates.split(" to ");
-        const resStart = new Date(resStartStr);
-        const resEnd = new Date(resEndStr);
-
-        if ((start <= resEnd) && (end >= resStart)) {
-          for (const bookedItem of r.cartItems) {
-            if (bookedItem.name === cartItem.name) {
-              alreadyBooked += bookedItem.quantity || 1;
-            }
-          }
-        }
-      });
-
-      const stockAvailable = (qtyMap?.[cartItem.name]?.options?.slice(-1)?.[0]) || 1;
-      if (alreadyBooked + (cartItem.quantity || 1) > stockAvailable) {
-        document.getElementById("rentalDateRange")?.classList.add("error");
-        bookingInProgress = false;
-        if (bookBtn) bookBtn.disabled = false;
-        return;
-      }
-    }
-
-    /* ===================== TRANSACTION (WRITE ONLY) ===================== */
+    // --- save transaction ---
     await db.runTransaction(async (transaction) => {
-      const docRef = db.collection("reservations").doc(orderNumber); 
+      const docRef = db.collection("reservations").doc(orderNumber);
       transaction.set(docRef, {
         orderNumber,
         userId: currentUser ? currentUser.uid : null,
@@ -616,42 +583,45 @@ async function completeBooking() {
       });
     });
 
-    console.log("✅ Reservation saved with Order #", orderNumber);
-
-    // --- Send Telegram ---
+    // --- send Telegram ---
     await sendTelegramMessage(
       name, phone, location, rentalDates,
       startTime, endTime, paymentType,
       cart, totalAmount, orderNumber
     );
 
-    // --- Success cleanup ---
+    // --- cleanup ---
     localStorage.removeItem("cart");
     updateCartCount();
     document.getElementById("cartModal").style.display = "none";
 
-    document.getElementById("customerName").value = "";
-    document.getElementById("customerPhone").value = "";
-    document.getElementById("customerLocation").value = "";
-    document.getElementById("rentalDateRange").value = "";
-    document.getElementById("startTime").value = "";
-    document.getElementById("endTime").value = "";
+    ["customerName","customerPhone","customerLocation","rentalDateRange","startTime","endTime"]
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
 
     const stockErrorMsg = document.getElementById("stockErrorMsg");
     if (stockErrorMsg) stockErrorMsg.innerHTML = "";
 
-    // 🔄 refresh reservations
+    // ✅ keep success popup
+    Swal.fire({
+      title: `ORDER MADE (#${orderNumber})`,
+      text: "We got your booking!",
+      icon: "success",
+      confirmButtonColor: "#1a73e8"
+    });
+
     fetchBookedDatesAndInitCalendar();
     const rentalDatesNow = (document.getElementById("rentalDateRange")?.value || "").trim();
     if (rentalDatesNow) validateCartStock(rentalDatesNow);
 
   } catch (err) {
     console.error("completeBooking crashed:", err);
+    // ❌ keep errors silent (no popup), just stop
   } finally {
     bookingInProgress = false;
     if (bookBtn) bookBtn.disabled = false;
   }
 }
+  
 
 
 
