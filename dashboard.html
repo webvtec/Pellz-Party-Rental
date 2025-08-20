@@ -410,8 +410,6 @@
 </style>
 </head>
 <body>
-
-
 <div class="header-bar">ADMIN DASHBOARD</div>
 <div class="top-menu">
 <button onclick="showSection('gallerySection')">GALLERY</button>
@@ -875,13 +873,18 @@ function loadUnavailableDates() {
 
 function removeUnavailableDate(id) { db.collection('unavailableDays').doc(id).delete(); }
 
+firebase.auth().onAuthStateChanged(user => {
+  if (user) {
+    loadGallery();   // ✅ add this
+    showSection('reservationsPage');
+    loadReservations();
+    loadUnavailableDates();
+  } else {
+    window.location.href = 'index.html';
+  }
+});
 
-// User already validated via sessionStorage check above
-loadGallery();
-showSection('reservationsPage');
-loadReservations();
-loadUnavailableDates();
-let currentInvoiceOrderId = null;
+    let currentInvoiceOrderId = null;
 
 function openInvoiceModal(orderId) {
   currentInvoiceOrderId = orderId;
