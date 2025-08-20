@@ -410,6 +410,19 @@
 </style>
 </head>
 <body>
+
+<script>
+  // Hardcoded allowed admin email (CHANGE THIS to your real admin email)
+  const allowedAdmin = "youradmin@email.com";
+
+  // Check sessionStorage for login
+  const loggedInEmail = sessionStorage.getItem("adminEmail");
+  if (loggedInEmail !== allowedAdmin) {
+    // Not logged in as admin → redirect
+    window.location.href = "index.html";
+  }
+</script>
+
 <div class="header-bar">ADMIN DASHBOARD</div>
 <div class="top-menu">
 <button onclick="showSection('gallerySection')">GALLERY</button>
@@ -873,18 +886,13 @@ function loadUnavailableDates() {
 
 function removeUnavailableDate(id) { db.collection('unavailableDays').doc(id).delete(); }
 
-firebase.auth().onAuthStateChanged(user => {
-  if (user) {
-    loadGallery();   // ✅ add this
-    showSection('reservationsPage');
-    loadReservations();
-    loadUnavailableDates();
-  } else {
-    window.location.href = 'index.html';
-  }
-});
 
-    let currentInvoiceOrderId = null;
+// User already validated via sessionStorage check above
+loadGallery();
+showSection('reservationsPage');
+loadReservations();
+loadUnavailableDates();
+let currentInvoiceOrderId = null;
 
 function openInvoiceModal(orderId) {
   currentInvoiceOrderId = orderId;
