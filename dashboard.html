@@ -616,21 +616,36 @@ function loadGallery() {
       `;
     }
 
-function saveNewProduct(name, description, price, url, category) {
+function saveNewProduct(docId) {
+  const name = document.getElementById(`name-${docId}`).value.trim();
+  const description = document.getElementById(`desc-${docId}`).value.trim();
+  const price = parseFloat(document.getElementById(`price-${docId}`).value) || 0;
+  const url = document.getElementById(`url-${docId}`).value.trim();
+  const category = document.getElementById(`category-${docId}`).value;
+
+  if (!name || !url || price <= 0) {
+    alert("Please enter a valid name, image URL, and price.");
+    return;
+  }
+
   db.collection("gallery").add({
-    name: name || "",
-    description: description || "",
-    price: price || 0,
-    imageUrl: url || "",  // ✅ consistent field name
-    category: category || "UNCATEGORIZED",
+    name,
+    description,
+    price,
+    imageUrl: url,
+    category,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  }).then(() => {
-    console.log("New product saved");
-  }).catch(error => {
+  })
+  .then(() => {
+    console.log("New product saved successfully");
+    // ❌ no need to manually remove temp slot
+    // Firestore snapshot will re-render gallery with new product
+  })
+  .catch(error => {
     console.error("Error saving new product: ", error);
+    alert("Error saving new product: " + error.message);
   });
 }
-
 
 
 
