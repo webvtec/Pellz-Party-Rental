@@ -2,7 +2,6 @@
 
 <html lang="en">
 <head>
-
 <!-- Essential for correct scaling on mobile -->
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
 <title>ADMIN DASHBOARD</title>
@@ -875,16 +874,12 @@ function loadUnavailableDates() {
 function removeUnavailableDate(id) { db.collection('unavailableDays').doc(id).delete(); }
 
 firebase.auth().onAuthStateChanged(user => {
-  const allowedAdmin = "carlanviroberts@gmail.com"; // <-- your admin email
-
-  if (user && user.email === allowedAdmin) {
-    // ✅ Only the real admin gets in
-    loadGallery();
+  if (user) {
+    loadGallery();   // ✅ add this
     showSection('reservationsPage');
     loadReservations();
     loadUnavailableDates();
   } else {
-    // ❌ Everyone else gets redirected
     window.location.href = 'index.html';
   }
 });
