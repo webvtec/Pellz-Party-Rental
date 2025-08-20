@@ -531,7 +531,35 @@ let bookingInProgress = false; // guard variable
   return allValid;
 }
 
-  async function completeBooking() {
+    // helper for unavailable check
+async function isDateUnavailable(selectedDate, startTime, endTime) {
+  const dateStr = selectedDate.toISOString().split("T")[0];
+  const snapshot = await db.collection("unavailableDays")
+    .where("date", "==", dateStr)
+    .get();
+
+  if (snapshot.empty) return false;
+
+  let blocked = false;
+  snapshot.forEach(doc => {
+    const d = doc.data();
+    if (d.allDay) {
+      blocked = true;
+    } else {
+      if (
+        (startTime >= d.startTime && startTime < d.endTime) ||
+        (endTime > d.startTime && endTime <= d.endTime) ||
+        (startTime <= d.startTime && endTime >= d.endTime)
+      ) {
+        blocked = true;
+      }
+    }
+  });
+
+  return blocked;
+}
+
+async function completeBooking() {
   if (bookingInProgress) return; 
   bookingInProgress = true;
 
@@ -550,7 +578,7 @@ let bookingInProgress = false; // guard variable
 
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-    // ✅ highlight required fields
+    // ✅ required fields check (unchanged)
     const requiredFields = {
       customerName: name,
       customerPhone: phone,
@@ -584,10 +612,10 @@ let bookingInProgress = false; // guard variable
     if (!allValid || cart.length === 0) {
       bookingInProgress = false;
       if (bookBtn) bookBtn.disabled = false;
-      return; // 🚫 stop silently
+      return;
     }
 
-    // 📅 rental dates check
+    // 📅 rental dates check (unchanged)
     if (!rentalDates.includes(" to ")) {
       document.getElementById("rentalDateRange")?.classList.add("error");
       bookingInProgress = false;
@@ -604,7 +632,15 @@ let bookingInProgress = false; // guard variable
       return;
     }
 
-    // --- calculate total ---
+    // 🔒 NEW: check unavailable days
+    if (await isDateUnavailable(start, startTime, endTime) || await isDateUnavailable(end, startTime, endTime)) {
+      alert("The selected date or time is unavailable. Please choose another.");
+      bookingInProgress = false;
+      if (bookBtn) bookBtn.disabled = false;
+      return;
+    }
+
+    // --- calculate total (unchanged) ---
     const days = getRentalDayCount();
     let totalAmount = 0;
     for (const item of cart) {
@@ -614,10 +650,10 @@ let bookingInProgress = false; // guard variable
     }
     totalAmount = Number(totalAmount.toFixed(2));
 
-    // --- generate order number ---
+    // --- generate order number (unchanged) ---
     const orderNumber = await generateUniqueOrderNumber(name);
 
-    // --- save transaction ---
+    // --- save transaction (unchanged) ---
     await db.runTransaction(async (transaction) => {
       const docRef = db.collection("reservations").doc(orderNumber);
       transaction.set(docRef, {
@@ -625,13 +661,23 @@ let bookingInProgress = false; // guard variable
         userId: currentUser ? currentUser.uid : null,
         name, phone, location,
         rentalDates, startTime, endTime,
-        parish, // ✅ new field saved
+        parish,
         paymentType,
         cartItems: cart,
         totalAmount,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     });
+
+  } catch (error) {
+    console.error("Booking error:", error);
+    alert("Failed to complete booking. Please try again.");
+  } finally {
+    bookingInProgress = false;
+    if (bookBtn) bookBtn.disabled = false;
+  }
+}
+
 
     // --- send Telegram ---
     await sendTelegramMessage(
@@ -699,8 +745,7 @@ Swal.fire({
     bookingInProgress = false;
     if (bookBtn) bookBtn.disabled = false;
   }
-}
-
+  }
 
   // ✅ Remove red highlight as soon as user types or changes value
 function attachLiveValidation(fieldIds) {
