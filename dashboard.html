@@ -412,16 +412,21 @@
 <body>
 
 <script>
-  // Hardcoded allowed admin email (CHANGE THIS to your real admin email)
+  // Hardcoded admin credentials
   const allowedAdmin = "carlanviroberts@gmail.com";
+  const allowedPassword = "@Carlanvi325"; // <-- change this
 
-  // Check sessionStorage for login
+  // Check stored session
   const loggedInEmail = sessionStorage.getItem("adminEmail");
-  if (loggedInEmail !== allowedAdmin) {
+  const loggedInPass = sessionStorage.getItem("adminPass");
+
+  // Validate
+  if (loggedInEmail !== allowedAdmin || loggedInPass !== allowedPassword) {
     // Not logged in as admin → redirect
-    window.location.href = "index.html";
+    window.location.href = "dashboard.html";
   }
 </script>
+
 
 <div class="header-bar">ADMIN DASHBOARD</div>
 <div class="top-menu">
