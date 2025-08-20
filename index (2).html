@@ -1,0 +1,1873 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PELLZ PARTY RENTALS</title>
+
+  <!-- UI libs -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Firebase (Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family: 'Zilla Slab', serif; margin: 0; padding: 0; background-color: #FFFF; }
+    .header-bar { position: fixed; top: 0; left: 0; right: 0; height: 48px; background-color: #343a40; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .header-title { font-family: 'Zilla Slab', serif; font-size: 23.5px; font-weight: bold; background: linear-gradient(90deg, #6A0DAD, #007BFF, #2E8B57, #6A0DAD); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 8px rgba(0,0,0,0.3); white-space: nowrap; text-align: center; }
+    .menu-button { position: absolute; left: 0; top: 50%; transform: translateY(-50%); background-color: #6A0DAD; color: #FFF8DC; border: none; border-radius: 0; cursor: pointer; height: 48px; width: 45px; display: flex; align-items: center; justify-content: center; font-size: 22px; padding: 0; }
+    .menu { position: fixed; top: 48px; left: 0; width: 150px; background-color: rgba(0, 0, 0, 0.8); color: #E6B422; padding: 20px; transform: translateX(-100%); transition: transform 0.3s ease; height: auto; min-height: 100px; z-index: 999; }
+    .menu.show { transform: translateX(0); }
+    .menu a { display: block; color: white; margin-bottom: 15px; text-decoration: none; font-weight: bold; cursor: pointer; }
+    h1 { text-align: center; color: #6c757d; margin-top: 80px; }
+    form { max-width: 400px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
+    form input, form select, form button { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+    form button { background-color: #6200ea; color: white; border: none; cursor: pointer; font-weight: bold; }
+    form button:hover { background-color: #3700b3; }
+    #bookingMessage { text-align: center; font-weight: bold; color: green; margin-top: 20px; }
+    .gallery-category { margin-top: 40px; }
+    .gallery-category h3 { text-align: center; margin-bottom: 15px; font-size: 22px; color: #6200ea; text-transform: uppercase; }
+    .gallery-wrapper { max-width: 1000px; margin: 0 auto; padding: 0 10px; }
+    .gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px; }
+    @media (min-width: 768px) { .gallery-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 600px) { #card-element, .payment-button { width: 100%; max-width: 90%; } }
+    .gallery-grid img { width: 100%; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); height: 230px; object-fit: cover; }
+    .content-section { display: none; }
+    .content-section.active { display: block; }
+    .menu a.admin-button { background-color: #6A0DAD; color: white; padding: 10px 20px; border-radius: 8px; font-weight: bold; display: block; margin: 50px auto 0; cursor: pointer; transition: background-color 0.3s ease; text-align: center; width: fit-content; }
+    .menu a.admin-button:hover { background-color: #3700b3; }
+    .add-to-cart-button { position: absolute; right: 0; top: 50%; transform: translateY(-50%); background-color: #6A0DAD; color: red; border: none; padding: 0; border-radius: 0; cursor: pointer; height: 48px; width: 45px; display: flex; align-items: center; justify-content: center; font-size: 22px; text-decoration: none; }
+    .separator-line { border-bottom: 2px solid purple; margin: 20px 0; }
+    .product-card { background: #8c9b9f; border: 1px solid #eee; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); padding: 10px; text-align: center; }
+    .product-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; }
+    .product-info { margin-top: 5px; }
+    .product-name { font-weight: bold; margin-bottom: 4px; }
+    .product-price { color: #6200ea; margin-bottom: 6px; }
+    .product-card button { background-color: #6A0DAD; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+    /* Cart Modal */
+    #cartModal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: none; z-index: 2000; }
+    #cartModal > div { background: #8c9b9f; max-width: 320px; margin: 80px auto; border-radius: 12px; padding: 15px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: 'Zilla Slab', serif; max-height: 70vh; overflow-y: auto; }
+    input, textarea { width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
+
+    #cartModal h2 { margin-top: 0; text-align: center; color: #6A0DAD; }
+    #cartItemsContainer > div { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+    #cartItemsContainer img { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; margin-right: 10px; }
+    #cartItemsContainer span { font-weight: normal; }
+    #cartItemsContainer div > div { display: flex; justify-content: space-between; align-items: center; flex-grow: 1; }
+
+    #cartButtons { display: flex; justify-content: space-between; margin-top: 15px; }
+    #cartButtons button { flex: 1; padding: 10px 0; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; margin: 0 5px; transition: background-color 0.3s ease; }
+    #checkoutBtn { background-color: #6200ea; color: white; }
+    #checkoutBtn:hover { background-color: #3700b3; }
+    #closeCartBtn { background-color: #ccc; color: black; }
+    #closeCartBtn:hover { background-color: #999; }
+
+    input.error { border: 2px solid red; background-color: #fff4f4; }
+
+    .close-btn { padding: 8px 16px; font-size: 14px; cursor: pointer; border: none; background-color: #bbb; color: white; border-radius: 8px; margin-top: 20px; margin: 10px auto; width: fit-content; }
+    .close-btn:hover { background-color: #999; }
+
+    @media (max-width: 600px) {
+      .payment-modal { padding: 20px; }
+      .payment-button { padding: 10px 15px; font-size: 14px; }
+    }
+
+    /* Toast */
+    #toast { display: none; position: fixed; bottom: 30px; right: 30px; background-color: #28a745; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 9999; font-weight: bold; transition: opacity 0.3s ease; }
+
+    .swal2-popup.swal2-rounded { border-radius: 20px; padding: 30px; text-align: center; }
+    .swal2-title-custom { font-size: 28px; font-family: 'Poppins', sans-serif; font-weight: 700; color: #2e7d32; text-align: center; }
+    .swal2-confirm-custom { background-color: #1a73e8 !important; color: white !important; font-size: 16px; border-radius: 8px !important; padding: 10px 20px; }
+
+    .swal2-title-nowrap {
+  white-space: nowrap;
+  text-align: center;
+  font-size: 20px;   /* fixed, readable size */
+}
+
+    .product-name {
+  white-space: pre-line;
+}
+
+.product-description {
+  color: #000;          /* black text */
+  font-weight: bold;    /* bold */
+  white-space: pre-line; /* preserve spacing & newlines */
+  margin: 6px 0;
+  line-height: 1.4;
+}
+
+    .parishBtn {
+  padding: 10px 20px;
+  border: 2px solid #1a73e8;
+  background: white;
+  color: #1a73e8;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.parishBtn.selected {
+  background: #1a73e8;
+  color: white;
+}
+
+.parishBtn.error {
+  border: 2px solid red;
+}
+
+  </style>
+</head>
+
+<body>
+
+  <div class="header-bar">
+    <button class="menu-button" onclick="toggleMenu()">☰</button>
+    <div class="header-title">PELLZ PARTY RENTALS</div>
+
+    <div class="add-to-cart-button" onclick="viewCart()" style="display:flex; flex-direction:column; align-items:center; background:#6A0DAD; border:none; cursor:pointer;">
+      <span style="font-size:20px;">🛒</span>
+      <span id="cart-count" style="font-size:15px; color:red; margin-top:2px;">0</span>
+    </div>
+  </div>
+
+  <!-- Gallery Section -->
+  <div id="gallerySection" class="content-section active">
+    <h2 style="text-align:center; margin-top:60px;"></h2>
+    <div id="galleryDisplay"></div>
+  </div>
+
+  <!-- Menu -->
+  <div class="menu" id="menu">
+    <a onclick="loadGalleryByCategory('EVENT ITEMS'); closeMenu();" href="javascript:void(0);">🎉 EVENT ITEMS</a>
+    <a onclick="showSection('reviewsSection'); closeMenu();" href="javascript:void(0);">⭐️ REVIEWS</a>
+
+        <!-- Another Separator Line -->
+    <div class="separator-line"></div>
+
+    <a onclick="showBankInfo(); closeMenu();"
+   style="display:block; text-align:center; font-size:15px; margin:10px auto; padding:10px 10px; background-color:blue; color:white; border-radius:6px; cursor:pointer; text-decoration:none; width:80%; white-space:nowrap; font-weight:bold; overflow:hidden; text-overflow:ellipsis;"
+   href="javascript:void(0);">
+   PAYMENT INFO
+</a>
+
+        <!-- Another Separator Line -->
+    <div class="separator-line"></div>
+    
+    <a onclick="showRecentOrders(); closeMenu();" 
+   style="display:block; text-align:center; font-size:15px; margin:10px auto; padding:10px 10px; background-color:blue; color:white; border-radius:6px; cursor:pointer; text-decoration:none; width:80%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:bold;" 
+   href="javascript:void(0);">
+   RECENT ORDERS
+</a>
+
+        <!-- Another Separator Line -->
+    <div class="separator-line"></div>
+    
+    <a onclick="logoutUser(); closeMenu();" style="display:block; text-align:center; margin:10px auto; padding:10px 20px; background-color:red; color:white; border-radius:6px; cursor:pointer; text-decoration:none; width:80%; font-weight:bold;" href="javascript:void(0);">LOGOUT</a>
+    <a onclick="login(); closeMenu();" class="admin-button" style="display:block; text-align:center; margin:10px auto; padding:10px 20px; background-color:#6200ea; color:white; border-radius:6px; text-decoration:none; width:80%; font-weight:bold;" href="javascript:void(0);">ADMIN</a>
+  </div>
+
+  <!-- Reviews -->
+  <div id="reviewsSection" class="content-section" style="padding-top: 34px; background-color: black; color: white;">
+    <div id="reviewFormContainer" style="max-width:500px; margin:10px auto 20px; background-color:#6A0DAD; padding:5px; border-radius:10px; color:black;">
+      <form id="reviewForm" style="text-align:center;">
+        <input type="text" id="reviewName" placeholder="Your Name" required style="width:100%; padding:8px; margin-bottom:6px; border-radius:6px; border:1px solid #555; background-color:#fff; color:black; box-sizing:border-box;" />
+        <textarea id="reviewComment" placeholder="Write your review..." required style="width:100%; height:60px; padding:8px; margin-bottom:6px; border-radius:6px; border:1px solid #555; background-color:#fff; color:black; box-sizing:border-box;"></textarea>
+        <div id="starRating" style="font-size:22px; margin-bottom:6px; cursor:pointer; color:#ccc; letter-spacing:-2px;">
+          <span data-value="1">★</span><span data-value="2">★</span><span data-value="3">★</span><span data-value="4">★</span><span data-value="5">★</span>
+        </div>
+        <button type="submit" style="background-color:#6200ea; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;">Submit Review</button>
+      </form>
+    </div>
+
+    <h1 style="text-align:center; color:#9b59b6; margin-top:5px; margin-bottom:10px;">REVIEWS</h1>
+    <p id="reviewSubmitMsg" style="text-align:center; color:#7fff7f; margin-top:0;"></p>
+    <div id="reviewsContainer" style="max-width:600px; margin:0 auto; color:white;"></div>
+  </div>
+
+  <!-- Cart Modal -->
+  <div id="cartModal" style="display:none;">
+    <div style="position:relative;">
+      <button id="closeCheckoutBtn" style="position:absolute; top:10px; right:15px; font-size:20px; background:none; border:none; color:#6A0DAD; cursor:pointer;">✖</button>
+
+      <div>
+        <h2>YOUR CART</h2>
+
+        <div style="margin-bottom:10px;">
+          <label for="customerName"><strong>Your Name:</strong></label>
+          <input type="text" id="customerName" placeholder="Enter your name" required />
+        </div>
+
+        <div style="margin-bottom:15px;">
+          <label for="customerPhone"><strong>Phone Number:</strong></label>
+          <input type="tel" id="customerPhone" placeholder="Enter phone number" required />
+        </div>
+
+        <div style="margin-bottom:15px;">
+          <label for="rentalDateRange"><strong>Select Rental Dates:</strong></label>
+          <input id="rentalDateRange" placeholder="Select start and end date" />
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+          <div style="flex:1;">
+            <label for="startTime">Start Time:</label>
+            <input type="time" id="startTime" />
+          </div>
+          <div style="flex:1;">
+            <label for="endTime">End Time:</label>
+            <input type="time" id="endTime" />
+          </div>
+        </div>
+
+        <div id="deliveryParishSection" style="margin-top:15px; text-align:center;">
+  <p style="font-weight:bold; margin-bottom:10px;">DELIVERY PARISHES AVAILABLE</p>
+  
+  <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+    <button type="button" class="parishBtn" data-parish="KINGSTON">KINGSTON</button>
+    <button type="button" class="parishBtn" data-parish="ST. CATHRINE">ST. CATHRINE</button>
+    <button type="button" class="parishBtn" data-parish="CLARENDON">CLARENDON</button>
+  </div>
+
+  <!-- hidden input to store chosen parish -->
+  <input type="hidden" id="selectedParish" name="selectedParish">
+</div>
+
+        <div style="margin-bottom:15px;">
+          <label for="customerLocation"><strong>Location:</strong></label>
+          <input type="text" id="customerLocation" placeholder="Enter delivery location" required />
+        </div>
+
+        <!-- 🔔 Availability warnings appear here -->
+<div id="cartWarnings" style="color:red; font-weight:bold; margin:10px 0;"></div>
+
+<!-- Cart items -->
+<div id="cartItemsContainer"></div>
+
+<!-- Cart total -->
+<div id="cartTotal" style="text-align:right; font-weight:bold; margin-top:10px;"></div>
+
+<!-- Place order button -->
+<div id="cartButtons">
+  <button 
+    id="placeOrderBtn" 
+    onclick="completeBooking()" 
+    style="background-color:#6A0DAD; color:white; border:none; padding:10px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer;">
+    PLACE ORDER
+  </button>
+</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" style="display:none; position:fixed; bottom:30px; right:30px; background-color:#28a745; color:white; padding:12px 20px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.1); z-index:9999; font-weight:bold; transition:opacity 0.3s ease;">Added to cart</div>
+
+<script>
+'use strict';
+
+/* ===================== Firebase ===================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDccI-TdbCXAJr6CD77X4yOUOfezef7Oks",
+  authDomain: "delivery-login-3a084.firebaseapp.com",
+  projectId: "delivery-login-3a084",
+  storageBucket: "delivery-login-3a084.firebasestorage.app",
+  messagingSenderId: "201998621677",
+  appId: "1:201998621677:web:b51c3aeb2debe18b4aa5e4"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let currentUser = null;
+
+firebase.auth().onAuthStateChanged(user => {
+  currentUser = user || null;
+  // Don’t call loadReviews() again here if using onSnapshot
+});
+
+// Run once when DOM ready
+document.addEventListener("DOMContentLoaded", () => {
+  loadReviews();
+});
+
+
+  /* ===================== Inventory Settings ===================== */
+const qtyMap = {
+  "CHAIRS": {
+    options: [1, 2, 5, 10, 20],  // bundles you rent out
+    prices: {
+      1: 500,     // price if they take 1
+      2: 900,     // price if they take 2
+      5: 2000,
+      10: 3500,
+      20: 6000
+    }
+  },
+  "Table": {
+    options: [1, 2, 4],
+    prices: {
+      1: 800,
+      2: 1500,
+      4: 2800
+    }
+  },
+  "S": {
+    options: [1, 2, 3],
+    prices: {
+      1: 3000,
+      2: 5800,
+      3: 8000
+    }
+  }
+};
+
+/* Items that can only be booked once per order (optional) */
+const restrictedCategories = ["BATHROOM"];
+
+
+/* ===================== Globals / Helpers ===================== */
+let bookedDates = [];       // for disabling already-booked dates
+let selectedRating = 0;     // review stars
+// Use the qtyMap and restrictedCategories defined above. Do NOT redeclare them here.
+
+function formatJMD(amount) {
+  return 'JMD $' + Number(amount).toLocaleString('en-JM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function toggleMenu(){ document.getElementById('menu').classList.toggle('show'); }
+function closeMenu(){ document.getElementById('menu').classList.remove('show'); }
+
+function showSection(sectionId) {
+  document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+  document.getElementById(sectionId).classList.add('active');
+}
+
+function login() {
+  // 🔑 Hardcoded Admin Credentials
+  const adminEmail = "carlanviroberts@gmail.com"; 
+  const adminPassword = "@Carlanvi321"; 
+
+  firebase.auth().signInWithEmailAndPassword(adminEmail, adminPassword)
+    .then(() => {
+      window.location.href = 'dashboard.html';
+    })
+    .catch((error) => {
+      let msg = 'Authentication failed: ' + error.message;
+      if (error.code === 'auth/wrong-password') msg = 'Incorrect password. Please try again.';
+      else if (error.code === 'auth/user-not-found') msg = 'No user found with this email. Please check and try again.';
+      alert(msg);
+    });
+}
+
+  
+  function listenForReservations() {
+  db.collection("reservations").onSnapshot(snapshot => {
+    bookedDates = []; // reset global booked dates
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (!data.rentalDates) return;
+
+      const range = String(data.rentalDates).split(" to ");
+      if (range.length === 2) {
+        const start = new Date(range[0]);
+        const end = new Date(range[1]);
+        if (isNaN(start) || isNaN(end)) return;
+
+        let current = new Date(start);
+        while (current <= end) {
+          bookedDates.push(current.toISOString().split("T")[0]);
+          current.setDate(current.getDate() + 1);
+        }
+      }
+    });
+
+    // 🔄 Re-run validation immediately if cart & rental dates exist
+    const rentalDates = (document.getElementById("rentalDateRange")?.value || "").trim();
+    if (rentalDates) validateCartStock(rentalDates);
+  });
+}
+
+  function logoutUser() {
+  firebase.auth().signOut().then(() => {
+    // ✅ user signed out → send to login page
+    window.location.href = "login.html"; // 👈 change to your login page path
+  }).catch((error) => {
+    console.error("Logout failed:", error);
+  });
+}
+
+
+/* ===================== Calendar (Booked Dates) ===================== */
+function fetchBookedDatesAndInitCalendar() {
+  bookedDates = [];
+  db.collection("reservations").get().then(snapshot => {
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.rentalDates) {
+        const range = String(data.rentalDates).split(" to ");
+        if (range.length === 2) {
+          const start = new Date(range[0]);
+          const end = new Date(range[1]);
+          if (isNaN(start) || isNaN(end)) return;
+          let current = new Date(start);
+          while (current <= end) {
+            bookedDates.push(current.toISOString().split('T')[0]);
+            current.setDate(current.getDate() + 1);
+          }
+        }
+      }
+    });
+  })
+  .catch(err => console.error('Error loading booked dates:', err))
+  .finally(() => initializeDatepicker()); // ✅ always run
+}
+
+function initializeDatepicker() {
+  flatpickr("#rentalDateRange", {
+    mode: "range",
+    dateFormat: "Y-m-d",
+    minDate: "today",
+    disable: [], // allow all dates
+    onClose: function(selectedDates, dateStr, instance) {
+      const input = document.getElementById("rentalDateRange");
+      if (selectedDates.length === 1) {
+        const onlyDate = selectedDates[0];
+        const formatted = instance.formatDate(onlyDate, "Y-m-d");
+        input.value = `${formatted} to ${formatted}`;
+      } else if (selectedDates.length === 2) {
+        const formattedStart = instance.formatDate(selectedDates[0], "Y-m-d");
+        const formattedEnd = instance.formatDate(selectedDates[1], "Y-m-d");
+        input.value = `${formattedStart} to ${formattedEnd}`;
+      }
+      updateRentalDuration();
+    }
+  });
+}
+
+function getRentalDayCount() {
+  const value = (document.getElementById("rentalDateRange")?.value || "").trim();
+  if (!value || !value.includes(" to ")) return 1;
+  const [startStr, endStr] = value.split(" to ");
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  if (isNaN(start) || isNaN(end)) return 1;
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  const raw = Math.ceil((end - start) / MS_PER_DAY) + 1; // inclusive
+  return Math.max(1, raw);
+}
+
+function getCartTotal() {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const days = getRentalDayCount();
+  let total = 0;
+  cart.forEach(item => {
+    const qty = item.quantity || 1;
+    const price = Number(item.price) || 0;
+    total += price * qty * days;
+  });
+  return Number(total.toFixed(2));
+}
+
+/* ===================== Order: Firestore + Telegram ===================== */
+async function generateOrderNumber(name) {
+  if (!name) return "XX0000"; 
+  const firstName = name.trim().split(" ")[0]; 
+  const initials = firstName.slice(0, 2).toUpperCase();
+  const randomNum = Math.floor(1000 + Math.random() * 9000); 
+  return initials + randomNum;
+}
+
+async function generateUniqueOrderNumber(name) {
+  let unique = false;
+  let orderNumber = "";
+  while (!unique) {
+    orderNumber = await generateOrderNumber(name);
+    const snapshot = await db.collection("reservations")
+      .where("orderNumber", "==", orderNumber)
+      .get();
+    if (snapshot.empty) unique = true; // ✅ number not used yet
+  }
+  return orderNumber;
+}
+
+let bookingInProgress = false; // guard variable
+
+
+  function validateCartForm() {
+  const requiredFields = [
+    "customerName",
+    "customerPhone",
+    "rentalDateRange",
+    "startTime",
+    "endTime",
+    "customerLocation"
+  ];
+
+  let allValid = true;
+
+  requiredFields.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    if (!el.value.trim()) {
+      el.classList.add("error");   // turn red (you already have CSS for this)
+      allValid = false;
+    } else {
+      el.classList.remove("error");
+    }
+  });
+
+  return allValid;
+}
+
+  async function completeBooking() {
+  if (bookingInProgress) return; 
+  bookingInProgress = true;
+
+  const bookBtn = document.getElementById("completeBookingBtn");
+  if (bookBtn) bookBtn.disabled = true; 
+
+  try {
+    const name = (document.getElementById("customerName")?.value || "").trim();
+    const phone = (document.getElementById("customerPhone")?.value || "").trim();
+    const location = (document.getElementById("customerLocation")?.value || "").trim();
+    const rentalDates = (document.getElementById("rentalDateRange")?.value || "").trim();
+    const startTime = (document.getElementById("startTime")?.value || "").trim();
+    const endTime = (document.getElementById("endTime")?.value || "").trim();
+    const parish = (document.getElementById("selectedParish")?.value || "").trim();
+    const paymentType = "Pay on Delivery";
+
+    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+    // ✅ highlight required fields
+    const requiredFields = {
+      customerName: name,
+      customerPhone: phone,
+      customerLocation: location,
+      rentalDateRange: rentalDates,
+      startTime: startTime,
+      endTime: endTime,
+      selectedParish: parish
+    };
+
+    let allValid = true;
+    Object.keys(requiredFields).forEach(id => {
+      if (id === "selectedParish") {
+        if (!requiredFields[id]) {
+          document.querySelectorAll(".parishBtn").forEach(b => b.classList.add("error"));
+          allValid = false;
+        } else {
+          document.querySelectorAll(".parishBtn").forEach(b => b.classList.remove("error"));
+        }
+      } else {
+        const el = document.getElementById(id);
+        if (!requiredFields[id]) {
+          el?.classList.add("error");
+          allValid = false;
+        } else {
+          el?.classList.remove("error");
+        }
+      }
+    });
+
+    if (!allValid || cart.length === 0) {
+      bookingInProgress = false;
+      if (bookBtn) bookBtn.disabled = false;
+      return; // 🚫 stop silently
+    }
+
+    // 📅 rental dates check
+    if (!rentalDates.includes(" to ")) {
+      document.getElementById("rentalDateRange")?.classList.add("error");
+      bookingInProgress = false;
+      if (bookBtn) bookBtn.disabled = false;
+      return;
+    }
+    const [startStr, endStr] = rentalDates.split(" to ");
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+    if (isNaN(start) || isNaN(end)) {
+      document.getElementById("rentalDateRange")?.classList.add("error");
+      bookingInProgress = false;
+      if (bookBtn) bookBtn.disabled = false;
+      return;
+    }
+
+    // --- calculate total ---
+    const days = getRentalDayCount();
+    let totalAmount = 0;
+    for (const item of cart) {
+      const qty = item.quantity || 1;
+      const price = Number(item.price) || 0;
+      totalAmount += price * qty * days;
+    }
+    totalAmount = Number(totalAmount.toFixed(2));
+
+    // --- generate order number ---
+    const orderNumber = await generateUniqueOrderNumber(name);
+
+    // --- save transaction ---
+    await db.runTransaction(async (transaction) => {
+      const docRef = db.collection("reservations").doc(orderNumber);
+      transaction.set(docRef, {
+        orderNumber,
+        userId: currentUser ? currentUser.uid : null,
+        name, phone, location,
+        rentalDates, startTime, endTime,
+        parish, // ✅ new field saved
+        paymentType,
+        cartItems: cart,
+        totalAmount,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
+    // --- send Telegram ---
+    await sendTelegramMessage(
+      name, phone, location, rentalDates,
+      startTime, endTime, paymentType,
+      cart, totalAmount, orderNumber, parish // ✅ include parish if needed
+    );
+
+    // --- cleanup ---
+    localStorage.removeItem("cart");
+    updateCartCount();
+    document.getElementById("cartModal").style.display = "none";
+
+    ["customerName","customerPhone","customerLocation","rentalDateRange","startTime","endTime","selectedParish"]
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+
+    document.querySelectorAll(".parishBtn").forEach(b => b.classList.remove("selected"));
+
+    const stockErrorMsg = document.getElementById("stockErrorMsg");
+    if (stockErrorMsg) stockErrorMsg.innerHTML = "";
+
+    // ✅ keep success popup with 50% deposit + bank info
+Swal.fire({
+  title: `ORDER MADE<br>ORDER # (${orderNumber})`,
+  html: `
+  <hr style="margin:5px 0;">
+    <p><strong>50%</strong> of your grand total must be transferred to the account provided below within 24 hours or your order will be canceled.</p>
+    <p><strong>DELIVERY FEE WILL BE CHARGED UPON ARRIVAL</strong></p>
+    <hr style="margin:5px 0;">
+    <p>💰 50% Due Now: 
+      <span style="color:#6A0DAD; font-weight:bold; font-size:18px;">
+        ${formatJMD(totalAmount / 2)}
+      </span>
+    </p>
+
+    <hr style="margin:5px 0;">
+
+    <p><strong>Banking Details:</strong></p>
+    <p style="text-align:left; line-height:1.5; font-size:15px;">
+      🏦 Bank: <b>Your Bank Name</b><br>
+      👤 Account Name: <b>Your Account Name</b><br>
+      🔢 Account Number: <b>123456789</b><br>
+      🏛️ Branch: <b>Your Branch Name</b>
+      📋 Reference: <b>${orderNumber}</b>
+    </p>
+
+    <hr style="margin:5px 0;">
+
+    <p style="font-size:14px;">
+      ℹ️ If you need to see the banking information again, it’s always visible 
+      in the <b>PAYMENT INFO</b> section from the menu.
+    </p>
+  `,
+  icon: "success",
+  confirmButtonColor: "#1a73e8"
+});
+
+    fetchBookedDatesAndInitCalendar();
+    const rentalDatesNow = (document.getElementById("rentalDateRange")?.value || "").trim();
+    if (rentalDatesNow) validateCartStock(rentalDatesNow);
+
+  } catch (err) {
+    console.error("completeBooking crashed:", err);
+  } finally {
+    bookingInProgress = false;
+    if (bookBtn) bookBtn.disabled = false;
+  }
+}
+
+
+  // ✅ Remove red highlight as soon as user types or changes value
+function attachLiveValidation(fieldIds) {
+  fieldIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    el.addEventListener("input", () => {
+      if (el.value.trim()) {
+        el.classList.remove("error");
+      }
+    });
+
+    // also check on blur (for things like date/time pickers)
+    el.addEventListener("blur", () => {
+      if (el.value.trim()) {
+        el.classList.remove("error");
+      }
+    });
+  });
+}
+
+// Attach to your cart modal fields
+attachLiveValidation([
+  "customerName",
+  "customerPhone",
+  "customerLocation",
+  "rentalDateRange",
+  "startTime",
+  "endTime"
+]);
+
+
+// ✅ Format date into "Month Day, Year"
+function formatDate(dateStr) {
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr; // fallback
+  return d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+}
+
+// ✅ Convert "HH:mm" to "h:mm AM/PM"
+function formatTimeTo12Hr(timeStr) {
+  if (!timeStr) return "";
+  const [hourStr, minuteStr] = timeStr.split(":");
+  let hour = parseInt(hourStr, 10);
+  const minute = parseInt(minuteStr || "0", 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12 || 12;
+  return `${hour}:${minute.toString().padStart(2, "0")} ${ampm}`;
+}
+
+// ✅ Format currency with commas
+function formatCurrency(amount) {
+  return `$${Number(amount).toLocaleString("en-US")}`;
+}
+
+async function sendTelegramMessage(
+  name, phone, location, rentalDates,
+  startTime, endTime, paymentType,
+  cart, totalAmount, orderNumber
+) {
+  try {
+    const botToken = "7638261664:AAGm0MNVQxN0hlW1bhXBRf-kSRuMgRkCLC8"; // 🔑 replace
+    const chatId = "-1002734216867"; // 🔑 replace
+
+    // 🛒 Cart list, one per line with formatted prices
+    const cartText = cart.map(item =>
+      `• ${item.name} x${item.quantity} @ ${formatCurrency(item.price)}`
+    ).join("\n");
+
+    // 📅 Format rental range if " to " is in rentalDates
+    let rentalRange = rentalDates;
+    if (rentalDates?.includes(" to ")) {
+      const [startStr, endStr] = rentalDates.split(" to ");
+      rentalRange = `${formatDate(startStr)} ${formatTimeTo12Hr(startTime)} → ${formatDate(endStr)} ${formatTimeTo12Hr(endTime)}`;
+    }
+
+    // ✅ Telegram message (clean & readable)
+    const message = `
+📦 *New Order!*
+🆔 Order: *${orderNumber}*
+👤 Name: ${name}
+📞 Phone: ${phone}
+📍 Location: ${location}
+
+📅 Booked For: ${rentalRange}
+💳 Payment: ${paymentType}
+
+🛒 Items:
+${cartText}
+
+💰 Total: ${formatCurrency(totalAmount)}
+    `;
+
+    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+    const payload = { chat_id: chatId, text: message, parse_mode: "Markdown" };
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("❌ Telegram API error:", data);
+      throw new Error(data.description || "Telegram send failed");
+    }
+
+    console.log("✅ Telegram message sent:", data);
+
+  } catch (err) {
+    console.error("❌ Telegram send error:", err);
+    throw err;
+  }
+}
+
+
+
+/* ===================== Gallery / Cart ===================== */
+function loadGalleryByCategory(categoryFilter) {
+  const galleryContainer = document.getElementById('galleryDisplay');
+  galleryContainer.innerHTML = '';
+
+  db.collection('gallery')
+    .where('category', '==', categoryFilter)
+    .get()
+    .then((querySnapshot) => {
+      if (querySnapshot.empty) {
+        galleryContainer.innerHTML = `<p style="text-align:center;">No items found in "${categoryFilter}".</p>`;
+        return;
+      }
+
+      galleryContainer.innerHTML = `
+        <div class="gallery-category">
+          <h3>${categoryFilter}</h3>
+          ${categoryFilter === 'EVENT ITEMS' ? `
+            <p style="margin-top:3px; font-size:18px; font-weight:bold; color:#6A0DAD; text-align:center;">
+              DELIVERY ONLY. SETUP NOT INCLUDED!!
+            </p>` : ''}
+          <div class="gallery-wrapper">
+            <div class="gallery-grid" id="gallery-${categoryFilter}"></div>
+          </div>
+        </div>`;
+
+      const categoryContainer = document.getElementById(`gallery-${categoryFilter}`);
+
+      // ✅ Map docs properly, use imageUrl fallback
+      let docs = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          name: data.name || "Unnamed",
+          description: data.description || "",
+          price: Number(data.price) || 0,
+          imageUrl: data.imageUrl || data.url || "",  // ✅ works for new & old docs
+          timestamp: data.timestamp ? (data.timestamp.toMillis?.() || data.timestamp) : 0
+        };
+      });
+
+      // ✅ Always sort oldest → newest (new uploads at bottom)
+      docs.sort((a, b) => a.timestamp - b.timestamp);
+
+      docs.forEach((item) => {
+        const imageUrl = item.imageUrl;
+        const name = item.name;
+        const description = item.description;
+        const itemId = name.replace(/\s+/g, '-');
+        const firebasePrice = item.price;
+
+        if (!imageUrl || !name) return;
+
+        let html = `
+          <div class="product-card">
+            <img src="${imageUrl}" alt="${name}">
+            <div class="product-info">
+              <div class="product-name">${name}</div>
+              ${description ? `<div class="product-description">${description.replace(/\n/g, '<br>')}</div>` : ''}
+        `;
+
+        if (qtyMap[name]) {
+          const quantityOptions = qtyMap[name].options;
+          const quantityPrices = qtyMap[name].prices;
+          const defaultQty = quantityOptions[0];
+          const defaultPrice = quantityPrices[defaultQty] || 0;
+
+          html += `
+            <div class="product-price">Total: <span id="price-${itemId}">${formatJMD(defaultPrice)}</span></div>
+            <select id="qty-${itemId}" onchange="updateManualPrice('${name}', '${itemId}')">
+              ${quantityOptions.map(qty => `<option value="${qty}">${qty}</option>`).join('')}
+            </select>
+            <button onclick="addToCartWithQty('${name}', '${imageUrl}')">Add to Cart</button>`;
+        } else {
+          html += `
+            <div class="product-price">Price: <span id="price-${itemId}">${formatJMD(firebasePrice)}</span></div>
+            <button onclick="addToCart({ name: '${name}', price: ${firebasePrice}, imageUrl: '${imageUrl}' })">
+              Add to Cart
+            </button>`;
+        }
+
+        html += `
+            </div>
+          </div>`;
+
+        categoryContainer.innerHTML += html;
+      });
+    })
+    .catch((error) => {
+      console.error("Error loading gallery:", error);
+      galleryContainer.innerHTML = `<p style="text-align:center; color:red;">Error loading items. Please try again later.</p>`;
+    });
+
+  showSection('gallerySection');
+}
+
+function updateManualPrice(itemName, itemId) {
+  const qty = Number(document.getElementById(`qty-${itemId}`).value) || 1;
+  const priceMap = qtyMap[itemName]?.prices || {};
+  const price = Number(priceMap[qty]) || 0;
+  document.getElementById(`price-${itemId}`).textContent = formatJMD(price);
+}
+
+async function addToCart(item) {
+  try {
+    if (!currentUser) {
+      Swal.fire({
+        icon: "warning",
+        title: "Login Required",
+        text: "You must be logged in to add items to your cart.",
+        confirmButtonText: "Login"
+      }).then(() => {
+        window.location.href = "login.html";
+      });
+      return;
+    }
+
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+    const existing = cart.find(i => i.name === item.name); // check with full name
+
+    if (existing) {
+      showToast(`${item.name} is already in your cart.`, "error");
+    } else {
+      cart.push({
+        ...item,
+        name: item.name,   // ✅ keep full name
+        quantity: 1
+      });
+      showToast("ADDED TO CART", "success");
+    }
+
+    localStorage.setItem("cart", JSON.stringify(cart));
+    updateCartCount();
+
+  } catch (err) {
+    console.error("addToCart error:", err);
+    showToast("❌ Could not add item. Try again.", "error");
+  }
+}
+
+
+function addToCartWithQty(name, imageUrl) {
+  if (!currentUser) {
+    Swal.fire({
+      icon: "warning",
+      title: "Login Required",
+      text: "You must be logged in to add items to your cart.",
+      confirmButtonText: "Login"
+    }).then(() => {
+      window.location.href = "login.html";
+    });
+    return;
+  }
+
+  const itemId = name.replace(/\s+/g, '-'); // still okay for DOM ids
+  const qtyEl = document.getElementById(`qty-${itemId}`);
+  if (!qtyEl) return;
+
+  const qty = Number(qtyEl.value) || 1;
+  const totalBundle = Number(qtyMap[name]?.prices?.[qty]) || 0;
+  const unitPrice = totalBundle / Math.max(1, qty);
+  const days = 1;
+
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+  db.collection('gallery').where('name', '==', name).limit(1).get().then(snapshot => {
+    if (snapshot.empty) return;
+
+    const item = snapshot.docs[0].data();
+    const category = (item.category || '').toUpperCase();
+    const isRestricted = restrictedCategories.includes(category);
+
+    // ✅ check against full name
+    const exists = cart.find(i => i.name === name);
+
+    if (exists && isRestricted) {
+      showToast("YOU CAN ONLY ADD THIS ITEM ONCE", "error");
+      return;
+    }
+
+    if (exists) {
+      exists.quantity = qty;
+      exists.price = unitPrice;
+      exists.days = days;
+      exists.totalPrice = unitPrice * qty * days;
+    } else {
+      cart.push({ 
+        name,             // ✅ full name
+        price: unitPrice, 
+        imageUrl, 
+        quantity: qty, 
+        totalPrice: unitPrice * qty * days, 
+        days, 
+        category 
+      });
+    }
+
+    localStorage.setItem('cart', JSON.stringify(cart));
+    updateCartCount();
+    validateCartStock(document.getElementById("rentalDateRange").value.trim());
+    showToast("ADDED TO CART", "success");
+  });
+}
+
+
+function updateCartCount() {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const count = cart.reduce((t, i) => t + (i.quantity || 0), 0);
+  document.getElementById('cart-count').textContent = count;
+}
+
+function updateRentalDuration() {
+  const rangeInput = document.getElementById('rentalDateRange');
+  const dates = rangeInput.value.split(' to ');
+  if (dates.length === 1 && dates[0]) dates[1] = dates[0];
+
+  if (dates.length !== 2 || !dates[0] || !dates[1]) return;
+
+  const start = new Date(dates[0]);
+  const end = new Date(dates[1]);
+  const msPerDay = 86400000;
+
+  start.setHours(0,0,0,0);
+  end.setHours(0,0,0,0);
+
+  const days = Math.round((end - start) / msPerDay) + 1;
+  if (isNaN(days) || days < 1) { alert("Please select a valid rental date range."); return; }
+
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  cart.forEach(item => {
+    item.days = days;
+    item.totalPrice = item.price * item.quantity * days;
+  });
+  localStorage.setItem('cart', JSON.stringify(cart));
+  viewCart();
+}
+
+  /* ===================== Global flag ===================== */
+let cartHasWarnings = false;
+
+/* ===================== Toggle Place Order button ===================== */
+function togglePlaceOrderButton() {
+  const btn = document.getElementById("placeOrderBtn");
+  if (!btn) return;
+
+  if (cartHasWarnings) {
+    btn.disabled = true;
+    btn.style.backgroundColor = "#999";   // greyed out
+    btn.style.cursor = "not-allowed";
+  } else {
+    btn.disabled = false;
+    btn.style.backgroundColor = "#6A0DAD"; // restore purple (or your theme color)
+    btn.style.cursor = "pointer";
+  }
+}
+
+
+function viewCart() {
+  const modal = document.getElementById('cartModal');
+  const container = document.getElementById('cartItemsContainer');
+  const totalElem = document.getElementById('cartTotal');
+  container.innerHTML = '';
+
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  if (cart.length === 0) {
+    container.innerHTML = '<p>Your cart is empty.</p>';
+    totalElem.textContent = '';
+    cartHasWarnings = false;
+    togglePlaceOrderButton(); // ✅ reset button state
+  } else {
+    let total = 0;
+    cart.forEach((item, index) => {
+      const days = item.days || 1;
+      const quantity = item.quantity || 1;
+      const unitPrice = item.price || 0;
+      const itemTotal = unitPrice * quantity * days;
+      total += itemTotal;
+
+      const itemDiv = document.createElement('div');
+      itemDiv.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px; flex:1;">
+          <img src="${item.imageUrl}" alt="${item.name}">
+          <div>
+            <div style="font-weight:bold;">${item.name}</div>
+            <div>${quantity} × ${formatJMD(unitPrice)} × ${days} day(s)</div>
+          </div>
+        </div>
+        <div style="font-weight:bold;">${formatJMD(itemTotal)}</div>
+        <button onclick="removeFromCart(${index})"
+          style="background:red; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">
+          ✖
+        </button>`;
+      container.appendChild(itemDiv);
+    });
+
+    totalElem.textContent = "TOTAL: " + formatJMD(total);
+
+    // ❌ Removed validateCartStock() call here
+    // Validation will only run on rentalDateRange change
+    const rentalDates = (document.getElementById("rentalDateRange")?.value || "").trim();
+    if (!rentalDates) {
+      cartHasWarnings = false;
+      togglePlaceOrderButton(); // ✅ ensure button resets when no dates
+    }
+  }
+
+  modal.style.display = 'block';
+}
+
+
+/* ===================== Cart Helpers ===================== */
+function removeFromCart(index) {
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  cart.splice(index, 1);
+  localStorage.setItem('cart', JSON.stringify(cart));
+  updateCartCount();
+
+  // 🔔 NEW: Validate after removing
+  validateCartStock(document.getElementById("rentalDateRange").value.trim());
+
+  viewCart();
+}
+
+/* ===================== Toast Notifications ===================== */
+function showToast(message, type) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.style.backgroundColor = type === "error" ? "#dc3545" : "#28a745";
+  toast.style.display = "block";
+  setTimeout(() => { toast.style.display = "none"; }, 2500);
+}
+
+/* ===================== Reviews ===================== */
+function initReviews() {
+  const starContainer = document.getElementById("starRating");
+  if (starContainer) {
+    starContainer.querySelectorAll("span").forEach(star => {
+      star.addEventListener("click", () => {
+        selectedRating = Number(star.getAttribute("data-value"));
+        starContainer.querySelectorAll("span").forEach((s, i) => {
+          s.style.color = i < selectedRating ? "#ffd700" : "#ccc";
+        });
+      });
+    });
+  }
+
+  const form = document.getElementById("reviewForm");
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  // ✅ Check login first
+  if (!currentUser) {
+    Swal.fire({
+      icon: "warning",
+      title: "Login Required",
+      text: "You must be logged in to leave a review.",
+      confirmButtonText: "OK"
+    }).then(() => {
+      window.location.href = "login.html"; // 👈 redirect after OK
+    });
+    return;
+  }
+
+  const name = document.getElementById("reviewName").value.trim();
+  const comment = document.getElementById("reviewComment").value.trim();
+  if (!name || !comment || !selectedRating) {
+    Swal.fire({ icon: "error", title: "Missing fields", text: "Please fill everything and pick a rating." });
+    return;
+  }
+
+  await db.collection("reviews").add({
+    userId: currentUser.uid, // ✅ force attach logged-in user
+    name: currentUser.displayName || name,
+    comment,
+    rating: selectedRating,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  document.getElementById("reviewForm").reset();
+  selectedRating = 0;
+  document.getElementById("reviewSubmitMsg").textContent = "✅ Review submitted!";
+});
+  }
+
+  loadReviews();
+}
+
+function loadReviews() {
+  const container = document.getElementById("reviewsContainer");
+  if (!container) return;
+
+  // Listen for live updates
+  db.collection("reviews").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+    container.innerHTML = ""; // ✅ clear before rendering
+
+    snapshot.forEach(doc => {
+      const r = doc.data();
+      const reviewId = doc.id;
+      const stars = "★".repeat(r.rating || 0) + "☆".repeat(5 - (r.rating || 0));
+
+      // Format date as "time ago"
+      let dateStr = "";
+      if (r.createdAt && r.createdAt.toDate) {
+        dateStr = timeAgo(r.createdAt.toDate());
+      }
+
+      // ✅ Only show delete button if current user owns the review
+      const isOwner = currentUser && r.userId === currentUser.uid;
+
+      const div = document.createElement("div");
+      div.style.marginBottom = "10px";
+      div.innerHTML = `
+        <div style="font-weight:bold; color:#9b59b6;">${r.name || "Anonymous"}</div>
+        <div style="color:gold;">${stars}</div>
+        <div>${r.comment || ""}</div>
+        <div style="font-size:12px; color:#888;">${dateStr}</div>
+        ${isOwner ? `<button onclick="deleteReview('${reviewId}')">Delete</button>` : ""}
+        <hr style="border:0; border-top:1px solid #555; margin:8px 0;">
+      `;
+      container.appendChild(div);
+    });
+  });
+}
+
+  
+function timeAgo(date) {
+  const seconds = Math.floor((new Date() - date) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} day${days > 1 ? "s" : ""} ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months > 1 ? "s" : ""} ago`;
+  const years = Math.floor(months / 12);
+  return `${years} year${years > 1 ? "s" : ""} ago`;
+}
+
+
+function submitReview(event) {
+  if (event && event.preventDefault) event.preventDefault();
+
+  if (!currentUser) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Login Required',
+      text: 'You must be logged in to leave a review.',
+      confirmButtonText: 'OK'
+    }).then(() => {
+      window.location.href = "login.html"; // 👈 change path if needed
+    });
+    return;
+  }
+
+  const reviewText = document.getElementById("reviewText").value.trim();
+  const selectedRating = parseInt(document.getElementById("reviewRating").value) || 5;
+
+  if (!reviewText) {
+    Swal.fire({
+      icon: 'info',
+      title: 'Empty Review',
+      text: 'Please write something before submitting.'
+    });
+    return;
+  }
+
+  db.collection("reviews").add({
+    userId: currentUser.uid,
+    name: currentUser.displayName || "Anonymous",
+    rating: selectedRating,
+    comment: reviewText,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => {
+    console.log("Review added!");
+    document.getElementById("reviewText").value = "";
+    document.getElementById("reviewRating").value = "5";
+    loadReviews();
+  }).catch(err => {
+    console.error("Error adding review:", err);
+  });
+}
+
+  function deleteReview(reviewId) {
+    const user = firebase.auth().currentUser;
+    if (!user) {
+      alert("You must be logged in to delete reviews.");
+      return;
+    }
+
+    db.collection("reviews").doc(reviewId).get()
+      .then(doc => {
+        if (!doc.exists) {
+          alert("Review no longer exists.");
+          return;
+        }
+
+        const r = doc.data();
+        // Check userId is present in review, fall back to name matching if not
+        if (r.userId && r.userId === user.uid) {
+          db.collection("reviews").doc(reviewId).delete()
+            .then(() => {
+              console.log("Review deleted");
+              loadReviews(); // refresh
+              Swal.fire({ icon: "success", title: "Review deleted", timer: 1200, showConfirmButton: false });
+            })
+            .catch(err => {
+              console.error("Delete failed", err);
+              Swal.fire({ icon: "error", title: "Delete failed", text: err.message });
+            });
+        } else if (!r.userId && r.name && user.displayName === r.name) {
+          // If review has no userId, fall back to matching displayName
+          db.collection("reviews").doc(reviewId).delete()
+            .then(() => {
+              console.log("Review deleted by name match");
+              loadReviews();
+              Swal.fire({ icon: "success", title: "Review deleted", timer: 1200, showConfirmButton: false });
+            })
+            .catch(err => {
+              console.error("Delete failed", err);
+              Swal.fire({ icon: "error", title: "Delete failed", text: err.message });
+            });
+        } else {
+          Swal.fire({ icon: "error", title: "Access denied", text: "You can only delete your own review." });
+        }
+      })
+      .catch(err => {
+        console.error("Could not get review doc:", err);
+        Swal.fire({ icon: "error", title: "Error", text: "Could not access review." });
+      });
+  }
+
+
+
+/* ===================== Event Listeners ===================== */
+document.getElementById("closeCheckoutBtn").addEventListener("click", () => {
+  document.getElementById("cartModal").style.display = "none";
+});
+
+document.getElementById("placeOrderBtn").addEventListener("click", completeBooking);
+
+  document.getElementById("rentalDateRange").addEventListener("change", (e) => {
+  const rentalDates = e.target.value.trim();
+  validateCartStock(rentalDates);
+});
+
+
+/* ===================== Init ===================== */
+window.addEventListener("load", () => {
+  updateCartCount();
+  fetchBookedDatesAndInitCalendar(); // keeps calendar working
+  listenForReservations();           // 👈 add this line
+  initReviews();
+
+  // 👇 Show Event Items page immediately
+  loadGalleryByCategory('EVENT ITEMS');
+});
+
+  
+  /* ===================== STOCK VALIDATION ===================== */
+async function checkStock(cart, start, end) {
+  const snapshot = await db.collection("reservations").get();
+
+  for (const cartItem of cart) {
+    const itemName = cartItem.name;
+    const qtyRequested = cartItem.quantity || 1;
+    const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
+
+    // Track booked quantities per date
+    const bookedQtyPerDate = {};
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      if (!data.rentalDates || !data.cartItems) continue;
+
+      const [bookedStartStr, bookedEndStr] = String(data.rentalDates).split(" to ");
+      const bookedStart = new Date(bookedStartStr);
+      const bookedEnd = new Date(bookedEndStr);
+      if (isNaN(bookedStart) || isNaN(bookedEnd)) continue;
+      if (start > bookedEnd || end < bookedStart) continue;
+
+      for (const bookedItem of data.cartItems) {
+        if (bookedItem.name !== itemName) continue;
+        const bookedQty = bookedItem.quantity || 1;
+
+        // count each date in that reservation
+        let d = new Date(bookedStart);
+        while (d <= bookedEnd) {
+          const key = d.toISOString().split("T")[0];
+          bookedQtyPerDate[key] = (bookedQtyPerDate[key] || 0) + bookedQty;
+          d.setDate(d.getDate() + 1);
+        }
+      }
+    }
+
+    // Now check overlap against requested qty
+    let d = new Date(start);
+    while (d <= end) {
+      const key = d.toISOString().split("T")[0];
+      if ((bookedQtyPerDate[key] || 0) + qtyRequested > stockAvailable) {
+        return false; // ❌ not enough stock for this item
+      }
+      d.setDate(d.getDate() + 1);
+    }
+  }
+
+  return true; // ✅ all items available
+}
+
+// 👇 Global to prevent duplicates across multiple calls
+const shownKeysGlobal = new Set();
+let validateCartStockTimeout;
+
+function debounceValidateCartStock(rentalDates) {
+  clearTimeout(validateCartStockTimeout);
+  validateCartStockTimeout = setTimeout(() => {
+    validateCartStock(rentalDates);
+  }, 200); // wait 200ms so duplicates don’t pile up
+}
+
+async function validateCartStock(rentalDates) {
+  const locationInput = document.getElementById("customerLocation");
+  let errorEl = document.getElementById("stockErrorMsg");
+
+  // Create inline error element if missing
+  if (!errorEl) {
+    errorEl = document.createElement("div");
+    errorEl.id = "stockErrorMsg";
+    errorEl.style.color = "red";
+    errorEl.style.marginTop = "5px";
+    locationInput.insertAdjacentElement("afterend", errorEl);
+  }
+
+  errorEl.innerHTML = ""; 
+  shownKeysGlobal.clear(); // reset global keys each run
+  cartHasWarnings = false;
+
+  // Bail if dates not valid yet
+  if (!rentalDates.includes(" to ")) {
+    togglePlaceOrderButton();
+    return;
+  }
+  const [startStr, endStr] = rentalDates.split(" to ");
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  if (isNaN(start) || isNaN(end)) {
+    togglePlaceOrderButton();
+    return;
+  }
+
+  const cart = JSON.parse(localStorage.getItem("cart")) || [];
+  if (cart.length === 0) {
+    togglePlaceOrderButton();
+    return;
+  }
+
+  // ✅ Group cart by item name
+  const cartGrouped = {};
+  for (const item of cart) {
+    cartGrouped[item.name] = (cartGrouped[item.name] || 0) + (item.quantity || 1);
+  }
+
+  const snapshot = await db.collection("reservations").get();
+
+  for (const [itemName, cartQty] of Object.entries(cartGrouped)) {
+    const stockAvailable = (qtyMap?.[itemName]?.options?.slice(-1)?.[0]) || 1;
+
+    // ✅ Aggregate booked quantities per date across ALL reservations
+    const bookedQtyPerDate = {};
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (!data.rentalDates || !data.cartItems) return;
+
+      const [bookedStartStr, bookedEndStr] = String(data.rentalDates).split(" to ");
+      const bookedStart = new Date(bookedStartStr);
+      const bookedEnd = new Date(bookedEndStr);
+      if (isNaN(bookedStart) || isNaN(bookedEnd)) return;
+      if (start > bookedEnd || end < bookedStart) return;
+
+      for (const bookedItem of data.cartItems) {
+        if (bookedItem.name !== itemName) continue;
+        const bookedQty = bookedItem.quantity || 1;
+
+        let d = new Date(bookedStart);
+        while (d <= bookedEnd) {
+          const key = d.toISOString().split("T")[0];
+          bookedQtyPerDate[key] = (bookedQtyPerDate[key] || 0) + bookedQty;
+          d.setDate(d.getDate() + 1);
+        }
+      }
+    });
+
+    // ✅ Now only check once per date
+    let d = new Date(start);
+    while (d <= end) {
+      const key = d.toISOString().split("T")[0];
+      const alreadyBooked = bookedQtyPerDate[key] || 0;
+      const totalDemand = alreadyBooked + cartQty;
+
+      if (totalDemand > stockAvailable) {
+        const left = Math.max(0, stockAvailable - alreadyBooked);
+        const uniqueKey = `${itemName}-${key}`;
+
+        if (!shownKeysGlobal.has(uniqueKey)) {
+          errorEl.innerHTML += `<div>❌ Only ${left} ${itemName}(s) available for ${key}. You requested ${cartQty}.</div>`;
+          shownKeysGlobal.add(uniqueKey); // ✅ prevent duplicates
+        }
+
+        cartHasWarnings = true;
+      }
+
+      d.setDate(d.getDate() + 1);
+    }
+  }
+
+  togglePlaceOrderButton();
+}
+
+
+/* ===================== HOOK VALIDATION ON DATE CHANGE ===================== */
+document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
+  debounceValidateCartStock(e.target.value);
+});
+
+
+    function addToCartFromPage(productId) {
+  const productEl = document.getElementById(productId);
+  if (!productEl) return;
+
+  const name = productEl.querySelector(".product-name")?.textContent.trim() || "Unnamed Item";
+  const price = parseFloat(productEl.querySelector(".product-price")?.textContent.trim() || "0");
+  const image = productEl.querySelector("img")?.getAttribute("src") || "placeholder.jpg";
+
+  // Build item object
+  const item = { id: productId, name, price, image, quantity: 1 };
+
+  addToCart(item);
+}
+
+  function formatTimeTo12Hr(timeStr) {
+  if (!timeStr) return "";
+  const [hourStr, minuteStr] = timeStr.split(":");
+  let hour = parseInt(hourStr, 10);
+  const minute = parseInt(minuteStr, 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12 || 12; // 0 → 12
+  return `${hour}:${minute.toString().padStart(2, "0")} ${ampm}`;
+}
+
+
+
+  async function showRecentOrders() {
+  if (!currentUser) {
+    Swal.fire({
+      icon: "warning",
+      title: "Login Required",
+      text: "You must be logged in to view recent orders.",
+      confirmButtonText: "OK"
+    }).then(() => {
+      window.location.href = "login.html";
+    });
+    return;
+  }
+
+  try {
+    const snapshot = await db.collection("reservations")
+      .where("userId", "==", currentUser.uid)
+      .limit(10)
+      .get();
+
+    if (snapshot.empty) {
+      Swal.fire("No Orders", "You don’t have any recent orders yet.", "info");
+      return;
+    }
+
+    let html = "<div style='text-align:left; max-height:400px; overflow-y:auto;'>";
+
+    const orders = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => {
+        const aTime = a.createdAt?.toDate?.() || new Date(0);
+        const bTime = b.createdAt?.toDate?.() || new Date(0);
+        return bTime - aTime;
+      })
+      .slice(0, 10);
+
+    orders.forEach(data => {
+      const orderNum = data.orderNumber || data.id;
+      const total = formatJMD(data.totalAmount || 0);
+
+      // ✅ Format rental range with 12-hr times
+      let rentalRange = "N/A";
+      if (data.rentalDates?.includes(" to ")) {
+        const [startStr, endStr] = data.rentalDates.split(" to ");
+        const start = new Date(startStr);
+        const end = new Date(endStr);
+        if (!isNaN(start) && !isNaN(end)) {
+          const fmt = { month: "long", day: "numeric", year: "numeric" };
+          const startFmt = start.toLocaleDateString("en-US", fmt);
+          const endFmt = end.toLocaleDateString("en-US", fmt);
+          const startTime = formatTimeTo12Hr(data.startTime || "");
+          const endTime = formatTimeTo12Hr(data.endTime || "");
+          rentalRange = `${startFmt} ${startTime} → ${endFmt} ${endTime}`;
+        }
+      }
+
+      const location = data.location || "N/A";
+
+      const bookedOn = data.createdAt?.toDate().toLocaleString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+      }) || "N/A";
+
+      // ✅ Items: one per line with bullets
+      const items = (data.cartItems || [])
+        .map(i => `• ${i.name} x${i.quantity}`)
+        .join("<br>");
+
+      // ✅ Order block
+      html += `
+        <div style="margin-bottom:8px; padding:6px 4px; border-bottom:1px solid #ddd; text-align:left;">
+          <strong>Order #${orderNum}</strong><br>
+          <span><b>Booked For:</b> ${rentalRange}</span><br>
+          <span><b>Items:</b><br>${items}</span><br>
+          <span><b>Delivery Location:</b> ${location}</span><br>
+          <span><b>Total:</b> <span style="color:#6A0DAD; font-weight:bold;">${total}</span></span><br>
+          <span style="font-size:0.9em; color:#555;"><i>Booked On: ${bookedOn}</i></span><br>
+          <div style="text-align:center; margin-top:8px;">
+            <button 
+          onclick="handleInvoiceClick(${JSON.stringify(data).replace(/"/g, '&quot;')})" 
+         style="padding:6px 12px; background:#6A0DAD; color:white; border:none; border-radius:6px; cursor:pointer;">
+         INVOICE
+         </button>
+          </div>
+        </div>`;
+    });
+
+    html += "</div>";
+
+    Swal.fire({
+      title: "RECENT ORDERS",
+      html,
+      width: 550,
+      confirmButtonText: "CLOSE",
+      customClass: { popup: "swal2-rounded" }
+    });
+
+  } catch (err) {
+    console.error("Error fetching recent orders:", err);
+    Swal.fire("Error", "Could not load your orders. Try again later.", "error");
+  }
+}
+
+
+  function generateInvoice(order) {
+  const stamp = `STAMP-${order.orderNumber}-${Date.now()}`;
+
+  // ✅ Get payment options chosen from dashboard
+  const paymentOptions = (order.invoiceOptions && order.invoiceOptions.length > 0)
+    ? order.invoiceOptions.join(", ")
+    : "Not Specified";
+
+  // Format order creation date
+  const orderDate = order.createdAt?.toDate?.().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  }) || new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+
+  // Format rental dates properly
+  let rentalRange = order.rentalDates || "N/A";
+  if (order.rentalDates?.includes(" to ")) {
+    const [startStr, endStr] = order.rentalDates.split(" to ");
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+    if (!isNaN(start) && !isNaN(end)) {
+      const fmt = { year: "numeric", month: "long", day: "numeric" };
+      rentalRange = `${start.toLocaleDateString("en-US", fmt)} → ${end.toLocaleDateString("en-US", fmt)}`;
+    }
+  }
+
+  // Build items and recalc grand total
+  let grandTotal = 0;
+  const itemsHtml = (order.cartItems || [])
+    .map(i => {
+      const qty = i.quantity || 1;
+      const unit = Number(i.price) || 0;
+      const lineTotal = unit * qty;
+      grandTotal += lineTotal;
+      return `
+        <tr>
+          <td>${i.name}</td>
+          <td>${qty}</td>
+          <td>${formatJMD(unit)}</td>
+          <td>${formatJMD(lineTotal)}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  const invoiceHtml = `
+  <html>
+    <head>
+      <title>Invoice #${order.orderNumber}</title>
+      <!-- fonts + styles same as before -->
+      <style>
+        body { font-family: 'Poppins', sans-serif; padding:10px 20px; }
+        h1.title {
+          text-align:center;
+          font-size:32px;
+          font-weight:bold;
+          font-family: Rockwell, 'Roboto Slab', 'Zilla Slab', serif;
+          background: linear-gradient(90deg, #6A0DAD, #007BFF, #2E8B57);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          margin: 5px 0 10px 0;
+        }
+        p { margin: 3px 0; font-size: 14px; }
+        table { width:100%; border-collapse: collapse; margin-top:10px; font-size: 14px; }
+        th, td { border:1px solid #ccc; padding:6px 8px; text-align:left; }
+        th { background:#f2f2f2; }
+        .grand-total { font-weight:bold; text-align:right; background:#fafafa; }
+        .payment-row td { font-weight:bold; background:#f9f9ff; color:#333; }
+        .stamp {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 26px;
+          color: rgba(106,13,173,0.25);
+          font-weight: bold;
+          text-align: center;
+          width: 200px;
+          height: 200px;
+          border: 4px dashed rgba(106,13,173,0.25);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+          user-select: none;
+        }
+      </style>
+    </head>
+    <body>
+      <h1 class="title">PELLZ PARTY RENTAL INVOICE</h1>
+      <p><b>Order #:</b> ${order.orderNumber}</p>
+      <p><b>Date:</b> ${orderDate}</p>
+      <p><b>Name:</b> ${order.name || ""}</p>
+      <p><b>Phone:</b> ${order.phone || ""}</p>
+      <p><b>Location:</b> ${order.location || ""}</p>
+      <p><b>Rental Dates:</b> ${rentalRange}</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Unit Price</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+          <tr>
+            <td colspan="3" class="grand-total">Grand Total</td>
+            <td><b>${formatJMD(grandTotal)}</b></td>
+          </tr>
+          <tr class="payment-row">
+            <td colspan="3" class="grand-total">Payment Method(s)</td>
+            <td>${paymentOptions}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="stamp">${stamp}</div>
+    </body>
+  </html>
+`;
+
+
+  const invoiceWindow = window.open("", "_blank");
+  invoiceWindow.document.open();
+  invoiceWindow.document.write(invoiceHtml);
+  invoiceWindow.document.close();
+}
+
+
+  function handleInvoiceClick(order) {
+  if (!order.invoiceSent) {
+    // ❌ Not sent yet → show popup that stays until "OK"
+    Swal.fire({
+      icon: "info",
+      title: "Invoice Pending",
+      text: "Invoice will be sent when your order is completed.",
+      confirmButtonText: "OK"
+    });
+    return;
+  }
+
+  // ✅ Sent → open actual invoice
+  generateInvoice(order);
+}
+
+
+  function showBankInfo() {
+  Swal.fire({
+    title: "<div class='swal2-title-nowrap'>BANK TRANSER INFO</div>",
+    html: `
+      <div style="text-align:left; font-size:16px; line-height:1.6; color:white;">
+        <p><b>Bank Name:</b> First Caribbean Bank</p>
+        <p><b>Account Name:</b> John Doe</p>
+        <p><b>Account Number:</b> 123456789</p>
+        <p><b>Branch:</b> Kingston, Jamaica</p>
+        <p><b>Note:</b> Please use your Order # as the payment reference.</p>
+      </div>
+    `,
+    width: 600,  // ✅ slightly wider modal
+    confirmButtonText: "CLOSE",
+    background: "#1a73e8",
+    color: "white",
+    confirmButtonColor: "#0d47a1",
+    customClass: {
+      popup: "swal2-rounded"
+    }
+  });
+}
+
+
+  // Parish button logic (run once on page load)
+document.querySelectorAll(".parishBtn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    // clear previous selection
+    document.querySelectorAll(".parishBtn").forEach(b => b.classList.remove("selected", "error"));
+    // mark selected
+    btn.classList.add("selected");
+    document.getElementById("selectedParish").value = btn.dataset.parish;
+  });
+});
+
+
+</script>
