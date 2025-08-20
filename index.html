@@ -131,13 +131,6 @@
 
 <body>
 
-  <form id="adminLoginForm" onsubmit="event.preventDefault(); login();">
-  <input type="email" id="adminEmail" placeholder="Admin Email" required />
-  <input type="password" id="adminPassword" placeholder="Admin Password" required />
-  <button type="submit">Login</button>
-</form>
-<p id="status"></p>
-
   <div class="header-bar">
     <button class="menu-button" onclick="toggleMenu()">☰</button>
     <div class="header-title">PELLZ PARTY RENTALS</div>
@@ -357,32 +350,6 @@ function showSection(sectionId) {
   document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
   document.getElementById(sectionId).classList.add('active');
 }
-
-// Replace your current login() function with this one
-function login() {
-  const email = document.getElementById("adminEmail").value;
-  const password = document.getElementById("adminPassword").value;
-
-  firebase.auth().signInWithEmailAndPassword(email, password)
-    .then((userCredential) => {
-      const user = userCredential.user;
-
-      // ✅ Only allow your admin account
-      if (user.email === "carlanviroberts@gmail.com") {
-        window.location.href = 'dashboard.html';
-      } else {
-        firebase.auth().signOut();
-        document.getElementById("status").innerText = "Access denied. Not an admin.";
-      }
-    })
-    .catch((error) => {
-      let msg = 'Authentication failed: ' + error.message;
-      if (error.code === 'auth/wrong-password') msg = 'Incorrect password. Please try again.';
-      else if (error.code === 'auth/user-not-found') msg = 'No user found with this email. Please check and try again.';
-      document.getElementById("status").innerText = msg;
-    });
-}
-
 
   
   function listenForReservations() {
