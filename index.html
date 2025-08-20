@@ -573,11 +573,11 @@ async function isDateUnavailable(selectedDate, startTime, endTime) {
 
 
 async function completeBooking() {
-  if (bookingInProgress) return; 
+  if (bookingInProgress) return;
   bookingInProgress = true;
 
-  const bookBtn = document.getElementById("placeOrderBtn");
-  if (bookBtn) bookBtn.disabled = true; 
+  const bookBtn = document.getElementById("completeBookingBtn");
+  if (bookBtn) bookBtn.disabled = true;
 
   try {
     const name = (document.getElementById("customerName")?.value || "").trim();
@@ -591,21 +591,55 @@ async function completeBooking() {
 
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-    // --- required field validation ---
-    const requiredFields = { name, phone, location, rentalDates, startTime, endTime, parish };
+    // ✅ required fields check + scroll to first invalid
+    const requiredFields = {
+      customerName: name,
+      customerPhone: phone,
+      customerLocation: location,
+      rentalDateRange: rentalDates,
+      startTime,
+      endTime,
+      selectedParish: parish
+    };
+
     let allValid = true;
-    if (!name || !phone || !location || !rentalDates || !startTime || !endTime || !parish) {
-      allValid = false;
-    }
+    let firstInvalidEl = null;
+
+    Object.keys(requiredFields).forEach(id => {
+      if (id === "selectedParish") {
+        if (!requiredFields[id]) {
+          document.querySelectorAll(".parishBtn").forEach(b => b.classList.add("error"));
+          allValid = false;
+          if (!firstInvalidEl) firstInvalidEl = document.querySelector(".parishBtn");
+        } else {
+          document.querySelectorAll(".parishBtn").forEach(b => b.classList.remove("error"));
+        }
+      } else {
+        const el = document.getElementById(id);
+        if (!requiredFields[id]) {
+          el?.classList.add("error");
+          allValid = false;
+          if (!firstInvalidEl) firstInvalidEl = el;
+        } else {
+          el?.classList.remove("error");
+        }
+      }
+    });
+
     if (!allValid || cart.length === 0) {
+      if (firstInvalidEl) {
+        firstInvalidEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
       bookingInProgress = false;
       if (bookBtn) bookBtn.disabled = false;
       return;
     }
 
-    // --- rental date check ---
+    // 📅 rental dates check
     if (!rentalDates.includes(" to ")) {
-      document.getElementById("rentalDateRange")?.classList.add("error");
+      const el = document.getElementById("rentalDateRange");
+      el?.classList.add("error");
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
       bookingInProgress = false;
       if (bookBtn) bookBtn.disabled = false;
       return;
@@ -614,21 +648,23 @@ async function completeBooking() {
     const start = new Date(startStr);
     const end = new Date(endStr);
     if (isNaN(start) || isNaN(end)) {
-      document.getElementById("rentalDateRange")?.classList.add("error");
+      const el = document.getElementById("rentalDateRange");
+      el?.classList.add("error");
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
       bookingInProgress = false;
       if (bookBtn) bookBtn.disabled = false;
       return;
     }
 
-    // --- check unavailable days ---
+    // 🔒 unavailable days
     if (await isDateUnavailable(start, startTime, endTime) || await isDateUnavailable(end, startTime, endTime)) {
-      alert("The selected date or time is unavailable. Please choose another.");
+      alert("The selected date or time is unavailable for any business. We apologize for any inconvenience kindly choose another date or time.");
       bookingInProgress = false;
       if (bookBtn) bookBtn.disabled = false;
       return;
     }
 
-    // --- calculate total ---
+    // 💰 calculate total
     const days = getRentalDayCount();
     let totalAmount = 0;
     for (const item of cart) {
@@ -638,33 +674,37 @@ async function completeBooking() {
     }
     totalAmount = Number(totalAmount.toFixed(2));
 
-    // --- generate order number ---
+    // 🔢 order number
     const orderNumber = await generateUniqueOrderNumber(name);
 
-    // --- save to Firestore ---
-    await db.collection("reservations").doc(orderNumber).set({
-      orderNumber,
-      userId: currentUser ? currentUser.uid : null,
-      name, phone, location,
-      rentalDates, startTime, endTime,
-      parish,
-      paymentType,
-      cartItems: cart,
-      totalAmount,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    // 📝 save to Firestore with transaction
+    await db.runTransaction(async (transaction) => {
+      const docRef = db.collection("reservations").doc(orderNumber);
+      transaction.set(docRef, {
+        orderNumber,
+        userId: currentUser ? currentUser.uid : null,
+        name, phone, location,
+        rentalDates, startTime, endTime,
+        parish,
+        paymentType,
+        cartItems: cart,
+        totalAmount,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
     });
 
-    // --- send Telegram ---
+    // 📲 Telegram notify
     await sendTelegramMessage(
       name, phone, location, rentalDates,
       startTime, endTime, paymentType,
       cart, totalAmount, orderNumber, parish
     );
 
-    // --- cleanup ---
+    // 🧹 cleanup
     localStorage.removeItem("cart");
     updateCartCount();
     document.getElementById("cartModal").style.display = "none";
+
     ["customerName","customerPhone","customerLocation","rentalDateRange","startTime","endTime","selectedParish"]
       .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
     document.querySelectorAll(".parishBtn").forEach(b => b.classList.remove("selected"));
@@ -672,7 +712,7 @@ async function completeBooking() {
     const stockErrorMsg = document.getElementById("stockErrorMsg");
     if (stockErrorMsg) stockErrorMsg.innerHTML = "";
 
-    // --- success popup ---
+    // 🎉 success popup
     Swal.fire({
       title: `ORDER MADE<br>ORDER # (${orderNumber})`,
       html: `
@@ -709,7 +749,7 @@ async function completeBooking() {
     if (rentalDatesNow) validateCartStock(rentalDatesNow);
 
   } catch (err) {
-    console.error("Booking error:", err);
+    console.error("completeBooking crashed:", err);
     alert("Failed to complete booking. Please try again.");
   } finally {
     bookingInProgress = false;
