@@ -462,12 +462,12 @@
 </div>
 <script>
     const firebaseConfig = {
-  apiKey: "AIzaSyDccI-TdbCXAJr6CD77X4yOUOfezef7Oks",
-  authDomain: "delivery-login-3a084.firebaseapp.com",
-  projectId: "delivery-login-3a084",
-  storageBucket: "delivery-login-3a084.firebasestorage.app",
-  messagingSenderId: "201998621677",
-  appId: "1:201998621677:web:b51c3aeb2debe18b4aa5e4"
+  apiKey: "AIzaSyD7424mubtMpjSmRUG5eonaVxGaRrpKs-s",
+  authDomain: "tttnail-care-walkin-pay.firebaseapp.com",
+  projectId: "tttnail-care-walkin-pay",
+  storageBucket: "tttnail-care-walkin-pay.firebasestorage.app",
+  messagingSenderId: "841515431051",
+  appId: "1:841515431051:web:f73dfab462d7b152c8508e"
 };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
@@ -615,6 +615,7 @@ function loadGallery() {
         </div>
       `;
     }
+    
 
 function saveNewProduct(docId) {
   const name = document.getElementById(`name-${docId}`).value.trim();
@@ -814,21 +815,6 @@ function loadReservations() {
   });
 }
 
-
-    function cancelReservation(reservationId) {
-  if (confirm("Are you sure you want to cancel this order?")) {
-    db.collection("reservations").doc(reservationId).delete()
-      .then(() => {
-        alert("Order cancelled successfully.");
-      })
-      .catch(error => {
-        console.error("Error cancelling order: ", error);
-        alert("Failed to cancel order. Please try again.");
-      });
-  }
-}
-
-
     function searchReservations() {
   const query = document.getElementById("reservationSearch").value.toLowerCase();
   const reservationsContainer = document.getElementById("reservationsList");
@@ -849,7 +835,6 @@ function loadReservations() {
     }
   }
 }
-
 
 function clearReservations() {
   const confirmInput = document.getElementById('clearInput').value.trim();
@@ -927,6 +912,19 @@ function clearReservations() {
     document.getElementById('endTimeInput').value = '';
     document.getElementById('allDayCheckbox').checked = true;
     document.getElementById('timeInputs').style.display = 'none';
+  });
+}
+
+
+function loadUnavailableDates() {
+  const list = document.getElementById('unavailableDatesList');
+  db.collection('unavailableDays').orderBy('date').onSnapshot(snapshot => {
+    list.innerHTML = '';
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      let text = `${d.date} - ${d.allDay ? 'All Day' : `${d.startTime} to ${d.endTime}`}`;
+      list.innerHTML += `<li>${text} <button onclick="removeUnavailableDate('${doc.id}')">Remove</button></li>`;
+    });
   });
 }
 
