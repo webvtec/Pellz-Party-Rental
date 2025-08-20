@@ -853,26 +853,45 @@ function loadReservations() {
 
 function clearReservations() {
   const confirmInput = document.getElementById('clearInput').value.trim();
-  if (confirmInput !== 'CONFIRM') { alert('TYPE "CONFIRM" TO CLEAR PAST RESERVATIONS.'); return; }
+  if (confirmInput !== 'CONFIRM') { 
+    alert('TYPE "CONFIRM" TO CLEAR PAST RESERVATIONS.'); 
+    return; 
+  }
 
-  const now = new Date();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // normalize
+
   db.collection('reservations').get().then(snapshot => {
     const batch = db.batch();
+
     snapshot.forEach(doc => {
       const booking = doc.data();
+      let bookingEnd = null;
+
       if (booking.rentalDates?.includes(' to ')) {
-        const bookingDate = new Date(booking.rentalDates.split(' to ')[1]);
-        if (bookingDate && now - bookingDate > 24 * 60 * 60 * 1000) {
+        const end = booking.rentalDates.split(' to ')[1];
+        const [year, month, day] = end.split('-').map(Number);
+        bookingEnd = new Date(year, month - 1, day);
+      } else if (booking.rentalDates) {
+        const [year, month, day] = booking.rentalDates.split('-').map(Number);
+        bookingEnd = new Date(year, month - 1, day);
+      }
+
+      if (bookingEnd) {
+        bookingEnd.setHours(0, 0, 0, 0);
+        if (bookingEnd < today) {
           batch.delete(doc.ref);
         }
       }
     });
+
     return batch.commit();
   }).then(() => {
     alert('Past reservations cleared successfully.');
     document.getElementById('clearInput').value = '';
   });
 }
+
 
 function loadUnavailableDates() {
   const list = document.getElementById('unavailableDatesList');
