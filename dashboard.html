@@ -4,11 +4,12 @@
 <head>
 
 <script>
-  // Redirect anyone who isn’t logged in as admin
+  // Redirect if not logged in as admin
   if (localStorage.getItem("isAdmin") !== "true") {
     window.location.href = "index.html";
   }
 </script>
+
 
 <!-- Essential for correct scaling on mobile -->
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
