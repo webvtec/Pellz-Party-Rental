@@ -351,9 +351,8 @@ function showSection(sectionId) {
   document.getElementById(sectionId).classList.add('active');
 }
 
-  
+
 function adminLogin() {
-  // Hardcoded admin credentials
   const adminEmail = "carlanviroberts@gmail.com";
   const adminPassword = "@Carlanvi321";
 
@@ -361,10 +360,15 @@ function adminLogin() {
   const password = prompt("Enter admin password:");
 
   if (email === adminEmail && password === adminPassword) {
-    window.location.href = "dashboard.html"; // ✅ correct login
+    // Store admin flag in localStorage
+    localStorage.setItem("isAdmin", "true");
+    // Redirect to dashboard
+    window.location.href = "dashboard.html";
+  } else {
+    // If wrong, just do nothing
   }
-  // ❌ wrong → do nothing at all
 }
+
 
   
   function listenForReservations() {
