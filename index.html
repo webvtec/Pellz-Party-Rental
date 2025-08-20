@@ -351,6 +351,23 @@ function showSection(sectionId) {
   document.getElementById(sectionId).classList.add('active');
 }
 
+function login() {
+  // 🔑 Hardcoded Admin Credentials
+  const adminEmail = "carlanviroberts@gmail.com"; 
+  const adminPassword = "@Carlanvi321"; 
+
+  firebase.auth().signInWithEmailAndPassword(adminEmail, adminPassword)
+    .then(() => {
+      window.location.href = 'dashboard.html';
+    })
+    .catch((error) => {
+      let msg = 'Authentication failed: ' + error.message;
+      if (error.code === 'auth/wrong-password') msg = 'Incorrect password. Please try again.';
+      else if (error.code === 'auth/user-not-found') msg = 'No user found with this email. Please check and try again.';
+      alert(msg);
+    });
+}
+
   
   function listenForReservations() {
   db.collection("reservations").onSnapshot(snapshot => {
@@ -378,42 +395,6 @@ function showSection(sectionId) {
     if (rentalDates) validateCartStock(rentalDates);
   });
 }
-
-
-  function login() {
-  Swal.fire({
-    title: "Admin Login",
-    html: `
-      <input type="email" id="adminEmail" class="swal2-input" placeholder="Email">
-      <input type="password" id="adminPassword" class="swal2-input" placeholder="Password">
-    `,
-    confirmButtonText: "Login",
-    focusConfirm: false,
-    preConfirm: () => {
-      const email = document.getElementById("adminEmail").value.trim();
-      const password = document.getElementById("adminPassword").value.trim();
-      if (!email || !password) {
-        Swal.showValidationMessage("Please enter email and password");
-      }
-      return { email, password };
-    }
-  }).then((result) => {
-    if (!result.isConfirmed) return;
-    const { email, password } = result.value;
-
-    // ✅ Only allow one specific email + password
-    const adminEmail = "carlanviroberts@gmail.com";   // 🔑 change this
-    const adminPassword = "@Carlanvi321"; // 🔑 change this
-
-    if (email === adminEmail && password === adminPassword) {
-      // Success → redirect
-      window.location.href = "dashboard.html"; // 👈 set your actual dashboard page
-    } else {
-      Swal.fire("Access Denied", "Invalid admin credentials.", "error");
-    }
-  });
-}
-
 
   function logoutUser() {
   firebase.auth().signOut().then(() => {
@@ -1889,4 +1870,4 @@ document.querySelectorAll(".parishBtn").forEach(btn => {
 });
 
 
-</script>
+  </script>
