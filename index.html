@@ -379,6 +379,39 @@ function showSection(sectionId) {
   });
 }
 
+
+  function login() {
+  Swal.fire({
+    title: "Admin Login",
+    html: `
+      <input type="email" id="adminEmail" class="swal2-input" placeholder="Email">
+      <input type="password" id="adminPassword" class="swal2-input" placeholder="Password">
+    `,
+    confirmButtonText: "Login",
+    focusConfirm: false,
+    preConfirm: () => {
+      const email = document.getElementById("adminEmail").value;
+      const password = document.getElementById("adminPassword").value;
+      if (!email || !password) {
+        Swal.showValidationMessage("Please enter email and password");
+      }
+      return { email, password };
+    }
+  }).then((result) => {
+    if (!result.isConfirmed) return;
+    const { email, password } = result.value;
+
+    firebase.auth().signInWithEmailAndPassword(email, password)
+      .then(() => {
+        // ✅ Successful login
+        window.location.href = "admin-dashboard.html"; // change to your actual dashboard page
+      })
+      .catch((error) => {
+        Swal.fire("Login Failed", error.message, "error");
+      });
+  });
+}
+
   function logoutUser() {
   firebase.auth().signOut().then(() => {
     // ✅ user signed out → send to login page
