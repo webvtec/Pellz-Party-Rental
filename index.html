@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PELLZ PARTY RENTALS</title>
+  <title>ZAHI ENTERTAINMENT RENTALS</title>
 
   <!-- UI libs -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -20,9 +20,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
-    body { font-family: 'Zilla Slab', serif; margin: 0; padding: 0; background-color: #FFFF; }
+    body { font-family: 'Zilla Slab', serif; margin: 0; padding: 0; background-color: #FFFF; }   /* HEADER BAR COLOUR ACCEPTABLE FOR CHANGE */
     .header-bar { position: fixed; top: 0; left: 0; right: 0; height: 48px; background-color: #343a40; display: flex; align-items: center; justify-content: center; z-index: 1000; }
-    .header-title { font-family: 'Zilla Slab', serif; font-size: 23.5px; font-weight: bold; background: linear-gradient(90deg, #6A0DAD, #007BFF, #2E8B57, #6A0DAD); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 8px rgba(0,0,0,0.3); white-space: nowrap; text-align: center; }
+                                                                                                                     /* MAIN HEADER TITLE COLOUR ACCEPTABLE FOR CHANGE */
+    .header-title { font-family: 'Zilla Slab', serif; font-size: 23px; font-weight: bold; background: linear-gradient(90deg, #6A0DAD, #007BFF, #2E8B57, #6A0DAD); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 2px 2px 8px rgba(0,0,0,0.3); white-space: nowrap; text-align: center; }
+                                                                                          /* MENU BUTTON COLOUR ACCEPTABLE FOR CHANGE */
     .menu-button { position: absolute; left: 0; top: 50%; transform: translateY(-50%); background-color: #6A0DAD; color: #FFF8DC; border: none; border-radius: 0; cursor: pointer; height: 48px; width: 45px; display: flex; align-items: center; justify-content: center; font-size: 22px; padding: 0; }
     .menu { position: fixed; top: 48px; left: 0; width: 150px; background-color: rgba(0, 0, 0, 0.8); color: #E6B422; padding: 20px; transform: translateX(-100%); transition: transform 0.3s ease; height: auto; min-height: 100px; z-index: 999; }
     .menu.show { transform: translateX(0); }
@@ -33,7 +35,7 @@
     form button { background-color: #6200ea; color: white; border: none; cursor: pointer; font-weight: bold; }
     form button:hover { background-color: #3700b3; }
     #bookingMessage { text-align: center; font-weight: bold; color: green; margin-top: 20px; }
-    .gallery-category { margin-top: 40px; }
+    .gallery-category { margin-top: 40px; }                    /* GALLERY CATEGORY TEXT COLOUR ACCEPTABLE FOR CHANGE */
     .gallery-category h3 { text-align: center; margin-bottom: 15px; font-size: 22px; color: #6200ea; text-transform: uppercase; }
     .gallery-wrapper { max-width: 1000px; margin: 0 auto; padding: 0 10px; }
     .gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px; }
@@ -42,22 +44,28 @@
     .gallery-grid img { width: 100%; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); height: 230px; object-fit: cover; }
     .content-section { display: none; }
     .content-section.active { display: block; }
+    
+                        /* ADMIN BUTTON COLOUR ACCEPTABLE FOR CHANGE */
     .menu a.admin-button { background-color: #6A0DAD; color: white; padding: 10px 20px; border-radius: 8px; font-weight: bold; display: block; margin: 50px auto 0; cursor: pointer; transition: background-color 0.3s ease; text-align: center; width: fit-content; }
     .menu a.admin-button:hover { background-color: #3700b3; }
+                                                                                           /* ADD TO CART BUTTON COLOUR ACCEPTABLE FOR CHANGE */
     .add-to-cart-button { position: absolute; right: 0; top: 50%; transform: translateY(-50%); background-color: #6A0DAD; color: red; border: none; padding: 0; border-radius: 0; cursor: pointer; height: 48px; width: 45px; display: flex; align-items: center; justify-content: center; font-size: 22px; text-decoration: none; }
     .separator-line { border-bottom: 2px solid purple; margin: 20px 0; }
+                      /* PRODUCT CARD COLOUR ACCEPTABLE FOR CHANGE */
     .product-card { background: #8c9b9f; border: 1px solid #eee; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); padding: 10px; text-align: center; }
     .product-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; }
     .product-info { margin-top: 5px; }
     .product-name { font-weight: bold; margin-bottom: 4px; }
+          /* PRODUCT PRICE COLOUR ACCEPTABLE FOR CHANGE */
     .product-price { color: #6200ea; margin-bottom: 6px; }
     .product-card button { background-color: #6A0DAD; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
     /* Cart Modal */
     #cartModal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: none; z-index: 2000; }
+           /* YOUR CART BACKGROUND COLOUR ACCEPTABLE FOR CHANGE */
     #cartModal > div { background: #8c9b9f; max-width: 320px; margin: 80px auto; border-radius: 12px; padding: 15px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: 'Zilla Slab', serif; max-height: 70vh; overflow-y: auto; }
     input, textarea { width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
-
+                                          /* YOUR CART TEXT COLOUR ACCEPTABLE FOR CHANGE */
     #cartModal h2 { margin-top: 0; text-align: center; color: #6A0DAD; }
     #cartItemsContainer > div { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
     #cartItemsContainer img { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; margin-right: 10px; }
@@ -106,6 +114,8 @@
   line-height: 1.4;
 }
 
+    
+/* COLOUR ACCEPTABLE FOR CHANGE */
     .parishBtn {
   padding: 10px 20px;
   border: 2px solid #1a73e8;
@@ -117,6 +127,8 @@
   transition: 0.2s;
 }
 
+    
+/* COLOUR ACCEPTABLE FOR CHANGE */
 .parishBtn.selected {
   background: #1a73e8;
   color: white;
@@ -133,8 +145,8 @@
 
   <div class="header-bar">
     <button class="menu-button" onclick="toggleMenu()">☰</button>
-    <div class="header-title">PELLZ PARTY RENTALS</div>
-
+    <div class="header-title">ZAHI ENTERTAINMENT</div>
+    
     <div class="add-to-cart-button" onclick="viewCart()" style="display:flex; flex-direction:column; align-items:center; background:#6A0DAD; border:none; cursor:pointer;">
       <span style="font-size:20px;">🛒</span>
       <span id="cart-count" style="font-size:15px; color:red; margin-top:2px;">0</span>
@@ -177,7 +189,7 @@
     <a onclick="adminLogin(); closeMenu();" class="admin-button" style="display:block; text-align:center; margin:10px auto; padding:10px 20px; background-color:#6200ea; color:white; border-radius:6px; text-decoration:none; width:80%; font-weight:bold;" href="javascript:void(0);">ADMIN</a>
   </div>
 
-  <!-- Reviews -->
+    <!-- Reviews -->
   <div id="reviewsSection" class="content-section" style="padding-top: 34px; background-color: black; color: white;">
     <div id="reviewFormContainer" style="max-width:500px; margin:10px auto 20px; background-color:#6A0DAD; padding:5px; border-radius:10px; color:black;">
       <form id="reviewForm" style="text-align:center;">
@@ -277,12 +289,12 @@
 
 /* ===================== Firebase ===================== */
 const firebaseConfig = {
-  apiKey: "AIzaSyDccI-TdbCXAJr6CD77X4yOUOfezef7Oks",
-  authDomain: "delivery-login-3a084.firebaseapp.com",
-  projectId: "delivery-login-3a084",
-  storageBucket: "delivery-login-3a084.firebasestorage.app",
-  messagingSenderId: "201998621677",
-  appId: "1:201998621677:web:b51c3aeb2debe18b4aa5e4"
+  apiKey: "AIzaSyD7424mubtMpjSmRUG5eonaVxGaRrpKs-s",
+  authDomain: "tttnail-care-walkin-pay.firebaseapp.com",
+  projectId: "tttnail-care-walkin-pay",
+  storageBucket: "tttnail-care-walkin-pay.firebasestorage.app",
+  messagingSenderId: "841515431051",
+  appId: "1:841515431051:web:f73dfab462d7b152c8508e"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
@@ -531,7 +543,7 @@ let bookingInProgress = false; // guard variable
   return allValid;
 }
 
-    // helper for unavailable check
+  // helper for unavailable check
 async function isDateUnavailable(selectedDate, startTime, endTime) {
   const dateStr = selectedDate.toISOString().split("T")[0];
   const snapshot = await db.collection("unavailableDays")
@@ -559,11 +571,12 @@ async function isDateUnavailable(selectedDate, startTime, endTime) {
   return blocked;
 }
 
+
 async function completeBooking() {
   if (bookingInProgress) return; 
   bookingInProgress = true;
 
-  const bookBtn = document.getElementById("completeBookingBtn");
+  const bookBtn = document.getElementById("placeOrderBtn");
   if (bookBtn) bookBtn.disabled = true; 
 
   try {
@@ -578,44 +591,19 @@ async function completeBooking() {
 
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-    // ✅ required fields check (unchanged)
-    const requiredFields = {
-      customerName: name,
-      customerPhone: phone,
-      customerLocation: location,
-      rentalDateRange: rentalDates,
-      startTime: startTime,
-      endTime: endTime,
-      selectedParish: parish
-    };
-
+    // --- required field validation ---
+    const requiredFields = { name, phone, location, rentalDates, startTime, endTime, parish };
     let allValid = true;
-    Object.keys(requiredFields).forEach(id => {
-      if (id === "selectedParish") {
-        if (!requiredFields[id]) {
-          document.querySelectorAll(".parishBtn").forEach(b => b.classList.add("error"));
-          allValid = false;
-        } else {
-          document.querySelectorAll(".parishBtn").forEach(b => b.classList.remove("error"));
-        }
-      } else {
-        const el = document.getElementById(id);
-        if (!requiredFields[id]) {
-          el?.classList.add("error");
-          allValid = false;
-        } else {
-          el?.classList.remove("error");
-        }
-      }
-    });
-
+    if (!name || !phone || !location || !rentalDates || !startTime || !endTime || !parish) {
+      allValid = false;
+    }
     if (!allValid || cart.length === 0) {
       bookingInProgress = false;
       if (bookBtn) bookBtn.disabled = false;
       return;
     }
 
-    // 📅 rental dates check (unchanged)
+    // --- rental date check ---
     if (!rentalDates.includes(" to ")) {
       document.getElementById("rentalDateRange")?.classList.add("error");
       bookingInProgress = false;
@@ -632,7 +620,7 @@ async function completeBooking() {
       return;
     }
 
-    // 🔒 NEW: check unavailable days
+    // --- check unavailable days ---
     if (await isDateUnavailable(start, startTime, endTime) || await isDateUnavailable(end, startTime, endTime)) {
       alert("The selected date or time is unavailable. Please choose another.");
       bookingInProgress = false;
@@ -640,7 +628,7 @@ async function completeBooking() {
       return;
     }
 
-    // --- calculate total (unchanged) ---
+    // --- calculate total ---
     const days = getRentalDayCount();
     let totalAmount = 0;
     for (const item of cart) {
@@ -650,27 +638,78 @@ async function completeBooking() {
     }
     totalAmount = Number(totalAmount.toFixed(2));
 
-    // --- generate order number (unchanged) ---
+    // --- generate order number ---
     const orderNumber = await generateUniqueOrderNumber(name);
 
-    // --- save transaction (unchanged) ---
-    await db.runTransaction(async (transaction) => {
-      const docRef = db.collection("reservations").doc(orderNumber);
-      transaction.set(docRef, {
-        orderNumber,
-        userId: currentUser ? currentUser.uid : null,
-        name, phone, location,
-        rentalDates, startTime, endTime,
-        parish,
-        paymentType,
-        cartItems: cart,
-        totalAmount,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+    // --- save to Firestore ---
+    await db.collection("reservations").doc(orderNumber).set({
+      orderNumber,
+      userId: currentUser ? currentUser.uid : null,
+      name, phone, location,
+      rentalDates, startTime, endTime,
+      parish,
+      paymentType,
+      cartItems: cart,
+      totalAmount,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-  } catch (error) {
-    console.error("Booking error:", error);
+    // --- send Telegram ---
+    await sendTelegramMessage(
+      name, phone, location, rentalDates,
+      startTime, endTime, paymentType,
+      cart, totalAmount, orderNumber, parish
+    );
+
+    // --- cleanup ---
+    localStorage.removeItem("cart");
+    updateCartCount();
+    document.getElementById("cartModal").style.display = "none";
+    ["customerName","customerPhone","customerLocation","rentalDateRange","startTime","endTime","selectedParish"]
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+    document.querySelectorAll(".parishBtn").forEach(b => b.classList.remove("selected"));
+
+    const stockErrorMsg = document.getElementById("stockErrorMsg");
+    if (stockErrorMsg) stockErrorMsg.innerHTML = "";
+
+    // --- success popup ---
+    Swal.fire({
+      title: `ORDER MADE<br>ORDER # (${orderNumber})`,
+      html: `
+        <hr style="margin:5px 0;">
+        <p><strong>50%</strong> of your grand total must be transferred to the account provided below within 24 hours or your order will be canceled.</p>
+        <p><strong>DELIVERY FEE WILL BE CHARGED UPON ARRIVAL</strong></p>
+        <hr style="margin:5px 0;">
+        <p>💰 50% Due Now: 
+          <span style="color:#6A0DAD; font-weight:bold; font-size:18px;">
+            ${formatJMD(totalAmount / 2)}
+          </span>
+        </p>
+        <hr style="margin:5px 0;">
+        <p><strong>Banking Details:</strong></p>
+        <p style="text-align:left; line-height:1.5; font-size:15px;">
+          🏦 Bank: <b>Your Bank Name</b><br>
+          👤 Account Name: <b>Your Account Name</b><br>
+          🔢 Account Number: <b>123456789</b><br>
+          🏛️ Branch: <b>Your Branch Name</b><br>
+          📋 Reference: <b>${orderNumber}</b>
+        </p>
+        <hr style="margin:5px 0;">
+        <p style="font-size:14px;">
+          ℹ️ If you need to see the banking information again, it’s always visible 
+          in the <b>PAYMENT INFO</b> section from the menu.
+        </p>
+      `,
+      icon: "success",
+      confirmButtonColor: "#1a73e8"
+    });
+
+    fetchBookedDatesAndInitCalendar();
+    const rentalDatesNow = (document.getElementById("rentalDateRange")?.value || "").trim();
+    if (rentalDatesNow) validateCartStock(rentalDatesNow);
+
+  } catch (err) {
+    console.error("Booking error:", err);
     alert("Failed to complete booking. Please try again.");
   } finally {
     bookingInProgress = false;
@@ -679,73 +718,6 @@ async function completeBooking() {
 }
 
 
-    // --- send Telegram ---
-    await sendTelegramMessage(
-      name, phone, location, rentalDates,
-      startTime, endTime, paymentType,
-      cart, totalAmount, orderNumber, parish // ✅ include parish if needed
-    );
-
-    // --- cleanup ---
-    localStorage.removeItem("cart");
-    updateCartCount();
-    document.getElementById("cartModal").style.display = "none";
-
-    ["customerName","customerPhone","customerLocation","rentalDateRange","startTime","endTime","selectedParish"]
-      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
-
-    document.querySelectorAll(".parishBtn").forEach(b => b.classList.remove("selected"));
-
-    const stockErrorMsg = document.getElementById("stockErrorMsg");
-    if (stockErrorMsg) stockErrorMsg.innerHTML = "";
-
-    // ✅ keep success popup with 50% deposit + bank info
-Swal.fire({
-  title: `ORDER MADE<br>ORDER # (${orderNumber})`,
-  html: `
-  <hr style="margin:5px 0;">
-    <p><strong>50%</strong> of your grand total must be transferred to the account provided below within 24 hours or your order will be canceled.</p>
-    <p><strong>DELIVERY FEE WILL BE CHARGED UPON ARRIVAL</strong></p>
-    <hr style="margin:5px 0;">
-    <p>💰 50% Due Now: 
-      <span style="color:#6A0DAD; font-weight:bold; font-size:18px;">
-        ${formatJMD(totalAmount / 2)}
-      </span>
-    </p>
-
-    <hr style="margin:5px 0;">
-
-    <p><strong>Banking Details:</strong></p>
-    <p style="text-align:left; line-height:1.5; font-size:15px;">
-      🏦 Bank: <b>Your Bank Name</b><br>
-      👤 Account Name: <b>Your Account Name</b><br>
-      🔢 Account Number: <b>123456789</b><br>
-      🏛️ Branch: <b>Your Branch Name</b>
-      📋 Reference: <b>${orderNumber}</b>
-    </p>
-
-    <hr style="margin:5px 0;">
-
-    <p style="font-size:14px;">
-      ℹ️ If you need to see the banking information again, it’s always visible 
-      in the <b>PAYMENT INFO</b> section from the menu.
-    </p>
-  `,
-  icon: "success",
-  confirmButtonColor: "#1a73e8"
-});
-
-    fetchBookedDatesAndInitCalendar();
-    const rentalDatesNow = (document.getElementById("rentalDateRange")?.value || "").trim();
-    if (rentalDatesNow) validateCartStock(rentalDatesNow);
-
-  } catch (err) {
-    console.error("completeBooking crashed:", err);
-  } finally {
-    bookingInProgress = false;
-    if (bookBtn) bookBtn.disabled = false;
-  }
-  }
 
   // ✅ Remove red highlight as soon as user types or changes value
 function attachLiveValidation(fieldIds) {
@@ -1821,7 +1793,7 @@ document.getElementById("rentalDateRange")?.addEventListener("change", (e) => {
       </style>
     </head>
     <body>
-      <h1 class="title">PELLZ PARTY RENTAL INVOICE</h1>
+      <h1 class="title">ZAHI ENTERTAINMENT RENTAL INVOICE</h1>
       <p><b>Order #:</b> ${order.orderNumber}</p>
       <p><b>Date:</b> ${orderDate}</p>
       <p><b>Name:</b> ${order.name || ""}</p>
