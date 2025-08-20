@@ -892,6 +892,44 @@ function clearReservations() {
   });
 }
 
+    function addUnavailableDate() {
+  const date = document.getElementById('unavailableDateInput').value;
+  const allDay = document.getElementById('allDayCheckbox').checked;
+  const startTime = document.getElementById('startTimeInput').value;
+  const endTime = document.getElementById('endTimeInput').value;
+
+  if (!date) {
+    alert("Please select a date.");
+    return;
+  }
+
+  if (!allDay && (!startTime || !endTime)) {
+    alert("Please provide both start and end time.");
+    return;
+  }
+
+  // normalize YYYY-MM-DD format
+  const normalizedDate = new Date(date);
+  const yyyy = normalizedDate.getFullYear();
+  const mm = String(normalizedDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(normalizedDate.getDate()).padStart(2, '0');
+  const finalDate = `${yyyy}-${mm}-${dd}`;
+
+  db.collection("unavailableDays").add({
+    date: finalDate,
+    allDay,
+    startTime: allDay ? null : startTime,
+    endTime: allDay ? null : endTime,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => {
+    document.getElementById('unavailableDateInput').value = '';
+    document.getElementById('startTimeInput').value = '';
+    document.getElementById('endTimeInput').value = '';
+    document.getElementById('allDayCheckbox').checked = true;
+    document.getElementById('timeInputs').style.display = 'none';
+  });
+}
+
 
 function loadUnavailableDates() {
   const list = document.getElementById('unavailableDatesList');
