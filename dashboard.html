@@ -3,14 +3,6 @@
 <html lang="en">
 <head>
 
-<script>
-  // Redirect if not logged in as admin
-  if (localStorage.getItem("isAdmin") !== "true") {
-    window.location.href = "index.html";
-  }
-</script>
-
-
 <!-- Essential for correct scaling on mobile -->
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
 <title>ADMIN DASHBOARD</title>
@@ -883,12 +875,16 @@ function loadUnavailableDates() {
 function removeUnavailableDate(id) { db.collection('unavailableDays').doc(id).delete(); }
 
 firebase.auth().onAuthStateChanged(user => {
-  if (user) {
-    loadGallery();   // ✅ add this
+  const allowedAdmin = "carlanviroberts@gmail.com"; // <-- your admin email
+
+  if (user && user.email === allowedAdmin) {
+    // ✅ Only the real admin gets in
+    loadGallery();
     showSection('reservationsPage');
     loadReservations();
     loadUnavailableDates();
   } else {
+    // ❌ Everyone else gets redirected
     window.location.href = 'index.html';
   }
 });
