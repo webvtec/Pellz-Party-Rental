@@ -893,11 +893,8 @@ function clearReservations() {
     return;
   }
 
-  // normalize YYYY-MM-DD format
-  const normalizedDate = new Date(date);
-  const yyyy = normalizedDate.getFullYear();
-  const mm = String(normalizedDate.getMonth() + 1).padStart(2, '0');
-  const dd = String(normalizedDate.getDate()).padStart(2, '0');
+  // ✅ FIX: parse YYYY-MM-DD manually (no timezone conversion)
+  const [yyyy, mm, dd] = date.split("-");
   const finalDate = `${yyyy}-${mm}-${dd}`;
 
   db.collection("unavailableDays").add({
