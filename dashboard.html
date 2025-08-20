@@ -886,9 +886,33 @@ firebase.auth().onAuthStateChanged(user => {
 
     let currentInvoiceOrderId = null;
 
+let currentInvoiceOrderId = null;
+
 function openInvoiceModal(orderId) {
   currentInvoiceOrderId = orderId;
-  document.getElementById("invoiceModal").style.display = "flex";
+  const modal = document.getElementById("invoiceModal");
+  modal.style.display = "flex";
+
+  // Clear all checkboxes first
+  document.querySelectorAll("#invoiceModal input[type='checkbox']").forEach(cb => {
+    cb.checked = false;
+  });
+
+  // Load saved invoice options for this order from Firestore
+  db.collection("reservations").doc(orderId).get().then(doc => {
+    if (doc.exists) {
+      const data = doc.data();
+      if (data.invoiceOptions && Array.isArray(data.invoiceOptions)) {
+        data.invoiceOptions.forEach(option => {
+          const checkbox = [...document.querySelectorAll("#invoiceModal input[type='checkbox']")]
+            .find(cb => cb.value === option);
+          if (checkbox) checkbox.checked = true;
+        });
+      }
+    }
+  }).catch(err => {
+    console.error("Error loading invoice options:", err);
+  });
 }
 
 function closeInvoiceModal() {
@@ -911,15 +935,18 @@ function sendInvoice() {
   .then(() => {
     closeInvoiceModal();
 
-    // ✅ Add message directly under the buttons for immediate feedback
+    // ✅ Update status message under order card
     const card = document.querySelector(`.reservation-card[data-id='${currentInvoiceOrderId}']`);
-    if (card && !card.querySelector(".invoice-status")) {
-      const status = document.createElement("p");
-      status.className = "invoice-status";
-      status.style.color = "green";
-      status.style.fontWeight = "bold";
-      status.innerText = "INVOICE SENT";
-      card.appendChild(status);
+    if (card) {
+      let status = card.querySelector(".invoice-status");
+      if (!status) {
+        status = document.createElement("p");
+        status.className = "invoice-status";
+        status.style.color = "green";
+        status.style.fontWeight = "bold";
+        card.appendChild(status);
+      }
+      status.innerText = "INVOICE SENT: " + selectedOptions.join(", ");
     }
   })
   .catch(err => {
@@ -927,6 +954,7 @@ function sendInvoice() {
     alert("Failed to send invoice.");
   });
 }
+
   </script>
 </body>
 </html>
