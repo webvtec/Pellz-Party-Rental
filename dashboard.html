@@ -925,19 +925,6 @@ function loadUnavailableDates() {
   });
 }
 
-
-function loadUnavailableDates() {
-  const list = document.getElementById('unavailableDatesList');
-  db.collection('unavailableDays').orderBy('date').onSnapshot(snapshot => {
-    list.innerHTML = '';
-    snapshot.forEach(doc => {
-      const d = doc.data();
-      let text = `${d.date} - ${d.allDay ? 'All Day' : `${d.startTime} to ${d.endTime}`}`;
-      list.innerHTML += `<li>${text} <button onclick="removeUnavailableDate('${doc.id}')">Remove</button></li>`;
-    });
-  });
-}
-
 function removeUnavailableDate(id) { db.collection('unavailableDays').doc(id).delete(); }
 
 firebase.auth().onAuthStateChanged(user => {
